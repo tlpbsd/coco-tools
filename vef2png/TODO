@@ -1,0 +1,7 @@
+- Support for two color images (I don't have any to test!)
+
+- Some VEFs contain 8 padded lines at the top that get cropped out by display
+  programs (as I understand it.) It would be nice to detect these reliably and
+remove them, if possible.
+
+- CoCo 3 palette should probably be verified accurate, but it looks correct.
