@@ -1,0 +1,4 @@
+06/29/2018:
+
+ - Fixed RGB color #25 value.
+ - Removed unnecessary loop for retrieving palette 

@@ -3,7 +3,7 @@
 # vef2png.py: Convert OS-9 VEF images to PNG 
 # Copyright (C) 2018  Travis Poppe <tlp@lickwid.net>
 #
-# Version 2018.06.27
+# Version 2018.06.29
 #
 # Requires: PyPNG, Pillow (pip install pypng, pip install pillow)
 
@@ -26,12 +26,12 @@
 from __future__ import print_function
 import os
 import sys
-import png 
+import png
 from PIL import Image
 
 if len(sys.argv) < 3 or len(sys.argv) > 3:
     print("vef2png.py: Convert OS-9 VEF images to PNG\n")
-    print("Version: 2018.06.27")
+    print("Version: 2018.06.29")
     print("Copyright (C) 2018  Travis Poppe <tlp@lickwid.net>")
     print("\nUsage:", os.path.basename(__file__), "image.vef image.png")
 
@@ -98,7 +98,7 @@ coco3_rgb = [
     (0x55,0xff,0x00),   # 22 bright yellow/green
     (0x55,0xff,0x55),   # 23 light green
     (0x00,0xaa,0xaa),   # 24 pale green/cyan
-    (0x55,0xff,0xff),   # 25 peacock 
+    (0x00,0xaa,0xff),   # 25 peacock 
     (0x00,0xff,0xaa),   # 26 light green/cyan
     (0x00,0xff,0xff),   # 27 bright cyan
     (0x55,0xaa,0xaa),   # 28 light peacock
@@ -174,11 +174,8 @@ if not veftype:
 else:
     print(sys.argv[1],": ", width,"x",height,"x",colors, sep='')
 
-
 # Grab VEF palette
-pal = []
-for byte in data[2:18]:
-    pal.append(byte)
+pal = data[2:18]
 
 image_data = []
 
