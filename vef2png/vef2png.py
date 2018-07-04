@@ -3,7 +3,7 @@
 # vef2png.py: Convert OS-9 VEF images to PNG 
 # Copyright (C) 2018  Travis Poppe <tlp@lickwid.net>
 #
-# Version 2018.06.29
+# Version 2018.07.04
 #
 # Requires: PyPNG, Pillow (pip install pypng, pip install pillow)
 
@@ -29,9 +29,9 @@ import sys
 import png
 from PIL import Image
 
-if len(sys.argv) < 3 or len(sys.argv) > 3:
+if len(sys.argv) != 3:
     print("vef2png.py: Convert OS-9 VEF images to PNG\n")
-    print("Version: 2018.06.29")
+    print("Version: 2018.07.04")
     print("Copyright (C) 2018  Travis Poppe <tlp@lickwid.net>")
     print("\nUsage:", os.path.basename(__file__), "image.vef image.png")
 
@@ -48,7 +48,7 @@ def unsquash(data, count, orig_len):
         i += 1
         # If high bit is set, we remove it (-128) and repeat the next byte that
         # many times.
-        if count_byte >> 7:
+        if count_byte > 128:
             count_byte -= 128
             while count_byte > 0: 
                 decomp_data.append(data[i])
