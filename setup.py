@@ -62,7 +62,7 @@ setup(
 
     entry_points={
         'console_scripts': [
-            'vef2png=vef2png.vef2png:main',
+            'vef2png=coco.vef2png:main',
         ],
     },
 )
