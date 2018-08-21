@@ -1,13 +1,13 @@
 #!/usr/bin/env python
 #
-# vef2png.py: Convert OS-9 VEF images to PNG 
+# veftopng.py: Convert OS-9 VEF images to PNG 
 # Copyright (C) 2018  Travis Poppe <tlp@lickwid.net>
 #
-# Version 2018.07.04
+# Version 2018.08.20
 #
 # Requires: PyPNG, Pillow (pip install pypng, pip install pillow)
 
-# Usage: vef2png.py image.vef image.png
+# Usage: veftopng.py image.vef image.png
 
 # This program is free software; you can redistribute it and/or modify it
 # under the terms of the GNU General Public License as published by the
@@ -63,7 +63,7 @@ def unsquash(data, count, orig_len):
     return(decomp_data[0:orig_len])
 
 
-VERSION = '2018.07.04'
+VERSION = '2018.08.20'
 DESCRIPTION = """Convert OS-9 VEF images to PNG
 Copyright (C) 2018  Travis Poppe <tlp@lickwid.net>
 Version: {}""".format(VERSION)

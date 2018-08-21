@@ -62,7 +62,9 @@ setup(
 
     entry_points={
         'console_scripts': [
-            'vef2png=coco.vef2png:main',
+            'cm3toppm=coco.cm3toppm:main',
+            'mgetoppm=coco.mgetoppm:main',
+            'veftopng=coco.veftopng:main',
         ],
     },
 )
