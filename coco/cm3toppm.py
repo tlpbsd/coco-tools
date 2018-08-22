@@ -15,7 +15,7 @@ import sys
 
 def convert(input_image_stream, output_image_stream):
     def debug(x):
-        sys.stderr.writelines(['{}\n'.format(x)])
+        sys.stderr.write('{}\n'.format(x))
 
     def pack(a):
         return ''.join('{}'.format(chr(x)) for x in a)

@@ -16,14 +16,20 @@ import sys
 
 def convert(input_image_stream, output_image_stream):
     def debug(x):
-        sys.stderr.writelines([x])
+        sys.stderr.write('{}\n'.format(x))
 
     def pack(a):
         return ''.join('{}'.format(chr(x)) for x in a)
 
+    def getbit(c, ii):
+        return 1 if (c & (1 << ii)) else 0
+
     def dmp500(x):
-       c = palette[x]
-       out.write(pack([(c[5]*2+c[2])*85,(c[4]*2+c[1])*85,(c[3]*2+c[0])*85]))
+        c = palette[x]
+        out.write(
+          pack([(getbit(c, 5) * 2 + getbit(c, 2)) * 85,
+                (getbit(c, 4) * 2 + getbit(c, 1)) * 85,
+                (getbit(c, 3) * 2 + getbit(c, 0)) * 85]))
 
     f = input_image_stream
     out = output_image_stream
@@ -43,7 +49,7 @@ def convert(input_image_stream, output_image_stream):
         debug('invalid header')
         sys.exit(1)
     palette = [ord(f.read(1)) for ii in range(16)]
-    is_rgb = f.read(1).ord==0
+    is_rgb = ord(f.read(1)) == 0
     colorspace = 'RGB' if is_rgb else 'CMP'
     if not is_rgb:
         for ii in range(16):
@@ -57,11 +63,11 @@ def convert(input_image_stream, output_image_stream):
     if subtyp == 0:
         def dump(a):
             dmp500(a >> 4)
-            dmp500r(a & 0x0F)
+            dmp500(a & 0x0F)
     else:
         def dump(a):
             dmp500(a >> 6)
-            dmp500( (a >> 4) & 3)
+            dmp500((a >> 4) & 3)
             dmp500((a >> 2) & 3)
             dmp500(a & 3)
 
@@ -70,8 +76,8 @@ def convert(input_image_stream, output_image_stream):
     botpal = a & 0xF
     toppal = (a >>4 ) & 0xF
     debug('{}x{}, 16 couleurs {}, titre «{}»'.format(cols, rows, colorspace, titbuf))
-    debug('palette={}, cycles={}, botpal={},]\ntoppal=#{toppal}'.format(palette, cycles, botpal, toppal))
-    out.writelines(['P6\n{} {}\n255'.format(cols, rows)])
+    debug('palette={}, cycles={}, botpal={},]\ntoppal={}'.format(palette, cycles, botpal, toppal))
+    out.write('P6\n{} {}\n255\n'.format(cols, rows))
     y = 160 * rows
     if not packed:
         while True:
@@ -122,8 +128,8 @@ def main():
     args = parser.parse_args()
 
     convert(args.input_image, args.output_image)
-    close(args.output_image)
-    close(args.input_image)
+    args.output_image.close()
+    args.input_image.close()
 
 
 if __name__ == '__main__':
