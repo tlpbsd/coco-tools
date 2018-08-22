@@ -15,16 +15,19 @@ import sys
 
 def convert(input_image_stream, output_image_stream):
     def debug(x):
-        sys.stderr.writelines([x])
+        sys.stderr.writelines(['{}\n'.format(x)])
 
     def pack(a):
         return ''.join('{}'.format(chr(x)) for x in a)
 
+    def getbit(c, ii):
+        return 1 if (c & (1 << ii)) else 0
+
     def dump(x):
         c = palette[x]
-        sys.stdout.write(pack([(c[5] * 2 + c[2]) * 85,
-                               (c[4] * 2 + c[1]) * 85,
-                               (c[3] * 2 + c[0]) * 85]))
+        out.write(pack([(getbit(c, 5) * 2 + getbit(c, 2)) * 85,
+                        (getbit(c, 4) * 2 + getbit(c, 1)) * 85,
+                        (getbit(c, 3) * 2 + getbit(c, 0)) * 85]))
 
     # Read basic structure
     #   - is is a 192 or 384 row image?
@@ -32,8 +35,8 @@ def convert(input_image_stream, output_image_stream):
     f = input_image_stream
     cols = 320
     pictyp = ord(f.read(1))
-    rows = ((1 if (pictyp and 0x80) else 0) + 1) * 192;
-    sans_motifs = (pictyp and 0x1) != 0
+    rows = (getbit(pictyp, 7) + 1) * 192
+    sans_motifs = getbit(pictyp, 0) != 0
     debug('{}x{}, 16 couleurs, sans_motifs={}'.format(cols, rows, sans_motifs))
 
     # Get palette information
@@ -50,13 +53,13 @@ def convert(input_image_stream, output_image_stream):
         f.read(243)
     linbuf = [0] * 160
     buff1 = [0] * 20
-    buff2 = [0] * 10
+    buff2 = []
 
     # Start outputting image
     out = output_image_stream
     out.writelines(['P6\n{} {}\n255\n'.format(cols, rows)])
 
-    for ii in range((1 if (pictyp and 0x80) else 0) + 1):
+    for ii in range(getbit(pictyp, 7) + 1):
         lines = ord(f.read(1))
         for jj in range(lines):
             u = 0
@@ -68,35 +71,35 @@ def convert(input_image_stream, output_image_stream):
             contr = ord(f.read(1))
             if contr < 128:
                 for kk in range(20):
-                    buff[kk] = ord(f.read(1))
+                    buff1[kk] = ord(f.read(1))
+                buff2 = []
                 for kk in range(contr):
-                    buffer2[kk] = ord(f.read(1))
-        for jj in range(160):
-            if contr >= 128:
-                a = ord(f.read(1))
-            else:
-                cc = buff1[u][bitu]
-                bitu = bitu - 1
-                if bitu < 0:
-                    bitu = 7
-                    u - u + 1
-                end
-            if cc == 0:
-                a = linbuf[(x - 1) % 160]
-            else:
-                cc = buff2[y][bity]
-                bity = bity - 1
-                if bity<0:
-                    bity = 7
-                    y = y + 1
-                if cc == 0:
-                    a = linbuf[x]
+                    buff2.append(ord(f.read(1)))
+            for kk in range(160):
+                if contr >= 128:
+                    a = ord(f.read(1))
                 else:
-                    a = ord(read(1))
-            linbuf[x] = a
-            dump(a >> 4)
-            dump(a & 15)
-            x += 1
+                    cc = getbit(buff1[u], bitu)
+                    bitu = bitu - 1
+                    if bitu < 0:
+                        bitu = 7
+                        u = u + 1
+                    if cc == 0:
+                        a = linbuf[(x - 1) % 160]
+                    else:
+                        cc = getbit(buff2[y], bity)
+                        bity = bity - 1
+                        if bity < 0:
+                            bity = 7
+                            y = y + 1
+                        if cc == 0:
+                            a = linbuf[x]
+                        else:
+                            a = ord(f.read(1))
+                linbuf[x] = a
+                dump(a >> 4)
+                dump(a & 15)
+                x = x + 1
 
     # Look for extra junk at the end of the file
     extra = 0
@@ -133,8 +136,8 @@ def main():
     args = parser.parse_args()
 
     convert(args.input_image, args.output_image)
-    close(args.output_image)
-    close(args.input_image)
+    args.output_image.close()
+    args.input_image.close()
 
 
 if __name__ == '__main__':
