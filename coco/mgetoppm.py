@@ -110,7 +110,7 @@ Version: {}""".format(VERSION)
 
 
 def main():
-    start(sys.argv)
+    start(sys.argv[1:])
 
 
 def start(argv):
@@ -119,11 +119,13 @@ def start(argv):
     parser.add_argument('input_image',
       metavar='image.mge',
       type=argparse.FileType('rb'),
+      nargs='?',
       default=sys.stdin,
       help='input MGE image file')
     parser.add_argument('output_image',
       metavar='image.ppm',
       type=argparse.FileType('wb'),
+      nargs='?',
       default=sys.stdout,
       help='output PPM image file')
     parser.add_argument('--version',
