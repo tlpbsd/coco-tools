@@ -8,7 +8,7 @@ import unittest
 import coco.mgetoppm
 
 
-class TestCM3ToPPM(unittest.TestCase):
+class TestMGEToPPM(unittest.TestCase):
     USAGE_REGEX = r'\[-h\] \[--version\] \[image.mge\] \[image.ppm\]'
     POSITIONAL_ARGS_REGEX = r'positional arguments:\s*image.mge\s*input MGE image file\s*image.ppm\s*output PPM image file'
     OPTIONAL_ARGS_REGEX = r'optional arguments:\s*-h, --help\s*show this help message and exit\s*--version\s*show program\'s version number and exit'

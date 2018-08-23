@@ -8,7 +8,7 @@ import unittest
 import coco.veftopng
 
 
-class TestCM3ToPPM(unittest.TestCase):
+class TestVEFToPNG(unittest.TestCase):
     USAGE_REGEX = r'\[-h\] \[--version\] image.vef image.png'
     POSITIONAL_ARGS_REGEX = r'positional arguments:\s*image.vef\s*input VEF image file\s*image.png\s*output PNG image file'
     OPTIONAL_ARGS_REGEX = r'optional arguments:\s*-h, --help\s*show this help message and exit\s*--version\s*show program\'s version number and exit'

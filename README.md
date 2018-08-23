@@ -23,3 +23,13 @@ the following:
 ./setup.py install
 ```
 
+## Running Tests
+Tests are run against the Docker enviornment via:
+```
+./run-tests
+```
+
+You can also run a smaller subset of tests via a command like:
+```
+./run-tests tests.coco.test_util
+```

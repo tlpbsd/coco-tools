@@ -12,16 +12,12 @@ from __future__ import print_function
 import argparse
 import sys
 
+from util import getbit, pack
+
 
 def convert(input_image_stream, output_image_stream):
     def debug(x):
         sys.stderr.write('{}\n'.format(x))
-
-    def pack(a):
-        return ''.join('{}'.format(chr(x)) for x in a)
-
-    def getbit(c, ii):
-        return 1 if (c & (1 << ii)) else 0
 
     def dump(x):
         c = palette[x]
