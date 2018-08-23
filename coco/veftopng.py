@@ -70,7 +70,7 @@ Version: {}""".format(VERSION)
 
 
 def main():
-    start(sys.argv)
+    start(sys.argv[1:])
 
 
 def start(argv):
