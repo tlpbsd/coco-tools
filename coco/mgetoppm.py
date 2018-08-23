@@ -1,6 +1,6 @@
 #!/usr/bin/env python
 # encoding: utf-8
-# mg2toppm - decoder for mge (ColorMax 3) format
+# mgetoppm - decoder for mge (ColorMax 3) format
 # Converted from mgetoppm code:
 #   Copyright (c) 2017 by Mathieu Bouchard
 # Python code:
