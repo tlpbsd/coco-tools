@@ -33,7 +33,7 @@ class TestCM3ToPPM(unittest.TestCase):
         infilename = pkg_resources.resource_filename(__name__, 'fixtures/dragon1.mge')
         with self.assertRaises(subprocess.CalledProcessError) as context:
             subprocess.check_output(
-              ['coco/mgetoppm.py', infilename, 'bar', 'baz'],
+              ['coco/mgetoppm.py', infilename, self.outfile.name, 'baz'],
               stderr=subprocess.STDOUT)
         self.assertRegexpMatches(context.exception.output, self.USAGE_REGEX)
         self.assertRegexpMatches(context.exception.output,
