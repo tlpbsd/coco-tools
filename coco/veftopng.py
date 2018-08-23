@@ -70,6 +70,10 @@ Version: {}""".format(VERSION)
 
 
 def main():
+    start(sys.argv)
+
+
+def start(argv):
     parser = argparse.ArgumentParser(description=DESCRIPTION,
       formatter_class=argparse.RawTextHelpFormatter)
     parser.add_argument('input_image',
@@ -83,7 +87,7 @@ def main():
     parser.add_argument('--version',
       action='version',
       version='%(prog)s {}'.format(VERSION))
-    args = parser.parse_args()
+    args = parser.parse_args(argv)
 
     with open(args.input_image, 'rb') as file:
         data = bytearray(file.read())

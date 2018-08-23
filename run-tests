@@ -1,0 +1,10 @@
+#!/usr/bin/env sh
+
+
+if [[ $* = *[!\ ]* ]]; then
+  params=( "$*" )
+else
+  params=()
+fi
+
+docker-compose -f docker-compose.yml run run-tests nose2 "${params[@]}"

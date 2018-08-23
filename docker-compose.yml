@@ -7,3 +7,9 @@ services:
       - HOME=/home/$USER
     volumes:
       - $HOME/..:/home
+
+  run-tests:
+    image: tlpbsd-coco-tools:latest
+    volumes:
+      - ./:/coco
+    working_dir: /coco

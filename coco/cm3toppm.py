@@ -118,22 +118,28 @@ Version: {}""".format(VERSION)
 
 
 def main():
+    start(sys.argv[1:])
+
+
+def start(argv):
     parser = argparse.ArgumentParser(description=DESCRIPTION,
       formatter_class=argparse.RawTextHelpFormatter)
     parser.add_argument('input_image',
       metavar='image.cm3',
       type=argparse.FileType('rb'),
+      nargs='?',
       default=sys.stdin,
       help='input CM3 image file')
     parser.add_argument('output_image',
       metavar='image.ppm',
       type=argparse.FileType('wb'),
+      nargs='?',
       default=sys.stdout,
       help='output PPM image file')
     parser.add_argument('--version',
       action='version',
       version='%(prog)s {}'.format(VERSION))
-    args = parser.parse_args()
+    args = parser.parse_args(argv)
 
     convert(args.input_image, args.output_image)
     args.output_image.close()
