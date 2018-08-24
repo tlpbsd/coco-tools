@@ -46,7 +46,7 @@ def unsquash(data, count, orig_len):
         # many times.
         if count_byte > 128:
             count_byte -= 128
-            while count_byte > 0: 
+            while count_byte > 0:
                 decomp_data.append(data[i])
                 count_byte -= 1
             i += 1
@@ -247,7 +247,7 @@ def start(argv):
     if width == 640:
         print("Resizing image to 640x480...")
         png_file = Image.open(args.output_image)
-        png_file = png_file.resize((640,480))
+        png_file = png_file.resize((640, height * 2))
         png_file.save(args.output_image)
         png_file.close()
 
