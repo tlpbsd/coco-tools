@@ -10,8 +10,10 @@ import coco.veftopng
 
 class TestVEFToPNG(unittest.TestCase):
     USAGE_REGEX = r'\[-h\] \[--version\] image.vef image.png'
-    POSITIONAL_ARGS_REGEX = r'positional arguments:\s*image.vef\s*input VEF image file\s*image.png\s*output PNG image file'
-    OPTIONAL_ARGS_REGEX = r'optional arguments:\s*-h, --help\s*show this help message and exit\s*--version\s*show program\'s version number and exit'
+    POSITIONAL_ARGS_REGEX = r'positional arguments:\s*image.vef\s*input VEF image file\s*' \
+      r'image.png\s*output PNG image file'
+    OPTIONAL_ARGS_REGEX = r'optional arguments:\s*-h, --help\s*show this help message and exit' \
+      r'\s*--version\s*show program\'s version number and exit'
     VERSION_REGEX = r'2018\.08\.20'
 
     def setUp(self):
@@ -55,7 +57,8 @@ class TestVEFToPNG(unittest.TestCase):
         self.assertRegexpMatches(output, self.OPTIONAL_ARGS_REGEX)
 
     def test_version(self):
-        output = subprocess.check_output(['coco/veftopng.py', '--version'], stderr=subprocess.STDOUT)
+        output = subprocess.check_output(['coco/veftopng.py', '--version'],
+          stderr=subprocess.STDOUT)
         self.assertRegexpMatches(output, self.VERSION_REGEX)
 
     def test_unknown_argument(self):

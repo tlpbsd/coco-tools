@@ -10,8 +10,10 @@ import coco.mgetoppm
 
 class TestMGEToPPM(unittest.TestCase):
     USAGE_REGEX = r'\[-h\] \[--version\] \[image.mge\] \[image.ppm\]'
-    POSITIONAL_ARGS_REGEX = r'positional arguments:\s*image.mge\s*input MGE image file\s*image.ppm\s*output PPM image file'
-    OPTIONAL_ARGS_REGEX = r'optional arguments:\s*-h, --help\s*show this help message and exit\s*--version\s*show program\'s version number and exit'
+    POSITIONAL_ARGS_REGEX = r'positional arguments:\s*image.mge\s*input MGE image file\s*' \
+      r'image.ppm\s*output PPM image file'
+    OPTIONAL_ARGS_REGEX = r'optional arguments:\s*-h, --help\s*show this help message and exit' \
+      r'\s*--version\s*show program\'s version number and exit'
     VERSION_REGEX = r'2018\.08\.20'
 
     def setUp(self):
@@ -60,7 +62,8 @@ class TestMGEToPPM(unittest.TestCase):
         self.assertRegexpMatches(output, self.OPTIONAL_ARGS_REGEX)
 
     def test_version(self):
-        output = subprocess.check_output(['coco/mgetoppm.py', '--version'], stderr=subprocess.STDOUT)
+        output = subprocess.check_output(['coco/mgetoppm.py', '--version'],
+          stderr=subprocess.STDOUT)
         self.assertRegexpMatches(output, self.VERSION_REGEX)
 
     def test_unknown_argument(self):
