@@ -1,9 +1,9 @@
 #!/usr/bin/env python
 # encoding: utf-8
 # mgetoppm - decoder for mge (ColorMax 3) format
-# Converted from mgetoppm code:
+# Original program "mgetoppm" written in Ruby
 #   Copyright (c) 2017 by Mathieu Bouchard
-# Python code:
+# Translation to Python code:
 #   Copyright (c) 2018 by Jamie Cho
 #
 # reads mge files and converts to ppm

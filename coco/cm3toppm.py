@@ -1,8 +1,8 @@
 #!/usr/bin/env python
 # cm3toppm - decoder for cm3 (CoCoMax 3) format
-# Converted from cm3toppm code:
+# Original program "cm3toppm" written in Ruby
 #   Copyright (c) 2017 by Mathieu Bouchard
-# Python code:
+# Translation to Python code:
 #   Copyright (c) 2018 by Jamie Cho
 #
 # reads cm3 files and converts to ppm
@@ -27,7 +27,7 @@ def convert(input_image_stream, output_image_stream):
 
     # Read basic structure
     #   - is is a 192 or 384 row image?
-    #   - does it use palette animation (motifs)
+    #   - motifs - patterns used for filling shapes stored in the image file
     f = input_image_stream
     cols = 320
     pictyp = ord(f.read(1))
