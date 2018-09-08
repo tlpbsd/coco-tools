@@ -2,6 +2,7 @@
 TRS-80 Color Computer Tools
 
 - cm3toppm - convert RS-DOS CM3 images to PPM
+- hrstoppm - convert RS-DOS HRS images to PPM
 - mgetoppm - convert RS-DOS MGE images to PPM
 - veftopng - convert OS-9 VEF images to PNG
 
@@ -17,7 +18,7 @@ You can run tools in that Docker image via a command like:
 ./coco-dev veftopng coco/samples/simpson.vef simpsons.png
 ```
 
-Alternatively, you can install veftopng directly to your system via
+Alternatively, you can install coco-tools directly to your system via
 the following:
 ```
 ./setup.py install
