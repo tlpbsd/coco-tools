@@ -4,24 +4,24 @@ from setuptools import setup, find_packages
 
 
 LONG_DESCRIPTION = """
-tlpbsd-coco-tools contains tools that are useful for Color Computer users.
+jamieleecho-coco-tools contains tools that are useful for Color Computer users.
 They currently include a tool for converting OS-9 VEF images to PNG.
 """
 
 
 setup(
-    name='tlpbsd-coco-tools',
+    name='jamieleecho-coco-tools',
     version='0.1.0',
 
     description='TRS-80 Color Computer Tools',
     long_description=LONG_DESCRIPTION,
 
     # The project's main homepage.
-    url='https://github.com/tlpbsd/coco-tools',
+    url='https://github.com/jamieleecho/coco-tools',
 
     # Author details
-    author='Travis Poppe',
-    author_email='tlp@lickwid.net',
+    author='Jamie Cho',
+    author_email='jamieleecho+coco_tools@gmail.com',
 
     # Choose your license
     license='GPLv2',
@@ -63,6 +63,7 @@ setup(
     entry_points={
         'console_scripts': [
             'cm3toppm=coco.cm3toppm:main',
+            'hrstoppm=coco.hrstoppm:main',
             'mgetoppm=coco.mgetoppm:main',
             'veftopng=coco.veftopng:main',
         ],
