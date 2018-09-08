@@ -1,0 +1,15 @@
+version: '3'
+
+services:
+  coco-dev:
+    image: jamieleecho-coco-tools:latest
+    environment:
+      - HOME=/home/$USER
+    volumes:
+      - $HOME/..:/home
+
+  run-tests:
+    image: jamieleecho-coco-tools:latest
+    volumes:
+      - ./:/coco
+    working_dir: /coco

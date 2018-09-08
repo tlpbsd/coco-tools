@@ -1,0 +1,11 @@
+# Deployment Requirements
+numpy==1.15.0
+Pillow==5.2.0
+pip==8.1.1
+pypng==0.0.18
+setuptools==20.7.0
+Wand==0.4.4
+wheel==0.29.0
+
+# Developer requirements
+nose2==0.8.0
