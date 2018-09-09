@@ -11,6 +11,7 @@
 from __future__ import division, print_function
 
 import argparse
+import os
 import sys
 
 from util import getbit, pack
@@ -47,14 +48,14 @@ def convert(input_image_stream, output_image_stream, arte, newsroom, cols,
         if ord(head[0]) != 0:
             sys.stderr.write('bad first byte in header\n')
             if not ignore_header_errors:
-                sys.exit(1)
+                return False
         size = ord(head[1]) * 256 + ord(head[2])
         rows = 8 * size // cols
         if cols * rows // 8 != size:
             sys.stderr.write('data length {} in header would be closest to {}x{} but that would be {} bytes\n'.format(
               size, cols, rows, cols * rows // 8))
             if not ignore_header_errors:
-                sys.exit(1)
+                return False
 
     out.write("P6\n{} {}\n255\n".format(cols, rows))
     for jj in range(rows):
@@ -97,6 +98,7 @@ def convert(input_image_stream, output_image_stream, arte, newsroom, cols,
             elif arte == PIXEL_MODE_RB3:
                 for k in range(4):
                     out.write(br3[getbit(v, 7 - k - k) + getbit(v, 6 - k - k) * 2] * 2)
+    return True
 
 
 VERSION = '2018.09.08'
@@ -199,10 +201,12 @@ def start(argv):
 
     args = parser.parse_args(argv)
 
-    convert(args.input_image, args.output_image, args.pixel_mode, args.newsroom,
+    ok = convert(args.input_image, args.output_image, args.pixel_mode, args.newsroom,
       args.width, args.ignore_header_errors)
     args.output_image.close()
     args.input_image.close()
+    if not ok:
+        os.remove(args.output_image.name)
 
 
 if __name__ == '__main__':

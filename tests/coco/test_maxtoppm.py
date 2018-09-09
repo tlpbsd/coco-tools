@@ -1,4 +1,5 @@
 import os
+import mock
 import filecmp
 import pkg_resources
 import subprocess
@@ -24,7 +25,8 @@ class TestMaxToPPM(unittest.TestCase):
     def tearDown(self):
         if (not self.outfile.closed):
             self.outfile.close()
-        os.remove(self.outfile.name)
+        if (os.path.exists(self.outfile.name)):
+            os.remove(self.outfile.name)
 
     def test_converts_max_to_ppm(self):
         infilename = pkg_resources.resource_filename(__name__, 'fixtures/eye4.max')
@@ -89,6 +91,40 @@ class TestMaxToPPM(unittest.TestCase):
         coco.maxtoppm.start([infilename, self.outfile.name, '-newsroom'])
         self.assertTrue(filecmp.cmp(self.outfile.name, comparefilename))
 
+    @mock.patch('sys.stderr')
+    def test_detects_bad_headers_1(self, mockStderr):
+        infilename = pkg_resources.resource_filename(__name__, 'fixtures/eye4.bad1.max')
+        self.outfile.close()
+        coco.maxtoppm.start([infilename, self.outfile.name])
+        self.assertFalse(os.path.exists(self.outfile.name))
+        mockStderr.write.assert_called_with('bad first byte in header\n')
+
+    @mock.patch('sys.stderr')
+    def test_ignores_bad_headers_1(self, mockStderr):
+        infilename = pkg_resources.resource_filename(__name__, 'fixtures/eye4.bad1.max')
+        comparefilename = pkg_resources.resource_filename(__name__, 'fixtures/eye4.ppm')
+        self.outfile.close()
+        coco.maxtoppm.start([infilename, self.outfile.name, '-i'])
+        self.assertTrue(filecmp.cmp(self.outfile.name, comparefilename))
+        mockStderr.write.assert_called_with('bad first byte in header\n')
+
+    @mock.patch('sys.stderr')
+    def test_detects_bad_headers_2(self, mockStderr):
+        infilename = pkg_resources.resource_filename(__name__, 'fixtures/eye4.bad2.max')
+        self.outfile.close()
+        coco.maxtoppm.start([infilename, self.outfile.name])
+        self.assertFalse(os.path.exists(self.outfile.name))
+        mockStderr.write.assert_called_with('data length 6147 in header would be closest to 256x192 but that would be 6144 bytes\n')
+
+    @mock.patch('sys.stderr')
+    def test_ignores_bad_headers_2(self, mockStderr):
+        infilename = pkg_resources.resource_filename(__name__, 'fixtures/eye4.bad2.max')
+        comparefilename = pkg_resources.resource_filename(__name__, 'fixtures/eye4.ppm')
+        self.outfile.close()
+        coco.maxtoppm.start([infilename, self.outfile.name, '-i'])
+        self.assertTrue(filecmp.cmp(self.outfile.name, comparefilename))
+        mockStderr.write.assert_called_with('data length 6147 in header would be closest to 256x192 but that would be 6144 bytes\n')
+
     def test_too_many_arguments(self):
         infilename = pkg_resources.resource_filename(__name__, 'fixtures/eye4.max')
         with self.assertRaises(subprocess.CalledProcessError) as context:
@@ -132,3 +168,12 @@ class TestMaxToPPM(unittest.TestCase):
         self.assertRegexpMatches(context.exception.output, self.USAGE_REGEX)
         self.assertRegexpMatches(context.exception.output,
           r'maxtoppm.py: error: unrecognized arguments: --oops')
+
+    def test_conflicting_arguments(self):
+        with self.assertRaises(subprocess.CalledProcessError) as context:
+            subprocess.check_output(
+              ['coco/maxtoppm.py', '-br', '-rb'],
+              stderr=subprocess.STDOUT)
+        self.assertRegexpMatches(context.exception.output, self.USAGE_REGEX)
+        self.assertRegexpMatches(context.exception.output,
+          r'maxtoppm.py: error: argument -rb: not allowed with argument -br')
