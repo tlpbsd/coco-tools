@@ -65,6 +65,7 @@ setup(
             'cm3toppm=coco.cm3toppm:main',
             'hrstoppm=coco.hrstoppm:main',
             'mgetoppm=coco.mgetoppm:main',
+            'rattoppm=coco.rattoppm:main',
             'veftopng=coco.veftopng:main',
         ],
     },
