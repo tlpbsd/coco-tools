@@ -48,8 +48,7 @@ def convert(input_image_stream, output_image_stream):
 
 VERSION = '2018.09.08'
 DESCRIPTION = """Convert RS-DOS RAT images to PPM
-Copyright (c) 2018 by Mathieu Bouchard
-Copyright (C) 2018 by Jamie Cho
+Copyright (c) 2018 by Mathieu Bouchard, Jamie Cho
 Version: {}""".format(VERSION)
 
 

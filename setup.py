@@ -64,6 +64,7 @@ setup(
         'console_scripts': [
             'cm3toppm=coco.cm3toppm:main',
             'hrstoppm=coco.hrstoppm:main',
+            'maxtoppm=coco.maxtoppm:main',
             'mgetoppm=coco.mgetoppm:main',
             'rattoppm=coco.rattoppm:main',
             'veftopng=coco.veftopng:main',
