@@ -16,7 +16,17 @@ import sys
 from util import getbit, pack
 
 
-def convert(input_image_stream, output_image_stream, newsroom, width, height):
+PIXEL_MODE_BW = 0
+PIXEL_MODE_BR = 1
+PIXEL_MODE_RB = 2
+PIXEL_MODE_BR2 = 3
+PIXEL_MODE_RB2 = 4
+PIXEL_MODE_BR3 = 5
+PIXEL_MODE_RB3 = 6
+
+
+def convert(input_image_stream, output_image_stream, pixel_mode, newsroom, width,
+  ignore_header_errors):
     pass
 
 
@@ -63,39 +73,54 @@ def start(argv):
       description=PIXEL_MODE_DESCRIPTION)
     pixel_mode_parser = pixel_mode_group.add_mutually_exclusive_group()
     pixel_mode_parser.add_argument('-br',
-      action='store_true',
-      default=False,
+      dest='pixel_mode',
+      action='store_const',
+      const=PIXEL_MODE_BR,
+      default=PIXEL_MODE_BW,
       help='PMODE 4 artifacts, cyan-blue first')
     pixel_mode_parser.add_argument('-rb',
-      action='store_true',
-      default=False,
+      dest='pixel_mode',
+      action='store_const',
+      const=PIXEL_MODE_RB,
+      default=PIXEL_MODE_BW,
       help='PMODE 4 artifacts, orange-red first')
     pixel_mode_parser.add_argument('-br2',
-      action='store_true',
-      default=False,
+      dest='pixel_mode',
+      action='store_const',
+      const=PIXEL_MODE_BR2,
+      default=PIXEL_MODE_BW,
       help='PMODE 3 Coco 3 cyan-blue first')
     pixel_mode_parser.add_argument('-rb2',
-      action='store_true',
-      default=False,
+      dest='pixel_mode',
+      action='store_const',
+      const=PIXEL_MODE_RB2,
+      default=PIXEL_MODE_BW,
       help='PMODE 3 Coco 3 orange-red first')
     pixel_mode_parser.add_argument('-br3',
-      action='store_true',
-      default=False,
+      dest='pixel_mode',
+      action='store_const',
+      const=PIXEL_MODE_BR3,
+      default=PIXEL_MODE_BW,
       help='PMODE 3 Coco 3 primary, blue first')
     pixel_mode_parser.add_argument('-rb3',
-      action='store_true',
-      default=False,
+      dest='pixel_mode',
+      action='store_const',
+      const=PIXEL_MODE_RB3,
+      default=PIXEL_MODE_BW,
       help='PMODE 3 Coco 3 primary, red first')
 
     parser_mode_group = parser.add_argument_group('Format and size options:',
       description=PARSER_MODE_DESCRIPTION)
     parser_mode_group.add_argument('-i',
+      dest='ignore_header_errors',
       action='store_true',
       default=False,
       help='ignore header errors (but read header anyway)')
     parser_mode_group.add_argument('-w',
+      dest='width',
       action='store',
       default=256,
+      metavar='width',
       type=check_positive,
       help='choose different width (this does not assume bigger pixels)')
     parser_mode_group.add_argument('-newsroom',
@@ -105,7 +130,8 @@ def start(argv):
 
     args = parser.parse_args(argv)
 
-    # convert(args.input_image, args.output_image)
+    convert(args.input_image, args.output_image, args.pixel_mode, args.newsroom,
+      args.width, args.ignore_header_errors)
     args.output_image.close()
     args.input_image.close()
 
