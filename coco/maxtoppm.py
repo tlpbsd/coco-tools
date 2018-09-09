@@ -25,9 +25,78 @@ PIXEL_MODE_BR3 = 5
 PIXEL_MODE_RB3 = 6
 
 
-def convert(input_image_stream, output_image_stream, pixel_mode, newsroom, width,
+def convert(input_image_stream, output_image_stream, arte, newsroom, cols,
   ignore_header_errors):
-    pass
+    def clip(v):
+        return 255 if v > 255 else (0 if v < 0 else v)
+
+    # imitate +I and -I colours using Coco palette
+    br2 = [pack(x) for x in [[0, 0, 0], [255, 85, 0], [0, 170, 255], [255, 255, 255]]]
+    # take names "blue" and "red" too literally like many "patched for Coco3" programs
+    br3 = [pack (x) for x in [[0, 0, 0], [255, 0, 0], [0, 0, 255], [255, 255, 255]]]
+
+    f = input_image_stream
+    out = output_image_stream
+
+    if newsroom:
+        head = f.read(2)
+        cols = ord(head[0]) * 8
+        rows = ord(head[1])
+    else:
+        head = f.read(5)
+        if ord(head[0]) != 0:
+            sys.stderr.write('bad first byte in header\n')
+            if not ignore_header_errors:
+                sys.exit(1)
+        size = ord(head[1]) * 256 + ord(head[2])
+        rows = 8 * size // cols
+        if cols * rows // 8 != size:
+            sys.stderr.write('data length {} in header would be closest to {}x{} but that would be {} bytes\n'.format(
+              size, cols, rows, cols * rows // 8))
+            if not ignore_header_errors:
+                sys.exit(1)
+
+    out.write("P6\n{} {}\n255\n".format(cols, rows))
+    for jj in range(rows):
+        row = f.read(cols>>3)
+        oy = r2 = g2 = b2 = 0
+        for vv in row:
+            v = ord(vv)
+            if arte == PIXEL_MODE_BW:
+                for k in range(8):
+                    out.write(br2[getbit(v, 7 - k) * 3])
+            elif (arte == PIXEL_MODE_BR) or (arte == PIXEL_MODE_RB):
+                x = -100 if arte == PIXEL_MODE_BR else 100
+                # this is using the exact YIQ-to-RGB formula, but the rest is just trial-and-error of
+                # what looks ok, without actually using the spec of NTSC and/or VDG/GIME.
+                # more pixel options could be added to allow variants on : brightness/contrast ; saturation ;
+                # double-resolution for greater detail in emulation ; different smoothing and horiz phase ;
+                # and replacing ±I colours by ±V colours (green-purple of PAL and of SECAM).
+                for k in range(8):
+                    ny = getbit(v, 7 - k) * 255
+                    y = (oy + ny + (ny >> 2)) >>1
+                    i = (x * (y - oy)) >> 7
+                    r = clip(int((y + 0.9563 * i)))
+                    g = clip(int((y - 0.2721 * i)))
+                    b = clip(int((y - 1.1070 * i)))
+                    out.write(pack([(r + r2) >> 1, (g + g2) >> 1,(b + b2) >> 1]))
+                    oy = ny
+                    x = -x
+                    r2 = r
+                    g2 = g
+                    b2 = b
+            elif arte == PIXEL_MODE_BR2:
+                for k in range(4):
+                    out.write(br2[getbit(v, 7 - k - k) * 2 + getbit(v, 6 - k - k)] * 2)
+            elif arte == PIXEL_MODE_RB2:
+                for k in range(4):
+                    out.write(br2[getbit(v, 7 - k - k) + getbit(v, 6 - k - k) * 2] * 2)
+            elif arte == PIXEL_MODE_BR3:
+                for k in range(4):
+                    out.write(br3[getbit(v, 7 - k - k) * 2 + getbit(v, 6 - k - k)] * 2)
+            elif arte == PIXEL_MODE_RB3:
+                for k in range(4):
+                    out.write(br3[getbit(v, 7 - k - k) + getbit(v, 6 - k - k) * 2] * 2)
 
 
 VERSION = '2018.09.08'
