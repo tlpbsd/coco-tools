@@ -3,7 +3,10 @@ TRS-80 Color Computer Tools
 
 - cm3toppm - convert RS-DOS CM3 images to PPM
 - hrstoppm - convert RS-DOS HRS images to PPM
+- maxtoppm - convert RS-DOS MAX images to PPM
 - mgetoppm - convert RS-DOS MGE images to PPM
+- pixtopgm - convert RS-DOS PIX images to PGM
+- rattoppm - convert RS-DOS RAT images to PPM
 - veftopng - convert OS-9 VEF images to PNG
 
 
