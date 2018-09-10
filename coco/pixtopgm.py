@@ -1,41 +1,39 @@
 #!/usr/bin/env python
 # encoding: utf-8
-# hrstoppm - decoder for hrs (Davinci 3) format
-# Original program "hrstoppm" written in Ruby
+# pixtopgm - decoder for pix (Digisector) 4-bit greyscale sideways images
+# Original program "pixtopgm" written in Ruby
 #   Copyright (c) 2018 by Mathieu Bouchard
 # Translation to Python code:
 #   Copyright (c) 2018 by Jamie Cho
 #
-# reads hrs files and converts to ppm
+# reads pix files and converts to pgm
 
 from __future__ import print_function
 
 import argparse
+import math
+import os
 import sys
 
 from util import getbit, pack
 
 
 def convert(input_image_stream, output_image_stream):
-    def dump(x):
-        c = palette[x]
-        out.write(pack([(getbit(c, 5) * 2 + getbit(c, 2)) * 85,
-                        (getbit(c, 4) * 2 + getbit(c, 1)) * 85,
-                        (getbit(c, 3) * 2 + getbit(c, 0)) * 85]))
-
     f = input_image_stream
     out = output_image_stream
-    palette = [ord(ii) for ii in f.read(16)]
-    out.write('P6\n320 192\n255\n')
-    for jj in range(192):
-        for ii in range(160):
-            c = ord(f.read(1))
-            dump(c >> 4)
-            dump(c & 7)
-
+    sz = os.path.getsize(f.name)
+    side = int(math.sqrt(sz * 2))
+    out.write('P5\n{} {}\n255\n'.format(side, side))
+    s = ['a'] * (sz * 2)
+    for y in range(side):
+        for x in range(side / 2):
+            v = ord(f.read(1))
+            s[(x + x) * side + y] = chr(255 - (v >> 4) * 17)
+            s[(x + x + 1) * side + y] = chr(255 - (v & 15 ) * 17)
+    out.write(''.join(s))
 
 VERSION = '2018.09.08'
-DESCRIPTION = """Convert RS-DOS HRS images to PPM
+DESCRIPTION = """Convert RS-DOS PIX images to PGM
 Copyright (c) 2018 by Mathieu Bouchard, Jamie Cho
 Version: {}""".format(VERSION)
 
@@ -48,17 +46,15 @@ def start(argv):
     parser = argparse.ArgumentParser(description=DESCRIPTION,
       formatter_class=argparse.RawTextHelpFormatter)
     parser.add_argument('input_image',
-      metavar='image.hrs',
+      metavar='image.pix',
       type=argparse.FileType('rb'),
-      nargs='?',
-      default=sys.stdin,
-      help='input HRS image file')
+      help='input PIX image file')
     parser.add_argument('output_image',
-      metavar='image.ppm',
+      metavar='image.pgm',
       type=argparse.FileType('wb'),
       nargs='?',
       default=sys.stdout,
-      help='output PPM image file')
+      help='output PGM image file')
     parser.add_argument('--version',
       action='version',
       version='%(prog)s {}'.format(VERSION))

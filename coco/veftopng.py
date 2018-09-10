@@ -245,7 +245,7 @@ def start(argv):
 
     # Resize 640x200 images so they are the correct aspect ratio.
     if width == 640:
-        print("Resizing image to 640x480...")
+        print('Resizing image to 640x{}...'.format(height * 2))
         png_file = Image.open(args.output_image)
         png_file = png_file.resize((640, height * 2))
         png_file.save(args.output_image)
