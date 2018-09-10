@@ -15,8 +15,6 @@ import math
 import os
 import sys
 
-from util import getbit, pack
-
 
 def convert(input_image_stream, output_image_stream):
     f = input_image_stream
