@@ -29,7 +29,7 @@ PIXEL_MODE_S11 = 8
 
 
 def convert(input_image_stream, output_image_stream, arte, newsroom, cols, rows,
-  ignore_header_errors):
+  skip, ignore_header_errors):
     def clip(v):
         return 255 if v > 255 else (0 if v < 0 else v)
 
@@ -44,6 +44,9 @@ def convert(input_image_stream, output_image_stream, arte, newsroom, cols, rows,
 
     f = input_image_stream
     out = output_image_stream
+
+    if skip:
+        f.read(skip)
 
     if newsroom:
         head = f.read(2)
@@ -133,6 +136,12 @@ def start(argv):
         ivalue = int(value)
         if ivalue <= 0:
             raise argparse.ArgumentTypeError("%s is an invalid positive int value" % value)
+        return ivalue
+
+    def check_zero_or_positive(value):
+        ivalue = int(value)
+        if ivalue <= 0:
+            raise argparse.ArgumentTypeError("%s is an invalid int value >= 0" % value)
         return ivalue
 
     parser = argparse.ArgumentParser(description=DESCRIPTION,
@@ -226,6 +235,13 @@ def start(argv):
       metavar='height',
       type=check_positive,
       help='choose height not computed from header divided by width')
+    parser_mode_group.add_argument('-s',
+      dest='skip',
+      action='store',
+      default=None,
+      metavar='bytes',
+      type=check_zero_or_positive,
+      help='skip header and assume it has the specified length')
     parser_mode_group.add_argument('-newsroom',
       action='store_true',
       default=False,
@@ -234,7 +250,7 @@ def start(argv):
     args = parser.parse_args(argv)
 
     ok = convert(args.input_image, args.output_image, args.pixel_mode, args.newsroom,
-      args.width, args.rows, args.ignore_header_errors)
+      args.width, args.rows, args.skip, args.ignore_header_errors)
     args.output_image.close()
     args.input_image.close()
     if not ok:

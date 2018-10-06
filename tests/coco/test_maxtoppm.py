@@ -105,6 +105,13 @@ class TestMaxToPPM(unittest.TestCase):
         coco.maxtoppm.start([infilename, self.outfile.name, '-r', '96'])
         self.assertTrue(filecmp.cmp(self.outfile.name, comparefilename))
 
+    def test_skipping_bytes(self):
+        infilename = pkg_resources.resource_filename(__name__, 'fixtures/eye4_s7.max')
+        comparefilename = pkg_resources.resource_filename(__name__, 'fixtures/eye4.ppm')
+        self.outfile.close()
+        coco.maxtoppm.start([infilename, self.outfile.name, '-s', '7'])
+        self.assertTrue(filecmp.cmp(self.outfile.name, comparefilename))
+
     def test_converts_newsroom_files(self):
         infilename = pkg_resources.resource_filename(__name__, 'fixtures/shamrock.art')
         comparefilename = pkg_resources.resource_filename(__name__, 'fixtures/shamrock.ppm')
