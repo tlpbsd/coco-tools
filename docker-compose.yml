@@ -2,14 +2,14 @@ version: '3'
 
 services:
   coco-dev:
-    image: jamieleecho-coco-tools:latest
+    image: jamieleecho/coco-tools:0.2
     environment:
       - HOME=/home/$USER
     volumes:
       - $HOME/..:/home
 
   run-tests:
-    image: jamieleecho-coco-tools:latest
+    image: jamieleecho/coco-tools:0.2
     volumes:
       - ./:/coco
     working_dir: /coco

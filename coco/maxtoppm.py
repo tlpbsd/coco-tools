@@ -14,7 +14,7 @@ import argparse
 import os
 import sys
 
-from util import getbit, pack
+from util import check_positive, check_zero_or_positive, getbit, pack
 
 
 PIXEL_MODE_BW = 0
@@ -24,10 +24,12 @@ PIXEL_MODE_BR2 = 3
 PIXEL_MODE_RB2 = 4
 PIXEL_MODE_BR3 = 5
 PIXEL_MODE_RB3 = 6
+PIXEL_MODE_S10 = 7
+PIXEL_MODE_S11 = 8
 
 
-def convert(input_image_stream, output_image_stream, arte, newsroom, cols,
-  ignore_header_errors):
+def convert(input_image_stream, output_image_stream, arte, newsroom, cols, rows,
+  skip, ignore_header_errors):
     def clip(v):
         return 255 if v > 255 else (0 if v < 0 else v)
 
@@ -35,9 +37,16 @@ def convert(input_image_stream, output_image_stream, arte, newsroom, cols,
     br2 = [pack(x) for x in [[0, 0, 0], [255, 85, 0], [0, 170, 255], [255, 255, 255]]]
     # take names "blue" and "red" too literally like many "patched for Coco3" programs
     br3 = [pack (x) for x in [[0, 0, 0], [255, 0, 0], [0, 0, 255], [255, 255, 255]]]
+    # probably not exact...
+    semig = [pack (x) for x in [
+	[0, 0, 0], [0, 255, 0], [255, 255, 0], [0, 0, 255], [255, 0, 0],
+        [255, 255, 255], [0, 211, 170], [204, 0, 255], [255, 128, 0]]]
 
     f = input_image_stream
     out = output_image_stream
+
+    if skip:
+        f.read(skip)
 
     if newsroom:
         head = f.read(2)
@@ -49,13 +58,14 @@ def convert(input_image_stream, output_image_stream, arte, newsroom, cols,
             sys.stderr.write('bad first byte in header\n')
             if not ignore_header_errors:
                 return False
-        size = ord(head[1]) * 256 + ord(head[2])
-        rows = 8 * size // cols
-        if cols * rows // 8 != size:
-            sys.stderr.write('data length {} in header would be closest to {}x{} but that would be {} bytes\n'.format(
-              size, cols, rows, cols * rows // 8))
-            if not ignore_header_errors:
-                return False
+        if not rows:
+            size = ord(head[1]) * 256 + ord(head[2])
+            rows = 8 * size // cols
+            if cols * rows // 8 != size:
+                sys.stderr.write('data length {} in header would be closest to {}x{} but that would be {} bytes\n'.format(
+                  size, cols, rows, cols * rows // 8))
+                if not ignore_header_errors:
+                    return False
 
     out.write("P6\n{} {}\n255\n".format(cols, rows))
     for jj in range(rows):
@@ -98,10 +108,16 @@ def convert(input_image_stream, output_image_stream, arte, newsroom, cols,
             elif arte == PIXEL_MODE_RB3:
                 for k in range(4):
                     out.write(br3[getbit(v, 7 - k - k) + getbit(v, 6 - k - k) * 2] * 2)
+            elif arte == PIXEL_MODE_S10:
+                for k in range(4):
+                    out.write(semig[1 + getbit(v, 7 - k - k) + getbit(v, 6 - k - k) * 2] * 2)
+            elif arte == PIXEL_MODE_S11:
+                for k in range(4):
+                    out.write(semig[5 + getbit(v, 7 - k - k) + getbit(v, 6 - k - k) * 2] * 2)
     return True
 
 
-VERSION = '2018.09.08'
+VERSION = '2018.10.06'
 DESCRIPTION = """Convert RS-DOS MAX and ART images to PPM
 Copyright (c) 2018 by Mathieu Bouchard, Jamie Cho
 Version: {}""".format(VERSION)
@@ -116,12 +132,6 @@ def main():
 
 
 def start(argv):
-    def check_positive(value):
-        ivalue = int(value)
-        if ivalue <= 0:
-            raise argparse.ArgumentTypeError("%s is an invalid positive int value" % value)
-        return ivalue
-
     parser = argparse.ArgumentParser(description=DESCRIPTION,
       formatter_class=argparse.RawTextHelpFormatter)
     parser.add_argument('input_image',
@@ -179,6 +189,18 @@ def start(argv):
       const=PIXEL_MODE_RB3,
       default=PIXEL_MODE_BW,
       help='PMODE 3 Coco 3 primary, red first')
+    pixel_mode_parser.add_argument('-s10',
+      dest='pixel_mode',
+      action='store_const',
+      const=PIXEL_MODE_S10,
+      default=PIXEL_MODE_BW,
+      help='PMODE 3 SCREEN 1,0')
+    pixel_mode_parser.add_argument('-s11',
+      dest='pixel_mode',
+      action='store_const',
+      const=PIXEL_MODE_S11,
+      default=PIXEL_MODE_BW,
+      help='PMODE 3 SCREEN 1,1')
 
     parser_mode_group = parser.add_argument_group('Format and size options:',
       description=PARSER_MODE_DESCRIPTION)
@@ -194,6 +216,20 @@ def start(argv):
       metavar='width',
       type=check_positive,
       help='choose different width (this does not assume bigger pixels)')
+    parser_mode_group.add_argument('-r',
+      dest='rows',
+      action='store',
+      default=None,
+      metavar='height',
+      type=check_positive,
+      help='choose height not computed from header divided by width')
+    parser_mode_group.add_argument('-s',
+      dest='skip',
+      action='store',
+      default=None,
+      metavar='bytes',
+      type=check_zero_or_positive,
+      help='skip header and assume it has the specified length')
     parser_mode_group.add_argument('-newsroom',
       action='store_true',
       default=False,
@@ -202,7 +238,7 @@ def start(argv):
     args = parser.parse_args(argv)
 
     ok = convert(args.input_image, args.output_image, args.pixel_mode, args.newsroom,
-      args.width, args.ignore_header_errors)
+      args.width, args.rows, args.skip, args.ignore_header_errors)
     args.output_image.close()
     args.input_image.close()
     if not ok:

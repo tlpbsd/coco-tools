@@ -11,7 +11,7 @@ TRS-80 Color Computer Tools
 
 
 ## Installation
-You can create a coco-dev Docker image via:
+You can create a coco-tools Docker image via:
 ```
 ./build-docker-image
 ```

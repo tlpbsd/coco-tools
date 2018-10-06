@@ -13,10 +13,10 @@ from __future__ import print_function
 import argparse
 import sys
 
-from util import getbit, pack
+from util import check_positive, check_zero_or_positive, getbit, pack
 
 
-def convert(input_image_stream, output_image_stream):
+def convert(input_image_stream, output_image_stream, width, height, skip):
     def dump(x):
         c = palette[x]
         out.write(pack([(getbit(c, 5) * 2 + getbit(c, 2)) * 85,
@@ -24,17 +24,19 @@ def convert(input_image_stream, output_image_stream):
                         (getbit(c, 3) * 2 + getbit(c, 0)) * 85]))
 
     f = input_image_stream
+    if skip:
+        f.read(skip)
     out = output_image_stream
     palette = [ord(ii) for ii in f.read(16)]
-    out.write('P6\n320 192\n255\n')
-    for jj in range(192):
-        for ii in range(160):
+    out.write('P6\n{} {}\n255\n'.format(width, height))
+    for jj in range(height):
+        for ii in range(width / 2):
             c = ord(f.read(1))
             dump(c >> 4)
-            dump(c & 7)
+            dump(c & 15)
 
 
-VERSION = '2018.09.08'
+VERSION = '2018.10.06'
 DESCRIPTION = """Convert RS-DOS HRS images to PPM
 Copyright (c) 2018 by Mathieu Bouchard, Jamie Cho
 Version: {}""".format(VERSION)
@@ -59,12 +61,33 @@ def start(argv):
       nargs='?',
       default=sys.stdout,
       help='output PPM image file')
+    parser.add_argument('-w',
+      dest='width',
+      action='store',
+      default=320,
+      metavar='width',
+      type=check_positive,
+      help='choose different width (this does not assume bigger pixels)')
+    parser.add_argument('-r',
+      dest='rows',
+      action='store',
+      default=192,
+      metavar='height',
+      type=check_positive,
+      help='choose height not computed from header divided by width')
+    parser.add_argument('-s',
+      dest='skip',
+      action='store',
+      default=None,
+      metavar='bytes',
+      type=check_zero_or_positive,
+      help='skip some number of bytes')
     parser.add_argument('--version',
       action='version',
       version='%(prog)s {}'.format(VERSION))
     args = parser.parse_args(argv)
 
-    convert(args.input_image, args.output_image)
+    convert(args.input_image, args.output_image, args.width, args.rows, args.skip)
     args.output_image.close()
     args.input_image.close()
 

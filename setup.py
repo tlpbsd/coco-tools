@@ -11,7 +11,7 @@ They currently include a tool for converting OS-9 VEF images to PNG.
 
 setup(
     name='jamieleecho-coco-tools',
-    version='0.1.0',
+    version='0.2.0',
 
     description='TRS-80 Color Computer Tools',
     long_description=LONG_DESCRIPTION,

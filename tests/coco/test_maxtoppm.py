@@ -17,7 +17,7 @@ class TestMaxToPPM(unittest.TestCase):
       r'image.ppm\s*output PPM image file'
     OPTIONAL_ARGS_REGEX = r'optional arguments:\s*-h, --help\s*show this help message and exit' \
       r'\s*--version\s*show program\'s version number and exit'
-    VERSION_REGEX = r'2018\.09\.08'
+    VERSION_REGEX = r'2018\.10\.06'
 
     def setUp(self):
         self.outfile = tempfile.NamedTemporaryFile('w', suffix='.ppm', delete=False)
@@ -77,11 +77,39 @@ class TestMaxToPPM(unittest.TestCase):
         coco.maxtoppm.start([infilename, self.outfile.name, '-rb3'])
         self.assertTrue(filecmp.cmp(self.outfile.name, comparefilename))
 
+    def test_converts_max_to_ppm_s10(self):
+        infilename = pkg_resources.resource_filename(__name__, 'fixtures/eye4.max')
+        comparefilename = pkg_resources.resource_filename(__name__, 'fixtures/eye4_s10.ppm')
+        self.outfile.close()
+        coco.maxtoppm.start([infilename, self.outfile.name, '-s10'])
+        self.assertTrue(filecmp.cmp(self.outfile.name, comparefilename))
+
+    def test_converts_max_to_ppm_s11(self):
+        infilename = pkg_resources.resource_filename(__name__, 'fixtures/eye4.max')
+        comparefilename = pkg_resources.resource_filename(__name__, 'fixtures/eye4_s11.ppm')
+        self.outfile.close()
+        coco.maxtoppm.start([infilename, self.outfile.name, '-s11'])
+        self.assertTrue(filecmp.cmp(self.outfile.name, comparefilename))
+
     def test_specifying_width(self):
         infilename = pkg_resources.resource_filename(__name__, 'fixtures/eye4.max')
         comparefilename = pkg_resources.resource_filename(__name__, 'fixtures/eye4_rb_w128.ppm')
         self.outfile.close()
         coco.maxtoppm.start([infilename, self.outfile.name, '-rb', '-w', '128'])
+        self.assertTrue(filecmp.cmp(self.outfile.name, comparefilename))
+
+    def test_specifying_height(self):
+        infilename = pkg_resources.resource_filename(__name__, 'fixtures/eye4.max')
+        comparefilename = pkg_resources.resource_filename(__name__, 'fixtures/eye4_r96.ppm')
+        self.outfile.close()
+        coco.maxtoppm.start([infilename, self.outfile.name, '-r', '96'])
+        self.assertTrue(filecmp.cmp(self.outfile.name, comparefilename))
+
+    def test_skipping_bytes(self):
+        infilename = pkg_resources.resource_filename(__name__, 'fixtures/eye4_s7.max')
+        comparefilename = pkg_resources.resource_filename(__name__, 'fixtures/eye4.ppm')
+        self.outfile.close()
+        coco.maxtoppm.start([infilename, self.outfile.name, '-s', '7'])
         self.assertTrue(filecmp.cmp(self.outfile.name, comparefilename))
 
     def test_converts_newsroom_files(self):
