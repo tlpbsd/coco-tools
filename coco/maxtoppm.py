@@ -24,6 +24,8 @@ PIXEL_MODE_BR2 = 3
 PIXEL_MODE_RB2 = 4
 PIXEL_MODE_BR3 = 5
 PIXEL_MODE_RB3 = 6
+PIXEL_MODE_S10 = 7
+PIXEL_MODE_S11 = 8
 
 
 def convert(input_image_stream, output_image_stream, arte, newsroom, cols,
@@ -35,6 +37,10 @@ def convert(input_image_stream, output_image_stream, arte, newsroom, cols,
     br2 = [pack(x) for x in [[0, 0, 0], [255, 85, 0], [0, 170, 255], [255, 255, 255]]]
     # take names "blue" and "red" too literally like many "patched for Coco3" programs
     br3 = [pack (x) for x in [[0, 0, 0], [255, 0, 0], [0, 0, 255], [255, 255, 255]]]
+    # probably not exact...
+    semig = [pack (x) for x in [
+	[0, 0, 0], [0, 255, 0], [255, 255, 0], [0, 0, 255], [255, 0, 0],
+        [255, 255, 255], [0, 211, 170], [204, 0, 255], [255, 128, 0]]]
 
     f = input_image_stream
     out = output_image_stream
@@ -98,6 +104,12 @@ def convert(input_image_stream, output_image_stream, arte, newsroom, cols,
             elif arte == PIXEL_MODE_RB3:
                 for k in range(4):
                     out.write(br3[getbit(v, 7 - k - k) + getbit(v, 6 - k - k) * 2] * 2)
+            elif arte == PIXEL_MODE_S10:
+                for k in range(4):
+                    out.write(semig[1 + getbit(v, 7 - k - k) + getbit(v, 6 - k - k) * 2] * 2)
+            elif arte == PIXEL_MODE_S11:
+                for k in range(4):
+                    out.write(semig[5 + getbit(v, 7 - k - k) + getbit(v, 6 - k - k) * 2] * 2)
     return True
 
 
@@ -179,6 +191,18 @@ def start(argv):
       const=PIXEL_MODE_RB3,
       default=PIXEL_MODE_BW,
       help='PMODE 3 Coco 3 primary, red first')
+    pixel_mode_parser.add_argument('-s10',
+      dest='pixel_mode',
+      action='store_const',
+      const=PIXEL_MODE_S10,
+      default=PIXEL_MODE_BW,
+      help='PMODE 3 SCREEN 1,0')
+    pixel_mode_parser.add_argument('-s11',
+      dest='pixel_mode',
+      action='store_const',
+      const=PIXEL_MODE_S11,
+      default=PIXEL_MODE_BW,
+      help='PMODE 3 SCREEN 1,1')
 
     parser_mode_group = parser.add_argument_group('Format and size options:',
       description=PARSER_MODE_DESCRIPTION)

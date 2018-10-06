@@ -77,6 +77,20 @@ class TestMaxToPPM(unittest.TestCase):
         coco.maxtoppm.start([infilename, self.outfile.name, '-rb3'])
         self.assertTrue(filecmp.cmp(self.outfile.name, comparefilename))
 
+    def test_converts_max_to_ppm_s10(self):
+        infilename = pkg_resources.resource_filename(__name__, 'fixtures/eye4.max')
+        comparefilename = pkg_resources.resource_filename(__name__, 'fixtures/eye4_s10.ppm')
+        self.outfile.close()
+        coco.maxtoppm.start([infilename, self.outfile.name, '-s10'])
+        self.assertTrue(filecmp.cmp(self.outfile.name, comparefilename))
+
+    def test_converts_max_to_ppm_s11(self):
+        infilename = pkg_resources.resource_filename(__name__, 'fixtures/eye4.max')
+        comparefilename = pkg_resources.resource_filename(__name__, 'fixtures/eye4_s11.ppm')
+        self.outfile.close()
+        coco.maxtoppm.start([infilename, self.outfile.name, '-s11'])
+        self.assertTrue(filecmp.cmp(self.outfile.name, comparefilename))
+
     def test_specifying_width(self):
         infilename = pkg_resources.resource_filename(__name__, 'fixtures/eye4.max')
         comparefilename = pkg_resources.resource_filename(__name__, 'fixtures/eye4_rb_w128.ppm')
