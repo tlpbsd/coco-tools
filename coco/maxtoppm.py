@@ -28,7 +28,7 @@ PIXEL_MODE_S10 = 7
 PIXEL_MODE_S11 = 8
 
 
-def convert(input_image_stream, output_image_stream, arte, newsroom, cols,
+def convert(input_image_stream, output_image_stream, arte, newsroom, cols, rows,
   ignore_header_errors):
     def clip(v):
         return 255 if v > 255 else (0 if v < 0 else v)
@@ -55,13 +55,14 @@ def convert(input_image_stream, output_image_stream, arte, newsroom, cols,
             sys.stderr.write('bad first byte in header\n')
             if not ignore_header_errors:
                 return False
-        size = ord(head[1]) * 256 + ord(head[2])
-        rows = 8 * size // cols
-        if cols * rows // 8 != size:
-            sys.stderr.write('data length {} in header would be closest to {}x{} but that would be {} bytes\n'.format(
-              size, cols, rows, cols * rows // 8))
-            if not ignore_header_errors:
-                return False
+        if not rows:
+            size = ord(head[1]) * 256 + ord(head[2])
+            rows = 8 * size // cols
+            if cols * rows // 8 != size:
+                sys.stderr.write('data length {} in header would be closest to {}x{} but that would be {} bytes\n'.format(
+                  size, cols, rows, cols * rows // 8))
+                if not ignore_header_errors:
+                    return False
 
     out.write("P6\n{} {}\n255\n".format(cols, rows))
     for jj in range(rows):
@@ -218,6 +219,13 @@ def start(argv):
       metavar='width',
       type=check_positive,
       help='choose different width (this does not assume bigger pixels)')
+    parser_mode_group.add_argument('-r',
+      dest='rows',
+      action='store',
+      default=None,
+      metavar='height',
+      type=check_positive,
+      help='choose height not computed from header divided by width')
     parser_mode_group.add_argument('-newsroom',
       action='store_true',
       default=False,
@@ -226,7 +234,7 @@ def start(argv):
     args = parser.parse_args(argv)
 
     ok = convert(args.input_image, args.output_image, args.pixel_mode, args.newsroom,
-      args.width, args.ignore_header_errors)
+      args.width, args.rows, args.ignore_header_errors)
     args.output_image.close()
     args.input_image.close()
     if not ok:
