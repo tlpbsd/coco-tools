@@ -14,7 +14,7 @@ import argparse
 import os
 import sys
 
-from util import getbit, pack
+from util import check_positive, check_zero_or_positive, getbit, pack
 
 
 PIXEL_MODE_BW = 0
@@ -132,18 +132,6 @@ def main():
 
 
 def start(argv):
-    def check_positive(value):
-        ivalue = int(value)
-        if ivalue <= 0:
-            raise argparse.ArgumentTypeError("%s is an invalid positive int value" % value)
-        return ivalue
-
-    def check_zero_or_positive(value):
-        ivalue = int(value)
-        if ivalue <= 0:
-            raise argparse.ArgumentTypeError("%s is an invalid int value >= 0" % value)
-        return ivalue
-
     parser = argparse.ArgumentParser(description=DESCRIPTION,
       formatter_class=argparse.RawTextHelpFormatter)
     parser.add_argument('input_image',
