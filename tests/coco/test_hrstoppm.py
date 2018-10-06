@@ -9,10 +9,11 @@ import coco.hrstoppm
 
 
 class TestHRSToPPM(unittest.TestCase):
-    USAGE_REGEX = r'\[-h\] \[--version\] \[image.hrs\] \[image.ppm\]'
+    USAGE_REGEX = r'\[-h\] \[-s bytes\] \[--version\] \[image.hrs\] \[image.ppm\]'
     POSITIONAL_ARGS_REGEX = r'positional arguments:\s*image.hrs\s*input HRS image file\s*' \
       r'image.ppm\s*output PPM image file'
     OPTIONAL_ARGS_REGEX = r'optional arguments:\s*-h, --help\s*show this help message and exit' \
+      r'\s*-s bytes\s*skip some number of bytes' \
       r'\s*--version\s*show program\'s version number and exit'
     VERSION_REGEX = r'2018\.09\.08'
 
@@ -29,6 +30,13 @@ class TestHRSToPPM(unittest.TestCase):
         comparefilename = pkg_resources.resource_filename(__name__, 'fixtures/monalisa.ppm')
         self.outfile.close()
         coco.hrstoppm.start([infilename, self.outfile.name])
+        self.assertTrue(filecmp.cmp(self.outfile.name, comparefilename))
+
+    def test_skipping_bytes(self):
+        infilename = pkg_resources.resource_filename(__name__, 'fixtures/monalisa_s7.hrs')
+        comparefilename = pkg_resources.resource_filename(__name__, 'fixtures/monalisa.ppm')
+        self.outfile.close()
+        coco.hrstoppm.start(['-s', '7', infilename, self.outfile.name])
         self.assertTrue(filecmp.cmp(self.outfile.name, comparefilename))
 
     def test_too_many_arguments(self):

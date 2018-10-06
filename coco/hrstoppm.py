@@ -13,10 +13,10 @@ from __future__ import print_function
 import argparse
 import sys
 
-from util import getbit, pack
+from util import check_zero_or_positive, getbit, pack
 
 
-def convert(input_image_stream, output_image_stream):
+def convert(input_image_stream, output_image_stream, skip):
     def dump(x):
         c = palette[x]
         out.write(pack([(getbit(c, 5) * 2 + getbit(c, 2)) * 85,
@@ -24,6 +24,8 @@ def convert(input_image_stream, output_image_stream):
                         (getbit(c, 3) * 2 + getbit(c, 0)) * 85]))
 
     f = input_image_stream
+    if skip:
+        f.read(skip)
     out = output_image_stream
     palette = [ord(ii) for ii in f.read(16)]
     out.write('P6\n320 192\n255\n')
@@ -59,12 +61,19 @@ def start(argv):
       nargs='?',
       default=sys.stdout,
       help='output PPM image file')
+    parser.add_argument('-s',
+      dest='skip',
+      action='store',
+      default=None,
+      metavar='bytes',
+      type=check_zero_or_positive,
+      help='skip some number of bytes')
     parser.add_argument('--version',
       action='version',
       version='%(prog)s {}'.format(VERSION))
     args = parser.parse_args(argv)
 
-    convert(args.input_image, args.output_image)
+    convert(args.input_image, args.output_image, args.skip)
     args.output_image.close()
     args.input_image.close()
 
