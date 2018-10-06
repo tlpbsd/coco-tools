@@ -117,7 +117,7 @@ def convert(input_image_stream, output_image_stream, arte, newsroom, cols, rows,
     return True
 
 
-VERSION = '2018.09.08'
+VERSION = '2018.10.06'
 DESCRIPTION = """Convert RS-DOS MAX and ART images to PPM
 Copyright (c) 2018 by Mathieu Bouchard, Jamie Cho
 Version: {}""".format(VERSION)
