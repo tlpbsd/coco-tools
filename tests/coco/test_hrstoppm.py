@@ -6,6 +6,7 @@ import tempfile
 import unittest
 
 import coco.hrstoppm
+from coco.util import iotostr
 
 
 class TestHRSToPPM(unittest.TestCase):
@@ -17,7 +18,7 @@ class TestHRSToPPM(unittest.TestCase):
       r'\s*-r height\s*choose height not computed from header divided by width' \
       r'\s*-s bytes\s*skip some number of bytes' \
       r'\s*--version\s*show program\'s version number and exit'
-    VERSION_REGEX = r'2018\.10\.06'
+    VERSION_REGEX = r'2020\.03\.28'
 
     def setUp(self):
         self.outfile = tempfile.NamedTemporaryFile('w', suffix='.ppm', delete=False)
@@ -61,8 +62,8 @@ class TestHRSToPPM(unittest.TestCase):
             subprocess.check_output(
               ['coco/hrstoppm.py', infilename, self.outfile.name, 'baz'],
               stderr=subprocess.STDOUT)
-        self.assertRegexpMatches(context.exception.output, self.USAGE_REGEX)
-        self.assertRegexpMatches(context.exception.output,
+        self.assertRegexpMatches(iotostr(context.exception.output), self.USAGE_REGEX)
+        self.assertRegexpMatches(iotostr(context.exception.output),
           r'hrstoppm.py: error: unrecognized arguments: baz')
 
     def test_converts_hrs_to_ppm_via_stdio(self):
@@ -79,22 +80,22 @@ class TestHRSToPPM(unittest.TestCase):
 
     def test_help(self):
         output = subprocess.check_output(['coco/hrstoppm.py', '-h'], stderr=subprocess.STDOUT)
-        self.assertRegexpMatches(output, 'Convert RS-DOS HRS images to PPM')
-        self.assertRegexpMatches(output, self.VERSION_REGEX)
-        self.assertRegexpMatches(output, self.USAGE_REGEX)
-        self.assertRegexpMatches(output, self.POSITIONAL_ARGS_REGEX)
-        self.assertRegexpMatches(output, self.OPTIONAL_ARGS_REGEX)
+        self.assertRegexpMatches(iotostr(output), 'Convert RS-DOS HRS images to PPM')
+        self.assertRegexpMatches(iotostr(output), self.VERSION_REGEX)
+        self.assertRegexpMatches(iotostr(output), self.USAGE_REGEX)
+        self.assertRegexpMatches(iotostr(output), self.POSITIONAL_ARGS_REGEX)
+        self.assertRegexpMatches(iotostr(output), self.OPTIONAL_ARGS_REGEX)
 
     def test_version(self):
         output = subprocess.check_output(['coco/hrstoppm.py', '--version'],
           stderr=subprocess.STDOUT)
-        self.assertRegexpMatches(output, self.VERSION_REGEX)
+        self.assertRegexpMatches(iotostr(output), self.VERSION_REGEX)
 
     def test_unknown_argument(self):
         with self.assertRaises(subprocess.CalledProcessError) as context:
             subprocess.check_output(
               ['coco/hrstoppm.py', '--oops'],
               stderr=subprocess.STDOUT)
-        self.assertRegexpMatches(context.exception.output, self.USAGE_REGEX)
-        self.assertRegexpMatches(context.exception.output,
+        self.assertRegexpMatches(iotostr(context.exception.output), self.USAGE_REGEX)
+        self.assertRegexpMatches(iotostr(context.exception.output),
           r'hrstoppm.py: error: unrecognized arguments: --oops')

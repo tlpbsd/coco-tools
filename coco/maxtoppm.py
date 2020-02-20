@@ -4,17 +4,18 @@
 # Original program "maxtoppm" written in Ruby
 #   Copyright (c) 2018 by Mathieu Bouchard
 # Translation to Python code:
-#   Copyright (c) 2018 by Jamie Cho
+#   Copyright (c) 2018-2020 by Jamie Cho
 #
 # reads max art files and converts to ppm
 
 from __future__ import division, print_function
 
 import argparse
+import codecs
 import os
 import sys
 
-from util import check_positive, check_zero_or_positive, getbit, pack
+from coco.util import check_positive, check_zero_or_positive, getbit, iotostr, pack, stdiotobuffer, strtoio
 
 
 PIXEL_MODE_BW = 0
@@ -49,11 +50,11 @@ def convert(input_image_stream, output_image_stream, arte, newsroom, cols, rows,
         f.read(skip)
 
     if newsroom:
-        head = f.read(2)
+        head = iotostr(f.read(2))
         cols = ord(head[0]) * 8
         rows = ord(head[1])
     else:
-        head = f.read(5)
+        head = iotostr(f.read(5))
         if ord(head[0]) != 0:
             sys.stderr.write('bad first byte in header\n')
             if not ignore_header_errors:
@@ -67,15 +68,15 @@ def convert(input_image_stream, output_image_stream, arte, newsroom, cols, rows,
                 if not ignore_header_errors:
                     return False
 
-    out.write("P6\n{} {}\n255\n".format(cols, rows))
+    out.write(strtoio('P6\n{} {}\n255\n'.format(cols, rows)))
     for jj in range(rows):
-        row = f.read(cols>>3)
+        row = iotostr(f.read(cols>>3))
         oy = r2 = g2 = b2 = 0
         for vv in row:
             v = ord(vv)
             if arte == PIXEL_MODE_BW:
                 for k in range(8):
-                    out.write(br2[getbit(v, 7 - k) * 3])
+                    out.write(strtoio(br2[getbit(v, 7 - k) * 3]))
             elif (arte == PIXEL_MODE_BR) or (arte == PIXEL_MODE_RB):
                 x = -100 if arte == PIXEL_MODE_BR else 100
                 # this is using the exact YIQ-to-RGB formula, but the rest is just trial-and-error of
@@ -90,7 +91,7 @@ def convert(input_image_stream, output_image_stream, arte, newsroom, cols, rows,
                     r = clip(int((y + 0.9563 * i)))
                     g = clip(int((y - 0.2721 * i)))
                     b = clip(int((y - 1.1070 * i)))
-                    out.write(pack([(r + r2) >> 1, (g + g2) >> 1,(b + b2) >> 1]))
+                    out.write(strtoio(pack([(r + r2) >> 1, (g + g2) >> 1,(b + b2) >> 1])))
                     oy = ny
                     x = -x
                     r2 = r
@@ -98,28 +99,29 @@ def convert(input_image_stream, output_image_stream, arte, newsroom, cols, rows,
                     b2 = b
             elif arte == PIXEL_MODE_BR2:
                 for k in range(4):
-                    out.write(br2[getbit(v, 7 - k - k) * 2 + getbit(v, 6 - k - k)] * 2)
+                    out.write(strtoio(br2[getbit(v, 7 - k - k) * 2 + getbit(v, 6 - k - k)] * 2))
             elif arte == PIXEL_MODE_RB2:
                 for k in range(4):
-                    out.write(br2[getbit(v, 7 - k - k) + getbit(v, 6 - k - k) * 2] * 2)
+                    out.write(strtoio(br2[getbit(v, 7 - k - k) + getbit(v, 6 - k - k) * 2] * 2))
             elif arte == PIXEL_MODE_BR3:
                 for k in range(4):
-                    out.write(br3[getbit(v, 7 - k - k) * 2 + getbit(v, 6 - k - k)] * 2)
+                    out.write(strtoio(br3[getbit(v, 7 - k - k) * 2 + getbit(v, 6 - k - k)] * 2))
             elif arte == PIXEL_MODE_RB3:
                 for k in range(4):
-                    out.write(br3[getbit(v, 7 - k - k) + getbit(v, 6 - k - k) * 2] * 2)
+                    out.write(strtoio(br3[getbit(v, 7 - k - k) + getbit(v, 6 - k - k) * 2] * 2))
             elif arte == PIXEL_MODE_S10:
                 for k in range(4):
-                    out.write(semig[1 + getbit(v, 7 - k - k) + getbit(v, 6 - k - k) * 2] * 2)
+                    out.write(strtoio(semig[1 + getbit(v, 7 - k - k) + getbit(v, 6 - k - k) * 2] * 2))
             elif arte == PIXEL_MODE_S11:
                 for k in range(4):
-                    out.write(semig[5 + getbit(v, 7 - k - k) + getbit(v, 6 - k - k) * 2] * 2)
+                    out.write(strtoio(semig[5 + getbit(v, 7 - k - k) + getbit(v, 6 - k - k) * 2] * 2))
     return True
 
 
-VERSION = '2018.10.06'
+VERSION = '2020.03.28'
 DESCRIPTION = """Convert RS-DOS MAX and ART images to PPM
-Copyright (c) 2018 by Mathieu Bouchard, Jamie Cho
+Copyright (c) 2018 by Mathieu Bouchard
+Copyright (c) 2018-2020 by Mathieu Bouchard, Jamie Cho
 Version: {}""".format(VERSION)
 PIXEL_MODE_DESCRIPTION = """Default pixel mode is no artifact (PMODE 4 on monitor). The 6 other modes:"""
 PARSER_MODE_DESCRIPTION = """Default file format is CocoMax 1/2's .MAX, which is also Graphicom's
@@ -138,13 +140,13 @@ def start(argv):
       metavar='image',
       type=argparse.FileType('rb'),
       nargs='?',
-      default=sys.stdin,
+      default=stdiotobuffer(sys.stdin),
       help='input image file')
     parser.add_argument('output_image',
       metavar='image.ppm',
       type=argparse.FileType('wb'),
       nargs='?',
-      default=sys.stdout,
+      default=stdiotobuffer(sys.stdout),
       help='output PPM image file')
     parser.add_argument('--version',
       action='version',

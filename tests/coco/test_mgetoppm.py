@@ -7,6 +7,8 @@ import unittest
 
 import coco.mgetoppm
 
+from coco.util import iotostr
+
 
 class TestMGEToPPM(unittest.TestCase):
     USAGE_REGEX = r'\[-h\] \[--version\] \[image.mge\] \[image.ppm\]'
@@ -14,7 +16,7 @@ class TestMGEToPPM(unittest.TestCase):
       r'image.ppm\s*output PPM image file'
     OPTIONAL_ARGS_REGEX = r'optional arguments:\s*-h, --help\s*show this help message and exit' \
       r'\s*--version\s*show program\'s version number and exit'
-    VERSION_REGEX = r'2018\.08\.20'
+    VERSION_REGEX = r'2020\.03\.28'
 
     def setUp(self):
         self.outfile = tempfile.NamedTemporaryFile('w', suffix='.ppm', delete=False)
@@ -37,8 +39,8 @@ class TestMGEToPPM(unittest.TestCase):
             subprocess.check_output(
               ['coco/mgetoppm.py', infilename, self.outfile.name, 'baz'],
               stderr=subprocess.STDOUT)
-        self.assertRegexpMatches(context.exception.output, self.USAGE_REGEX)
-        self.assertRegexpMatches(context.exception.output,
+        self.assertRegexpMatches(iotostr(context.exception.output), self.USAGE_REGEX)
+        self.assertRegexpMatches(iotostr(context.exception.output),
           r'mgetoppm.py: error: unrecognized arguments: baz')
 
     def test_converts_mge_to_ppm_via_stdio(self):
@@ -54,7 +56,8 @@ class TestMGEToPPM(unittest.TestCase):
         self.assertTrue(filecmp.cmp(self.outfile.name, comparefilename))
 
     def test_help(self):
-        output = subprocess.check_output(['coco/mgetoppm.py', '-h'], stderr=subprocess.STDOUT)
+        output = iotostr(
+          subprocess.check_output(['coco/mgetoppm.py', '-h'], stderr=subprocess.STDOUT))
         self.assertRegexpMatches(output, 'Convert RS-DOS MGE images to PPM')
         self.assertRegexpMatches(output, self.VERSION_REGEX)
         self.assertRegexpMatches(output, self.USAGE_REGEX)
@@ -62,8 +65,8 @@ class TestMGEToPPM(unittest.TestCase):
         self.assertRegexpMatches(output, self.OPTIONAL_ARGS_REGEX)
 
     def test_version(self):
-        output = subprocess.check_output(['coco/mgetoppm.py', '--version'],
-          stderr=subprocess.STDOUT)
+        output = iotostr(subprocess.check_output(['coco/mgetoppm.py', '--version'],
+          stderr=subprocess.STDOUT))
         self.assertRegexpMatches(output, self.VERSION_REGEX)
 
     def test_unknown_argument(self):
@@ -71,6 +74,6 @@ class TestMGEToPPM(unittest.TestCase):
             subprocess.check_output(
               ['coco/mgetoppm.py', '--oops'],
               stderr=subprocess.STDOUT)
-        self.assertRegexpMatches(context.exception.output, self.USAGE_REGEX)
-        self.assertRegexpMatches(context.exception.output,
+        self.assertRegexpMatches(iotostr(context.exception.output), self.USAGE_REGEX)
+        self.assertRegexpMatches(iotostr(context.exception.output),
           r'mgetoppm.py: error: unrecognized arguments: --oops')

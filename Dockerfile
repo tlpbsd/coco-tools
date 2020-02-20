@@ -1,17 +1,21 @@
-FROM jamieleecho/coco-dev:0.9
+FROM jamieleecho/coco-dev:0.18
 
 # Convenience for Mac users
 RUN ln -s /home /Users
 
 # Install requirements
 COPY requirements.txt .
-RUN pip install -r requirements.txt
+RUN \
+  python2 /usr/bin/pip2 install -r requirements.txt && \
+  pip3 install -r requirements.txt
 
 # Install coco-tools
-RUN mkdir coco-tools
-WORKDIR coco-tools
-COPY coco ./coco
+RUN mkdir coco-tools-build
+WORKDIR coco-tools-build
 COPY setup.py .
-RUN ./setup.py install
+COPY coco ./coco
+RUN \
+  python2 setup.py install && \
+  python3 setup.py install
 WORKDIR ..
 

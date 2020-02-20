@@ -8,3 +8,4 @@ else
 fi
 
 docker-compose -f docker-compose.yml run run-tests nose2 "${params[@]}"
+docker-compose -f docker-compose.yml run run-tests bash -c '((echo 1 | update-alternatives --config python) && (python2 `which nose2` "$@" ))' bash "${params[@]}"
