@@ -1,4 +1,26 @@
 import argparse
+import codecs
+import sys
+
+
+if sys.version_info < (3,):
+    def iotostr(x):
+        return x
+    def strtoio(x):
+        return x
+    def stdiotobuffer(x):
+        return x
+    def iotobytes(x):
+        return bytes(x)
+else:
+    def iotostr(x):
+        return codecs.decode(x, encoding='latin1')
+    def strtoio(x):
+        return codecs.encode(x, encoding='latin1')
+    def stdiotobuffer(x):
+        return x.buffer
+    def iotobytes(x):
+        return x
 
 
 def check_positive(value):
@@ -34,5 +56,5 @@ def pack(a):
     a - array of integers
     return - string of equivalent ASCII chars.
     """
-    return ''.join('{}'.format(chr(x)) for x in a)
-
+    return ''.join('{}'.format(chr(x)) for x in a) if sys.version_info < (3,) \
+      else iotostr(bytes(a))

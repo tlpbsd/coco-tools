@@ -11,7 +11,7 @@ They currently include a tool for converting OS-9 VEF images to PNG.
 
 setup(
     name='jamieleecho-coco-tools',
-    version='0.2.0',
+    version='0.3.0',
 
     description='TRS-80 Color Computer Tools',
     long_description=LONG_DESCRIPTION,
@@ -39,18 +39,14 @@ setup(
 
         # Specify the Python versions you support here. In particular, ensure
         # that you indicate whether you support Python 2, Python 3 or both.
-        'Programming Language :: Python :: 2',
-        'Programming Language :: Python :: 2.6',
         'Programming Language :: Python :: 2.7',
-        'Programming Language :: Python :: 3',
-        'Programming Language :: Python :: 3.2',
-        'Programming Language :: Python :: 3.3',
-        'Programming Language :: Python :: 3.4',
+        'Programming Language :: Python :: 3.6',
     ],
 
     install_requires=[
-        'Pillow',
-        'pypng',
+        'future>=0.18.2',
+        'Pillow<7.0.0',
+        'pypng>=0.0.18',
     ],
 
     # What does your project relate to?

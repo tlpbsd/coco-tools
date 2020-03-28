@@ -2,8 +2,9 @@
 #
 # veftopng.py: Convert OS-9 VEF images to PNG 
 # Copyright (C) 2018  Travis Poppe <tlp@lickwid.net>
+# Copyright (C) 2020  Jamie Cho
 #
-# Version 2018.08.20
+# Version 2020.03.28
 #
 # Requires: PyPNG, Pillow (pip install pypng, pip install pillow)
 
@@ -31,6 +32,7 @@ import png
 import sys
 
 from PIL import Image
+from coco.util import iotobytes
 
 
 def unsquash(data, count, orig_len):
@@ -63,9 +65,10 @@ def unsquash(data, count, orig_len):
     return(decomp_data[0:orig_len])
 
 
-VERSION = '2018.08.20'
+VERSION = '2020.03.28'
 DESCRIPTION = """Convert OS-9 VEF images to PNG
-Copyright (C) 2018  Travis Poppe <tlp@lickwid.net>
+Copyright (C) 2018-2020  Travis Poppe <tlp@lickwid.net>
+Copyright (C) 2020  Jamie Cho
 Version: {}""".format(VERSION)
 
 
@@ -90,7 +93,7 @@ def start(argv):
     args = parser.parse_args(argv)
 
     with open(args.input_image, 'rb') as file:
-        data = bytearray(file.read())
+        data = bytearray(iotobytes(file.read()))
         if not data:
             sys.exit("File is empty.")
 

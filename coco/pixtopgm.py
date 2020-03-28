@@ -4,7 +4,7 @@
 # Original program "pixtopgm" written in Ruby
 #   Copyright (c) 2018 by Mathieu Bouchard
 # Translation to Python code:
-#   Copyright (c) 2018 by Jamie Cho
+#   Copyright (c) 2018-2020 by Jamie Cho
 #
 # reads pix files and converts to pgm
 
@@ -15,24 +15,26 @@ import math
 import os
 import sys
 
+from coco.util import getbit, iotostr, pack, stdiotobuffer, strtoio
+
 
 def convert(input_image_stream, output_image_stream):
     f = input_image_stream
     out = output_image_stream
     sz = os.path.getsize(f.name)
     side = int(math.sqrt(sz * 2))
-    out.write('P5\n{} {}\n255\n'.format(side, side))
+    out.write(strtoio('P5\n{} {}\n255\n'.format(side, side)))
     s = ['a'] * (sz * 2)
     for y in range(side):
-        for x in range(side / 2):
-            v = ord(f.read(1))
+        for x in range(side // 2):
+            v = ord(iotostr(f.read(1)))
             s[(x + x) * side + y] = chr(255 - (v >> 4) * 17)
             s[(x + x + 1) * side + y] = chr(255 - (v & 15 ) * 17)
-    out.write(''.join(s))
+    out.write(strtoio(''.join(s)))
 
-VERSION = '2018.09.08'
+VERSION = '2020.03.28'
 DESCRIPTION = """Convert RS-DOS PIX images to PGM
-Copyright (c) 2018 by Mathieu Bouchard, Jamie Cho
+Copyright (c) 2018-2020 by Mathieu Bouchard, Jamie Cho
 Version: {}""".format(VERSION)
 
 
@@ -51,7 +53,7 @@ def start(argv):
       metavar='image.pgm',
       type=argparse.FileType('wb'),
       nargs='?',
-      default=sys.stdout,
+      default=stdiotobuffer(sys.stdout),
       help='output PGM image file')
     parser.add_argument('--version',
       action='version',

@@ -4,16 +4,17 @@
 # Original program "mgetoppm" written in Ruby
 #   Copyright (c) 2017 by Mathieu Bouchard
 # Translation to Python code:
-#   Copyright (c) 2018 by Jamie Cho
+#   Copyright (c) 2018-2020 by Jamie Cho
 #
 # reads mge files and converts to ppm
 
 from __future__ import print_function
 
 import argparse
+import codecs
 import sys
 
-from util import getbit, pack
+from coco.util import getbit, iotostr, pack, stdiotobuffer, strtoio
 
 
 def convert(input_image_stream, output_image_stream):
@@ -23,9 +24,9 @@ def convert(input_image_stream, output_image_stream):
     def dmp500(x):
         c = palette[x]
         out.write(
-          pack([(getbit(c, 5) * 2 + getbit(c, 2)) * 85,
-                (getbit(c, 4) * 2 + getbit(c, 1)) * 85,
-                (getbit(c, 3) * 2 + getbit(c, 0)) * 85]))
+          strtoio(pack([(getbit(c, 5) * 2 + getbit(c, 2)) * 85,
+                        (getbit(c, 4) * 2 + getbit(c, 1)) * 85,
+                        (getbit(c, 3) * 2 + getbit(c, 0)) * 85])))
 
     f = input_image_stream
     out = output_image_stream
@@ -40,18 +41,19 @@ def convert(input_image_stream, output_image_stream):
     cols = 320 << subtyp
     rows = 200
     colors = 16 if subtyp==0 else 4
-    a = ord(f.read(1))
+    a = ord(iotostr(f.read(1)))
     if a != 0:
         debug('invalid header')
         sys.exit(1)
-    palette = [ord(f.read(1)) for ii in range(16)]
-    is_rgb = ord(f.read(1)) == 0
+    palette = [ord(iotostr(f.read(1))) for ii in range(16)]
+    debug(palette)
+    is_rgb = ord(iotostr(f.read(1))) == 0
     colorspace = 'RGB' if is_rgb else 'CMP'
     if not is_rgb:
         for ii in range(16):
             palette[ii] = c2r[palette[ii]]
-    packed = ord(f.read(1)) != 0
-    titbuf = f.read(30);
+    packed = ord(iotostr(f.read(1))) != 0
+    titbuf = iotostr(f.read(30))
     i = titbuf.index('\0')
     if i:
         titbuf = titbuf[:i]
@@ -67,20 +69,20 @@ def convert(input_image_stream, output_image_stream):
             dmp500((a >> 2) & 3)
             dmp500(a & 3)
 
-    cycles = ord(f.read(1))
-    a = ord(f.read(1))
+    cycles = ord(iotostr(f.read(1)))
+    a = ord(iotostr(f.read(1)))
     botpal = a & 0xF
-    toppal = (a >>4 ) & 0xF
+    toppal = (a >> 4) & 0xF
     debug('{}x{}, 16 couleurs {}, titre «{}»'.format(cols, rows, colorspace, titbuf))
     debug('palette={}, cycles={}, botpal={},]\ntoppal={}'.format(palette, cycles, botpal, toppal))
-    out.write('P6\n{} {}\n255\n'.format(cols, rows))
+    out.write(strtoio('P6\n{} {}\n255\n'.format(cols, rows)))
     y = 160 * rows
     if not packed:
         while True:
-            b = ord(f.read(1))
+            b = ord(iotostr(f.read(1)))
             if b == 0:
                 break
-            a = ord(f.read(1))
+            a = ord(iotostr(f.read(1)))
             for jj in range(b):
                 dump(a)
                 y = y - 1
@@ -88,20 +90,20 @@ def convert(input_image_stream, output_image_stream):
                     break
     else:
         for  jj in range(y):
-            dump(ord(f.read(1)))
+            dump(ord(iotostr(f.read(1))))
     # Look for extra junk at the end of the file
     extra = 0
-    while f.read(1) != '':
+    while f.read(1) != strtoio(''):
         extra = extra + 1
         pass
     if extra > 0:
         debug('{} octets de trop'.format(extra))
 
 
-VERSION = '2018.08.20'
+VERSION = '2020.03.28'
 DESCRIPTION = """Convert RS-DOS MGE images to PPM
 Copyright (c) 2017 by Mathieu Bouchard
-Copyright (C) 2018 by Jamie Cho
+Copyright (C) 2018-2020 by Jamie Cho
 Version: {}""".format(VERSION)
 
 
@@ -116,13 +118,13 @@ def start(argv):
       metavar='image.mge',
       type=argparse.FileType('rb'),
       nargs='?',
-      default=sys.stdin,
+      default=stdiotobuffer(sys.stdin),
       help='input MGE image file')
     parser.add_argument('output_image',
       metavar='image.ppm',
       type=argparse.FileType('wb'),
       nargs='?',
-      default=sys.stdout,
+      default=stdiotobuffer(sys.stdout),
       help='output PPM image file')
     parser.add_argument('--version',
       action='version',

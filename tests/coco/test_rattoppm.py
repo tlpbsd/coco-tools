@@ -1,3 +1,6 @@
+from future import standard_library
+standard_library.install_aliases()
+
 import os
 import filecmp
 import pkg_resources
@@ -6,6 +9,7 @@ import tempfile
 import unittest
 
 import coco.rattoppm
+from coco.util import iotostr
 
 
 class TestRatToPPM(unittest.TestCase):
@@ -14,7 +18,7 @@ class TestRatToPPM(unittest.TestCase):
       r'image.ppm\s*output PPM image file'
     OPTIONAL_ARGS_REGEX = r'optional arguments:\s*-h, --help\s*show this help message and exit' \
       r'\s*--version\s*show program\'s version number and exit'
-    VERSION_REGEX = r'2018\.09\.08'
+    VERSION_REGEX = r'2020\.03\.28'
 
     def setUp(self):
         self.outfile = tempfile.NamedTemporaryFile('w', suffix='.ppm', delete=False)
@@ -37,8 +41,8 @@ class TestRatToPPM(unittest.TestCase):
             subprocess.check_output(
               ['coco/rattoppm.py', infilename, self.outfile.name, 'baz'],
               stderr=subprocess.STDOUT)
-        self.assertRegexpMatches(context.exception.output, self.USAGE_REGEX)
-        self.assertRegexpMatches(context.exception.output,
+        self.assertRegexpMatches(iotostr(context.exception.output), self.USAGE_REGEX)
+        self.assertRegexpMatches(iotostr(context.exception.output),
           r'rattoppm.py: error: unrecognized arguments: baz')
 
     def test_converts_rat_to_ppm_via_stdio(self):
@@ -54,7 +58,8 @@ class TestRatToPPM(unittest.TestCase):
         self.assertTrue(filecmp.cmp(self.outfile.name, comparefilename))
 
     def test_help(self):
-        output = subprocess.check_output(['coco/rattoppm.py', '-h'], stderr=subprocess.STDOUT)
+        output = iotostr(subprocess.check_output(['coco/rattoppm.py', '-h'],
+            stderr=subprocess.STDOUT))
         self.assertRegexpMatches(output, 'Convert RS-DOS RAT images to PPM')
         self.assertRegexpMatches(output, self.VERSION_REGEX)
         self.assertRegexpMatches(output, self.USAGE_REGEX)
@@ -62,8 +67,8 @@ class TestRatToPPM(unittest.TestCase):
         self.assertRegexpMatches(output, self.OPTIONAL_ARGS_REGEX)
 
     def test_version(self):
-        output = subprocess.check_output(['coco/rattoppm.py', '--version'],
-          stderr=subprocess.STDOUT)
+        output = iotostr(subprocess.check_output(['coco/rattoppm.py', '--version'],
+          stderr=subprocess.STDOUT))
         self.assertRegexpMatches(output, self.VERSION_REGEX)
 
     def test_unknown_argument(self):
@@ -71,6 +76,6 @@ class TestRatToPPM(unittest.TestCase):
             subprocess.check_output(
               ['coco/rattoppm.py', '--oops'],
               stderr=subprocess.STDOUT)
-        self.assertRegexpMatches(context.exception.output, self.USAGE_REGEX)
-        self.assertRegexpMatches(context.exception.output,
+        self.assertRegexpMatches(iotostr(context.exception.output), self.USAGE_REGEX)
+        self.assertRegexpMatches(iotostr(context.exception.output),
           r'rattoppm.py: error: unrecognized arguments: --oops')

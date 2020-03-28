@@ -1,12 +1,18 @@
 import os
-import mock
 import filecmp
 import pkg_resources
 import subprocess
+import sys
 import tempfile
 import unittest
 
 import coco.maxtoppm
+
+if sys.version_info < (3,):
+    import mock
+else:
+    from unittest import mock
+from coco.util import iotostr
 
 
 class TestMaxToPPM(unittest.TestCase):
@@ -17,7 +23,7 @@ class TestMaxToPPM(unittest.TestCase):
       r'image.ppm\s*output PPM image file'
     OPTIONAL_ARGS_REGEX = r'optional arguments:\s*-h, --help\s*show this help message and exit' \
       r'\s*--version\s*show program\'s version number and exit'
-    VERSION_REGEX = r'2018\.10\.06'
+    VERSION_REGEX = r'2020\.03\.28'
 
     def setUp(self):
         self.outfile = tempfile.NamedTemporaryFile('w', suffix='.ppm', delete=False)
@@ -159,8 +165,8 @@ class TestMaxToPPM(unittest.TestCase):
             subprocess.check_output(
               ['coco/maxtoppm.py', infilename, self.outfile.name, 'baz'],
               stderr=subprocess.STDOUT)
-        self.assertRegexpMatches(context.exception.output, self.USAGE_REGEX)
-        self.assertRegexpMatches(context.exception.output,
+        self.assertRegexpMatches(iotostr(context.exception.output), self.USAGE_REGEX)
+        self.assertRegexpMatches(iotostr(context.exception.output),
           r'maxtoppm.py: error: unrecognized arguments: baz')
 
     def test_converts_max_to_ppm_via_stdio(self):
@@ -176,7 +182,7 @@ class TestMaxToPPM(unittest.TestCase):
         self.assertTrue(filecmp.cmp(self.outfile.name, comparefilename))
 
     def test_help(self):
-        output = subprocess.check_output(['coco/maxtoppm.py', '-h'], stderr=subprocess.STDOUT)
+        output = iotostr(subprocess.check_output(['coco/maxtoppm.py', '-h'], stderr=subprocess.STDOUT))
         self.assertRegexpMatches(output, 'Convert RS-DOS MAX and ART images to PPM')
         self.assertRegexpMatches(output, self.VERSION_REGEX)
         self.assertRegexpMatches(output, self.USAGE_REGEX)
@@ -184,8 +190,8 @@ class TestMaxToPPM(unittest.TestCase):
         self.assertRegexpMatches(output, self.OPTIONAL_ARGS_REGEX)
 
     def test_version(self):
-        output = subprocess.check_output(['coco/maxtoppm.py', '--version'],
-          stderr=subprocess.STDOUT)
+        output = iotostr(subprocess.check_output(['coco/maxtoppm.py', '--version'],
+          stderr=subprocess.STDOUT))
         self.assertRegexpMatches(output, self.VERSION_REGEX)
 
     def test_unknown_argument(self):
@@ -193,8 +199,8 @@ class TestMaxToPPM(unittest.TestCase):
             subprocess.check_output(
               ['coco/maxtoppm.py', '--oops'],
               stderr=subprocess.STDOUT)
-        self.assertRegexpMatches(context.exception.output, self.USAGE_REGEX)
-        self.assertRegexpMatches(context.exception.output,
+        self.assertRegexpMatches(iotostr(context.exception.output), self.USAGE_REGEX)
+        self.assertRegexpMatches(iotostr(context.exception.output),
           r'maxtoppm.py: error: unrecognized arguments: --oops')
 
     def test_conflicting_arguments(self):
@@ -202,6 +208,6 @@ class TestMaxToPPM(unittest.TestCase):
             subprocess.check_output(
               ['coco/maxtoppm.py', '-br', '-rb'],
               stderr=subprocess.STDOUT)
-        self.assertRegexpMatches(context.exception.output, self.USAGE_REGEX)
-        self.assertRegexpMatches(context.exception.output,
+        self.assertRegexpMatches(iotostr(context.exception.output), self.USAGE_REGEX)
+        self.assertRegexpMatches(iotostr(context.exception.output),
           r'maxtoppm.py: error: argument -rb: not allowed with argument -br')
