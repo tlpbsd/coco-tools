@@ -1,4 +1,4 @@
-FROM jamieleecho/coco-dev:0.18
+FROM jamieleecho/coco-dev:0.19
 
 # Convenience for Mac users
 RUN ln -s /home /Users
