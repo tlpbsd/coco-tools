@@ -1,20 +1,20 @@
 #!/usr/bin/env python
 
-from setuptools import setup, find_packages
+import os
+import setuptools
 
+# VERSION MUST be defined on line 6
+VERSION = '0.4'
 
-LONG_DESCRIPTION = """
-jamieleecho-coco-tools contains tools that are useful for Color Computer users.
-They currently include a tool for converting OS-9 VEF images to PNG.
-"""
+with open('README.md', 'r') as fh:
+    long_description = fh.read()
 
-
-setup(
-    name='jamieleecho-coco-tools',
-    version='0.3.0',
+setuptools.setup(
+    name='coco-tools',
+    version=VERSION,
 
     description='TRS-80 Color Computer Tools',
-    long_description=LONG_DESCRIPTION,
+    long_description=long_description,
 
     # The project's main homepage.
     url='https://github.com/jamieleecho/coco-tools',
@@ -39,22 +39,24 @@ setup(
 
         # Specify the Python versions you support here. In particular, ensure
         # that you indicate whether you support Python 2, Python 3 or both.
-        'Programming Language :: Python :: 2.7',
-        'Programming Language :: Python :: 3.6',
+        'Programming Language :: Python :: 3',
     ],
 
     install_requires=[
-        'future>=0.18.2',
         'Pillow<7.0.0',
         'pypng>=0.0.18',
     ],
+    python_requires='>=3.6',
 
     # What does your project relate to?
     keywords='coco image conversion trs-80 tandy',
 
     # You can just specify the packages manually here if your project is
     # simple. Or you can use find_packages().
-    packages=find_packages(exclude=('tests',)),
+    packages=setuptools.find_packages(where='src'),
+    package_dir={
+        '': 'src',
+    },
 
     entry_points={
         'console_scripts': [

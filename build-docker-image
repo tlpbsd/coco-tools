@@ -1,5 +1,0 @@
-#!/usr/bin/env sh
-
-export DOCKER_IMAGE=jamieleecho/coco-tools:0.4
-docker build -t $DOCKER_IMAGE .
-

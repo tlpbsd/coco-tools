@@ -1,21 +1,21 @@
-FROM jamieleecho/coco-dev:0.19
+FROM jamieleecho/coco-dev:0.31
+MAINTAINER Jamie Cho version: 0.4
 
-# Convenience for Mac users
-RUN ln -s /home /Users
+# Store stuff in a semi-reasonable spot
+RUN rm -rf coco-tools && mkdir /root/coco-tools
+WORKDIR /root/coco-tools
+ENV PYTHONPATH=/root/coco-tools/src
 
+# Setup requirements
 # Install requirements
 COPY requirements.txt .
-RUN \
-  python2 /usr/bin/pip2 install -r requirements.txt && \
-  pip3 install -r requirements.txt
+RUN pip3 install -r requirements.txt
+
+# Copy source files
+COPY setup.py ./
+COPY README.md ./
+COPY tests ./tests
+COPY src ./src
 
 # Install coco-tools
-RUN mkdir coco-tools-build
-WORKDIR coco-tools-build
-COPY setup.py .
-COPY coco ./coco
-RUN \
-  python2 setup.py install && \
-  python3 setup.py install
-WORKDIR ..
-
+RUN python3 setup.py install

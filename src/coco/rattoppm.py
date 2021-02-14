@@ -8,11 +8,10 @@
 #
 # reads rat files and converts to ppm
 
-from __future__ import print_function
-
 import argparse
 import sys
 
+from coco import __version__
 from coco.util import getbit, iotostr, pack, stdiotobuffer, strtoio
 
 
@@ -47,10 +46,9 @@ def convert(input_image_stream, output_image_stream):
             dump(c & 7)
 
 
-VERSION = '2020.03.28'
 DESCRIPTION = """Convert RS-DOS RAT images to PPM
 Copyright (c) 2018-2020 by Mathieu Bouchard, Jamie Cho
-Version: {}""".format(VERSION)
+Version: {}""".format(__version__)
 
 
 def main():
@@ -74,7 +72,7 @@ def start(argv):
       help='output PPM image file')
     parser.add_argument('--version',
       action='version',
-      version='%(prog)s {}'.format(VERSION))
+      version='%(prog)s {}'.format(__version__))
     args = parser.parse_args(argv)
 
     convert(args.input_image, args.output_image)

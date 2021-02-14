@@ -1,11 +1,13 @@
 import os
 import filecmp
 import pkg_resources
+import sys
 import subprocess
 import tempfile
 import unittest
 
 import coco.pixtopgm
+from coco import __version__
 from coco.util import iotostr
 
 
@@ -15,7 +17,7 @@ class TestPixToPGM(unittest.TestCase):
       r'image.pgm\s*output PGM image file'
     OPTIONAL_ARGS_REGEX = r'optional arguments:\s*-h, --help\s*show this help message and exit' \
       r'\s*--version\s*show program\'s version number and exit'
-    VERSION_REGEX = r'2020\.03\.28'
+    VERSION_REGEX = r'{}'.format(__version__).replace('.', '\\.')
 
     def setUp(self):
         self.outfile = tempfile.NamedTemporaryFile('w', suffix='.pgm', delete=False)
@@ -36,7 +38,7 @@ class TestPixToPGM(unittest.TestCase):
         infilename = pkg_resources.resource_filename(__name__, 'fixtures/sue.pix')
         with self.assertRaises(subprocess.CalledProcessError) as context:
             subprocess.check_output(
-              ['coco/pixtopgm.py', infilename, self.outfile.name, 'baz'],
+              [sys.executable, 'src/coco/pixtopgm.py', infilename, self.outfile.name, 'baz'],
               stderr=subprocess.STDOUT)
         self.assertRegexpMatches(iotostr(context.exception.output), self.USAGE_REGEX)
         self.assertRegexpMatches(iotostr(context.exception.output),
@@ -45,11 +47,11 @@ class TestPixToPGM(unittest.TestCase):
     def test_converts_pix_to_pgm_via_stdout(self):
         infile = pkg_resources.resource_filename(__name__, 'fixtures/sue.pix')
         comparefilename = pkg_resources.resource_filename(__name__, 'fixtures/sue.pgm')
-        subprocess.check_call(['coco/pixtopgm.py', infile], stdout=self.outfile)
+        subprocess.check_call([sys.executable, 'src/coco/pixtopgm.py', infile], stdout=self.outfile)
         self.assertTrue(filecmp.cmp(self.outfile.name, comparefilename))
 
     def test_help(self):
-        output = subprocess.check_output(['coco/pixtopgm.py', '-h'], stderr=subprocess.STDOUT)
+        output = subprocess.check_output([sys.executable, 'src/coco/pixtopgm.py', '-h'], stderr=subprocess.STDOUT)
         self.assertRegexpMatches(iotostr(output), 'Convert RS-DOS PIX images to PGM')
         self.assertRegexpMatches(iotostr(output), self.VERSION_REGEX)
         self.assertRegexpMatches(iotostr(output), self.USAGE_REGEX)
@@ -57,7 +59,7 @@ class TestPixToPGM(unittest.TestCase):
         self.assertRegexpMatches(iotostr(output), self.OPTIONAL_ARGS_REGEX)
 
     def test_version(self):
-        output = subprocess.check_output(['coco/pixtopgm.py', '--version'],
+        output = subprocess.check_output([sys.executable, 'src/coco/pixtopgm.py', '--version'],
           stderr=subprocess.STDOUT)
         self.assertRegexpMatches(iotostr(output), self.VERSION_REGEX)
 
@@ -65,7 +67,7 @@ class TestPixToPGM(unittest.TestCase):
         with self.assertRaises(subprocess.CalledProcessError) as context:
             infile = pkg_resources.resource_filename(__name__, 'fixtures/sue.pix')
             subprocess.check_output(
-              ['coco/pixtopgm.py', infile, '--oops'],
+              [sys.executable, 'src/coco/pixtopgm.py', infile, '--oops'],
               stderr=subprocess.STDOUT)
         self.assertRegexpMatches(iotostr(context.exception.output), self.USAGE_REGEX)
         self.assertRegexpMatches(iotostr(context.exception.output),

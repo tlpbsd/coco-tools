@@ -8,13 +8,12 @@
 #
 # reads max art files and converts to ppm
 
-from __future__ import division, print_function
-
 import argparse
 import codecs
 import os
 import sys
 
+from coco import __version__
 from coco.util import check_positive, check_zero_or_positive, getbit, iotostr, pack, stdiotobuffer, strtoio
 
 
@@ -118,11 +117,10 @@ def convert(input_image_stream, output_image_stream, arte, newsroom, cols, rows,
     return True
 
 
-VERSION = '2020.03.28'
 DESCRIPTION = """Convert RS-DOS MAX and ART images to PPM
 Copyright (c) 2018 by Mathieu Bouchard
 Copyright (c) 2018-2020 by Mathieu Bouchard, Jamie Cho
-Version: {}""".format(VERSION)
+Version: {}""".format(__version__)
 PIXEL_MODE_DESCRIPTION = """Default pixel mode is no artifact (PMODE 4 on monitor). The 6 other modes:"""
 PARSER_MODE_DESCRIPTION = """Default file format is CocoMax 1/2's .MAX, which is also Graphicom's
 .PIC and SAVEM of 4 or 8 pages of PMODE 3/4.
@@ -150,7 +148,7 @@ def start(argv):
       help='output PPM image file')
     parser.add_argument('--version',
       action='version',
-      version='%(prog)s {}'.format(VERSION))
+      version='%(prog)s {}'.format(__version__))
 
     pixel_mode_group = parser.add_argument_group('pixel mode',
       description=PIXEL_MODE_DESCRIPTION)

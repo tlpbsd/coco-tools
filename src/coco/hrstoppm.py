@@ -8,11 +8,10 @@
 #
 # reads hrs files and converts to ppm
 
-from __future__ import print_function
-
 import argparse
 import sys
 
+from coco import __version__
 from coco.util import check_positive, check_zero_or_positive, getbit, iotostr, pack, stdiotobuffer, strtoio
 
 
@@ -37,11 +36,10 @@ def convert(input_image_stream, output_image_stream, width, height, skip):
             dump(c & 15)
 
 
-VERSION = '2020.03.28'
 DESCRIPTION = """Convert RS-DOS HRS images to PPM
 Copyright (c) 2018 by Mathieu Bouchard
 Copyright (c) 2018-2020 by Jamie Cho
-Version: {}""".format(VERSION)
+Version: {}""".format(__version__)
 
 
 def main():
@@ -86,7 +84,7 @@ def start(argv):
       help='skip some number of bytes')
     parser.add_argument('--version',
       action='version',
-      version='%(prog)s {}'.format(VERSION))
+      version='%(prog)s {}'.format(__version__))
     args = parser.parse_args(argv)
 
     convert(args.input_image, args.output_image, args.width, args.rows, args.skip)
