@@ -1,10 +1,9 @@
 #!/usr/bin/env python
 
-import os
 import setuptools
 
 # VERSION MUST be defined on line 6
-VERSION = '0.4'
+VERSION = '0.5'
 
 with open('README.md', 'r') as fh:
     long_description = fh.read()
@@ -15,6 +14,7 @@ setuptools.setup(
 
     description='TRS-80 Color Computer Tools',
     long_description=long_description,
+    long_description_content_type='text/markdown',
 
     # The project's main homepage.
     url='https://github.com/jamieleecho/coco-tools',

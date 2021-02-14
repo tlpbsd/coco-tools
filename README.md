@@ -3,17 +3,18 @@
 This is a simple collection of tools to assist with developing software for
 the [TRS-80 Color Computer](https://en.wikipedia.org/wiki/TRS-80_Color_Computer).
 
-
 ## Installation
+
 ```
 git clone https://github.com/jamieleecho/coco-tools.git
 cd coco-tools
 python3 setup.py
 ```
 
-
 ## Tools
+
 ### cm3toppm
+
 ```
 usage: cm3toppm [-h] [--version] [image.cm3] [image.ppm]
 
@@ -32,6 +33,7 @@ optional arguments:
 ```
 
 ### hrstoppm
+
 ```
 usage: hrstoppm [-h] [-w width] [-r height] [-s bytes] [--version]
                 [image.hrs] [image.ppm]
@@ -54,6 +56,7 @@ optional arguments:
 ```
 
 ### maxtoppm
+
 ```
 usage: maxtoppm [-h] [--version]
                 [-br | -rb | -br2 | -rb2 | -br3 | -rb3 | -s10 | -s11] [-i]
@@ -98,6 +101,7 @@ Format and size options::
 ```
 
 ### mgetoppm
+
 ```
 usage: mgetoppm [-h] [--version] [image.mge] [image.ppm]
 
@@ -116,6 +120,7 @@ optional arguments:
 ```
 
 ### pixtoppm
+
 ```
 usage: pixtopgm [-h] [--version] image.pix [image.pgm]
 
@@ -133,6 +138,7 @@ optional arguments:
 ```
 
 ### rattoppm
+
 ```
 usage: rattoppm [-h] [--version] [image.rat] [image.ppm]
 
@@ -150,6 +156,7 @@ optional arguments:
 ```
 
 ### veftoppm
+
 ```
 usage: veftopng [-h] [--version] image.vef image.png
 
@@ -167,8 +174,8 @@ optional arguments:
   --version   show program's version number and exit
 ```
 
-
 ## Developing and Testing
+
 ```
 # Build the docker image
 docker-compose build test
