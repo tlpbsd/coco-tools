@@ -8,12 +8,11 @@
 #
 # reads mge files and converts to ppm
 
-from __future__ import print_function
-
 import argparse
 import codecs
 import sys
 
+from coco import __version__
 from coco.util import getbit, iotostr, pack, stdiotobuffer, strtoio
 
 
@@ -100,11 +99,10 @@ def convert(input_image_stream, output_image_stream):
         debug('{} octets de trop'.format(extra))
 
 
-VERSION = '2020.03.28'
 DESCRIPTION = """Convert RS-DOS MGE images to PPM
 Copyright (c) 2017 by Mathieu Bouchard
 Copyright (C) 2018-2020 by Jamie Cho
-Version: {}""".format(VERSION)
+Version: {}""".format(__version__)
 
 
 def main():
@@ -128,7 +126,7 @@ def start(argv):
       help='output PPM image file')
     parser.add_argument('--version',
       action='version',
-      version='%(prog)s {}'.format(VERSION))
+      version='%(prog)s {}'.format(__version__))
     args = parser.parse_args(argv)
 
     convert(args.input_image, args.output_image)

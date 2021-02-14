@@ -2,10 +2,12 @@ import os
 import filecmp
 import pkg_resources
 import subprocess
+import sys
 import tempfile
 import unittest
 
 import coco.hrstoppm
+from coco import __version__
 from coco.util import iotostr
 
 
@@ -18,7 +20,7 @@ class TestHRSToPPM(unittest.TestCase):
       r'\s*-r height\s*choose height not computed from header divided by width' \
       r'\s*-s bytes\s*skip some number of bytes' \
       r'\s*--version\s*show program\'s version number and exit'
-    VERSION_REGEX = r'2020\.03\.28'
+    VERSION_REGEX = r'{}'.format(__version__).replace('.', '\\.')
 
     def setUp(self):
         self.outfile = tempfile.NamedTemporaryFile('w', suffix='.ppm', delete=False)
@@ -60,7 +62,7 @@ class TestHRSToPPM(unittest.TestCase):
         infilename = pkg_resources.resource_filename(__name__, 'fixtures/monalisa.hrs')
         with self.assertRaises(subprocess.CalledProcessError) as context:
             subprocess.check_output(
-              ['coco/hrstoppm.py', infilename, self.outfile.name, 'baz'],
+              [sys.executable, 'src/coco/hrstoppm.py', infilename, self.outfile.name, 'baz'],
               stderr=subprocess.STDOUT)
         self.assertRegexpMatches(iotostr(context.exception.output), self.USAGE_REGEX)
         self.assertRegexpMatches(iotostr(context.exception.output),
@@ -69,17 +71,17 @@ class TestHRSToPPM(unittest.TestCase):
     def test_converts_hrs_to_ppm_via_stdio(self):
         infile = pkg_resources.resource_stream(__name__, 'fixtures/monalisa.hrs')
         comparefilename = pkg_resources.resource_filename(__name__, 'fixtures/monalisa.ppm')
-        subprocess.check_call(['coco/hrstoppm.py'], stdin=infile, stdout=self.outfile)
+        subprocess.check_call([sys.executable, 'src/coco/hrstoppm.py'], stdin=infile, stdout=self.outfile)
         self.assertTrue(filecmp.cmp(self.outfile.name, comparefilename))
 
     def test_converts_hrs_to_ppm_via_stdin(self):
         infilename = pkg_resources.resource_filename(__name__, 'fixtures/monalisa.hrs')
         comparefilename = pkg_resources.resource_filename(__name__, 'fixtures/monalisa.ppm')
-        subprocess.check_call(['coco/hrstoppm.py', infilename], stdout=self.outfile)
+        subprocess.check_call([sys.executable, 'src/coco/hrstoppm.py', infilename], stdout=self.outfile)
         self.assertTrue(filecmp.cmp(self.outfile.name, comparefilename))
 
     def test_help(self):
-        output = subprocess.check_output(['coco/hrstoppm.py', '-h'], stderr=subprocess.STDOUT)
+        output = subprocess.check_output([sys.executable, 'src/coco/hrstoppm.py', '-h'], stderr=subprocess.STDOUT)
         self.assertRegexpMatches(iotostr(output), 'Convert RS-DOS HRS images to PPM')
         self.assertRegexpMatches(iotostr(output), self.VERSION_REGEX)
         self.assertRegexpMatches(iotostr(output), self.USAGE_REGEX)
@@ -87,14 +89,14 @@ class TestHRSToPPM(unittest.TestCase):
         self.assertRegexpMatches(iotostr(output), self.OPTIONAL_ARGS_REGEX)
 
     def test_version(self):
-        output = subprocess.check_output(['coco/hrstoppm.py', '--version'],
+        output = subprocess.check_output([sys.executable, 'src/coco/hrstoppm.py', '--version'],
           stderr=subprocess.STDOUT)
         self.assertRegexpMatches(iotostr(output), self.VERSION_REGEX)
 
     def test_unknown_argument(self):
         with self.assertRaises(subprocess.CalledProcessError) as context:
             subprocess.check_output(
-              ['coco/hrstoppm.py', '--oops'],
+              [sys.executable, 'src/coco/hrstoppm.py', '--oops'],
               stderr=subprocess.STDOUT)
         self.assertRegexpMatches(iotostr(context.exception.output), self.USAGE_REGEX)
         self.assertRegexpMatches(iotostr(context.exception.output),

@@ -1,0 +1,25 @@
+version: '3'
+
+services:
+  test:
+    build: .
+    command: bash -c "
+        nose2"
+
+  testv:
+    build: .
+    command: bash -c "
+        nose2"
+    volumes:
+    -  .:/root/coco-tools
+
+  bash:
+    build: .
+    command: bash
+
+  bashv:
+    build: .
+    command: bash
+    volumes:
+    -  .:/root/coco-tools
+

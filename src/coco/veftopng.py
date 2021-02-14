@@ -24,14 +24,13 @@
 # with this program; if not, write to the Free Software Foundation, Inc.,
 # 51 Franklin Street, Fifth Floor, Boston, MA  02110-1301, USA.
 
-from __future__ import print_function
-
 import argparse
 import os
 import png
 import sys
 
 from PIL import Image
+from coco import __version__
 from coco.util import iotobytes
 
 
@@ -65,11 +64,10 @@ def unsquash(data, count, orig_len):
     return(decomp_data[0:orig_len])
 
 
-VERSION = '2020.03.28'
 DESCRIPTION = """Convert OS-9 VEF images to PNG
 Copyright (C) 2018-2020  Travis Poppe <tlp@lickwid.net>
 Copyright (C) 2020  Jamie Cho
-Version: {}""".format(VERSION)
+Version: {}""".format(__version__)
 
 
 def main():
@@ -89,7 +87,7 @@ def start(argv):
       help='output PNG image file')
     parser.add_argument('--version',
       action='version',
-      version='%(prog)s {}'.format(VERSION))
+      version='%(prog)s {}'.format(__version__))
     args = parser.parse_args(argv)
 
     with open(args.input_image, 'rb') as file:
