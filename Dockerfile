@@ -1,5 +1,5 @@
 FROM jamieleecho/coco-dev:0.31
-MAINTAINER Jamie Cho version: 0.4
+MAINTAINER Jamie Cho version: 0.5
 
 # Store stuff in a semi-reasonable spot
 RUN rm -rf coco-tools && mkdir /root/coco-tools
