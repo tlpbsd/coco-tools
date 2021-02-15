@@ -2,5 +2,10 @@
 Pillow==6.2.2
 pypng==0.0.18
 
-# Developer requirements
-nose2==0.9.1
+# Testing only
+autopep8 >= 1.5.4
+black >= 20.8b1
+pycodestyle >= 2.6.0
+pylint >= 2.6.0
+pytest >= 6.2.1
+pytest-cov >= 2.11.1

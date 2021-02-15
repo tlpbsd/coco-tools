@@ -4,12 +4,14 @@ services:
   test:
     build: .
     command: bash -c "
-        nose2"
+        pycodestyle src tests setup.py &&
+        pytest --cov=src"
 
   testv:
     build: .
     command: bash -c "
-        nose2"
+        pycodestyle src tests setup.py &&
+        pytest --cov=src"
     volumes:
     -  .:/root/coco-tools
 
