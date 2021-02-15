@@ -22,7 +22,8 @@ jobs:
       - name: Install Requirements
         run: |
           pip install --user -r requirements.txt
+          python setup.py install
       - name: Run tests
         run: |
-          python setup.py install
+          pycodestyle src tests setup.py
           python -m nose2

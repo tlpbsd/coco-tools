@@ -16,14 +16,21 @@ from coco.util import getbit, iotostr, pack, stdiotobuffer, strtoio
 
 def convert(input_image_stream, output_image_stream):
     def debug(x):
-        sys.stderr.write('{}\n'.format(x))
+        sys.stderr.write("{}\n".format(x))
 
     def dump(x):
         c = palette[x]
         out.write(
-          strtoio(pack([(getbit(c, 5) * 2 + getbit(c, 2)) * 85,
+            strtoio(
+                pack(
+                    [
+                        (getbit(c, 5) * 2 + getbit(c, 2)) * 85,
                         (getbit(c, 4) * 2 + getbit(c, 1)) * 85,
-                        (getbit(c, 3) * 2 + getbit(c, 0)) * 85])))
+                        (getbit(c, 3) * 2 + getbit(c, 0)) * 85,
+                    ]
+                )
+            )
+        )
 
     # Read basic structure
     #   - is is a 192 or 384 row image?
@@ -33,7 +40,7 @@ def convert(input_image_stream, output_image_stream):
     pictyp = ord(iotostr(f.read(1)))
     rows = (getbit(pictyp, 7) + 1) * 192
     sans_motifs = getbit(pictyp, 0) != 0
-    debug('{}x{}, 16 couleurs, sans_motifs={}'.format(cols, rows, sans_motifs))
+    debug("{}x{}, 16 couleurs, sans_motifs={}".format(cols, rows, sans_motifs))
 
     # Get palette information
     palette = [ord(iotostr(f.read(1))) for ii in range(16)]
@@ -42,9 +49,12 @@ def convert(input_image_stream, output_image_stream):
     cm3cyc = [ord(iotostr(f.read(1))) for ii in range(8)]
     aniflg = ord(iotostr(f.read(1))) & 0x80 != 0
     cycflg = ord(iotostr(f.read(1))) & 0x80 != 0
-    debug('palette={}'.format(palette))
-    debug('cm3cyc={} cycrat={} cycflg={} anirat={} aniflg={}'
-      .format(cm3cyc, cycrat, cycflg, anirat, aniflg))
+    debug("palette={}".format(palette))
+    debug(
+        "cm3cyc={} cycrat={} cycflg={} anirat={} aniflg={}".format(
+            cm3cyc, cycrat, cycflg, anirat, aniflg
+        )
+    )
     if not sans_motifs:
         iotostr(f.read(243))
     linbuf = [0] * 160
@@ -53,7 +63,7 @@ def convert(input_image_stream, output_image_stream):
 
     # Start outputting image
     out = output_image_stream
-    out.write(strtoio('P6\n{} {}\n255\n'.format(cols, rows)))
+    out.write(strtoio("P6\n{} {}\n255\n".format(cols, rows)))
 
     for ii in range(getbit(pictyp, 7) + 1):
         lines = ord(iotostr(f.read(1)))
@@ -99,17 +109,19 @@ def convert(input_image_stream, output_image_stream):
 
     # Look for extra junk at the end of the file
     extra = 0
-    while iotostr(f.read(1)) != '':
+    while iotostr(f.read(1)) != "":
         extra = extra + 1
         pass
     if extra > 0:
-        debug('{} octets de trop'.format(extra))
+        debug("{} octets de trop".format(extra))
 
 
 DESCRIPTION = """Convert RS-DOS CM3 images to PPM
 Copyright (c) 2017 by Mathieu Bouchard
 Copyright (C) 2018-2020 by Jamie Cho
-Version: {}""".format(__version__)
+Version: {}""".format(
+    __version__
+)
 
 
 def main():
@@ -117,23 +129,30 @@ def main():
 
 
 def start(argv):
-    parser = argparse.ArgumentParser(description=DESCRIPTION,
-      formatter_class=argparse.RawTextHelpFormatter)
-    parser.add_argument('input_image',
-      metavar='image.cm3',
-      type=argparse.FileType('rb'),
-      nargs='?',
-      default=stdiotobuffer(sys.stdin),
-      help='input CM3 image file')
-    parser.add_argument('output_image',
-      metavar='image.ppm',
-      type=argparse.FileType('wb'),
-      nargs='?',
-      default=stdiotobuffer(sys.stdout),
-      help='output PPM image file')
-    parser.add_argument('--version',
-      action='version',
-      version='%(prog)s {}'.format(__version__))
+    parser = argparse.ArgumentParser(
+        description=DESCRIPTION, formatter_class=argparse.RawTextHelpFormatter
+    )
+    parser.add_argument(
+        "input_image",
+        metavar="image.cm3",
+        type=argparse.FileType("rb"),
+        nargs="?",
+        default=stdiotobuffer(sys.stdin),
+        help="input CM3 image file",
+    )
+    parser.add_argument(
+        "output_image",
+        metavar="image.ppm",
+        type=argparse.FileType("wb"),
+        nargs="?",
+        default=stdiotobuffer(sys.stdout),
+        help="output PPM image file",
+    )
+    parser.add_argument(
+        "--version",
+        action="version",
+        version="%(prog)s {}".format(__version__),
+    )
     args = parser.parse_args(argv)
 
     convert(args.input_image, args.output_image)
@@ -141,6 +160,5 @@ def start(argv):
     args.input_image.close()
 
 
-if __name__ == '__main__':
+if __name__ == "__main__":
     main()
-
