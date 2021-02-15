@@ -7,6 +7,7 @@ import tempfile
 import unittest
 
 import coco.veftopng
+from .util import unix_only
 from coco import __version__
 from coco.util import iotostr
 
@@ -70,10 +71,8 @@ class TestVEFToPNG(unittest.TestCase):
                 ],
                 stderr=subprocess.STDOUT,
             )
-        self.assertRegexpMatches(
-            iotostr(context.exception.output), self.USAGE_REGEX
-        )
-        self.assertRegexpMatches(
+        self.assertRegex(iotostr(context.exception.output), self.USAGE_REGEX)
+        self.assertRegex(
             iotostr(context.exception.output),
             r"veftopng.py: error: unrecognized arguments: baz",
         )
@@ -83,20 +82,18 @@ class TestVEFToPNG(unittest.TestCase):
             [sys.executable, "src/coco/veftopng.py", "-h"],
             stderr=subprocess.STDOUT,
         )
-        self.assertRegexpMatches(
-            iotostr(output), "Convert OS-9 VEF images to PNG"
-        )
-        self.assertRegexpMatches(iotostr(output), self.VERSION_REGEX)
-        self.assertRegexpMatches(iotostr(output), self.USAGE_REGEX)
-        self.assertRegexpMatches(iotostr(output), self.POSITIONAL_ARGS_REGEX)
-        self.assertRegexpMatches(iotostr(output), self.OPTIONAL_ARGS_REGEX)
+        self.assertRegex(iotostr(output), "Convert OS-9 VEF images to PNG")
+        self.assertRegex(iotostr(output), self.VERSION_REGEX)
+        self.assertRegex(iotostr(output), self.USAGE_REGEX)
+        self.assertRegex(iotostr(output), self.POSITIONAL_ARGS_REGEX)
+        self.assertRegex(iotostr(output), self.OPTIONAL_ARGS_REGEX)
 
     def test_version(self):
         output = subprocess.check_output(
             [sys.executable, "src/coco/veftopng.py", "--version"],
             stderr=subprocess.STDOUT,
         )
-        self.assertRegexpMatches(iotostr(output), self.VERSION_REGEX)
+        self.assertRegex(iotostr(output), self.VERSION_REGEX)
 
     def test_unknown_argument(self):
         infilename = pkg_resources.resource_filename(
@@ -113,10 +110,8 @@ class TestVEFToPNG(unittest.TestCase):
                 ],
                 stderr=subprocess.STDOUT,
             )
-        self.assertRegexpMatches(
-            iotostr(context.exception.output), self.USAGE_REGEX
-        )
-        self.assertRegexpMatches(
+        self.assertRegex(iotostr(context.exception.output), self.USAGE_REGEX)
+        self.assertRegex(
             iotostr(context.exception.output),
             r"veftopng.py: error: unrecognized arguments: --oops",
         )

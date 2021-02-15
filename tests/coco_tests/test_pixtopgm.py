@@ -59,10 +59,8 @@ class TestPixToPGM(unittest.TestCase):
                 ],
                 stderr=subprocess.STDOUT,
             )
-        self.assertRegexpMatches(
-            iotostr(context.exception.output), self.USAGE_REGEX
-        )
-        self.assertRegexpMatches(
+        self.assertRegex(iotostr(context.exception.output), self.USAGE_REGEX)
+        self.assertRegex(
             iotostr(context.exception.output),
             r"pixtopgm.py: error: unrecognized arguments: baz",
         )
@@ -83,20 +81,18 @@ class TestPixToPGM(unittest.TestCase):
             [sys.executable, "src/coco/pixtopgm.py", "-h"],
             stderr=subprocess.STDOUT,
         )
-        self.assertRegexpMatches(
-            iotostr(output), "Convert RS-DOS PIX images to PGM"
-        )
-        self.assertRegexpMatches(iotostr(output), self.VERSION_REGEX)
-        self.assertRegexpMatches(iotostr(output), self.USAGE_REGEX)
-        self.assertRegexpMatches(iotostr(output), self.POSITIONAL_ARGS_REGEX)
-        self.assertRegexpMatches(iotostr(output), self.OPTIONAL_ARGS_REGEX)
+        self.assertRegex(iotostr(output), "Convert RS-DOS PIX images to PGM")
+        self.assertRegex(iotostr(output), self.VERSION_REGEX)
+        self.assertRegex(iotostr(output), self.USAGE_REGEX)
+        self.assertRegex(iotostr(output), self.POSITIONAL_ARGS_REGEX)
+        self.assertRegex(iotostr(output), self.OPTIONAL_ARGS_REGEX)
 
     def test_version(self):
         output = subprocess.check_output(
             [sys.executable, "src/coco/pixtopgm.py", "--version"],
             stderr=subprocess.STDOUT,
         )
-        self.assertRegexpMatches(iotostr(output), self.VERSION_REGEX)
+        self.assertRegex(iotostr(output), self.VERSION_REGEX)
 
     def test_unknown_argument(self):
         with self.assertRaises(subprocess.CalledProcessError) as context:
@@ -107,10 +103,8 @@ class TestPixToPGM(unittest.TestCase):
                 [sys.executable, "src/coco/pixtopgm.py", infile, "--oops"],
                 stderr=subprocess.STDOUT,
             )
-        self.assertRegexpMatches(
-            iotostr(context.exception.output), self.USAGE_REGEX
-        )
-        self.assertRegexpMatches(
+        self.assertRegex(iotostr(context.exception.output), self.USAGE_REGEX)
+        self.assertRegex(
             iotostr(context.exception.output),
             r"pixtopgm.py: error: unrecognized arguments: --oops",
         )

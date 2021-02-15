@@ -19,6 +19,7 @@ jobs:
       - name: set pythonpath
         run: |
           echo "PYTHONPATH=$(pwd)/src" >> $GITHUB_ENV
+          echo "PATH=${PATH}:${HOME}/.local/bin" >> $GITHUB_ENV
       - name: Install Requirements
         run: |
           pip install --user -r requirements.txt
@@ -26,4 +27,4 @@ jobs:
       - name: Run tests
         run: |
           pycodestyle src tests setup.py
-          python -m nose2
+          pytest --cov=src

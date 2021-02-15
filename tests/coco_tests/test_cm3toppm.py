@@ -7,6 +7,7 @@ import tempfile
 import unittest
 
 import coco.cm3toppm
+from .util import unix_only
 from coco import __version__
 from coco.util import iotostr
 
@@ -59,22 +60,24 @@ class TestCM3ToPPM(unittest.TestCase):
                 ],
                 stderr=subprocess.STDOUT,
             )
-        self.assertRegexpMatches(
-            iotostr(context.exception.output), self.USAGE_REGEX
-        )
-        self.assertRegexpMatches(
+        self.assertRegex(iotostr(context.exception.output), self.USAGE_REGEX)
+        self.assertRegex(
             iotostr(context.exception.output),
             r"cm3toppm.py: error: unrecognized arguments: baz",
         )
 
+    @unix_only
     def test_converts_cm3_to_ppm_via_stdio(self):
         infile = pkg_resources.resource_stream(__name__, "fixtures/clip1.cm3")
         comparefilename = pkg_resources.resource_filename(
             __name__, "fixtures/clip1.ppm"
         )
+        read, write = os.pipe()
+        os.write(write, infile.read())
+        os.close(write)
         subprocess.check_call(
             [sys.executable, "src/coco/cm3toppm.py"],
-            stdin=infile,
+            stdin=read,
             stdout=self.outfile,
         )
         self.assertTrue(filecmp.cmp(self.outfile.name, comparefilename))
@@ -97,20 +100,18 @@ class TestCM3ToPPM(unittest.TestCase):
             [sys.executable, "src/coco/cm3toppm.py", "-h"],
             stderr=subprocess.STDOUT,
         )
-        self.assertRegexpMatches(
-            iotostr(output), "Convert RS-DOS CM3 images to PPM"
-        )
-        self.assertRegexpMatches(iotostr(output), self.VERSION_REGEX)
-        self.assertRegexpMatches(iotostr(output), self.USAGE_REGEX)
-        self.assertRegexpMatches(iotostr(output), self.POSITIONAL_ARGS_REGEX)
-        self.assertRegexpMatches(iotostr(output), self.OPTIONAL_ARGS_REGEX)
+        self.assertRegex(iotostr(output), "Convert RS-DOS CM3 images to PPM")
+        self.assertRegex(iotostr(output), self.VERSION_REGEX)
+        self.assertRegex(iotostr(output), self.USAGE_REGEX)
+        self.assertRegex(iotostr(output), self.POSITIONAL_ARGS_REGEX)
+        self.assertRegex(iotostr(output), self.OPTIONAL_ARGS_REGEX)
 
     def test_version(self):
         output = subprocess.check_output(
             [sys.executable, "src/coco/cm3toppm.py", "--version"],
             stderr=subprocess.STDOUT,
         )
-        self.assertRegexpMatches(iotostr(output), self.VERSION_REGEX)
+        self.assertRegex(iotostr(output), self.VERSION_REGEX)
 
     def test_unknown_argument(self):
         with self.assertRaises(subprocess.CalledProcessError) as context:
@@ -118,10 +119,8 @@ class TestCM3ToPPM(unittest.TestCase):
                 [sys.executable, "src/coco/cm3toppm.py", "--oops"],
                 stderr=subprocess.STDOUT,
             )
-        self.assertRegexpMatches(
-            iotostr(context.exception.output), self.USAGE_REGEX
-        )
-        self.assertRegexpMatches(
+        self.assertRegex(iotostr(context.exception.output), self.USAGE_REGEX)
+        self.assertRegex(
             iotostr(context.exception.output),
             r"cm3toppm.py: error: unrecognized arguments: --oops",
         )

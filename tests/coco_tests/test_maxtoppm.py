@@ -7,11 +7,8 @@ import tempfile
 import unittest
 
 import coco.maxtoppm
-
-if sys.version_info < (3,):
-    import mock
-else:
-    from unittest import mock
+from .util import unix_only
+from unittest import mock
 from coco import __version__
 from coco.util import iotostr
 
@@ -256,22 +253,24 @@ class TestMaxToPPM(unittest.TestCase):
                 ],
                 stderr=subprocess.STDOUT,
             )
-        self.assertRegexpMatches(
-            iotostr(context.exception.output), self.USAGE_REGEX
-        )
-        self.assertRegexpMatches(
+        self.assertRegex(iotostr(context.exception.output), self.USAGE_REGEX)
+        self.assertRegex(
             iotostr(context.exception.output),
             r"maxtoppm.py: error: unrecognized arguments: baz",
         )
 
+    @unix_only
     def test_converts_max_to_ppm_via_stdio(self):
         infile = pkg_resources.resource_stream(__name__, "fixtures/eye4.max")
         comparefilename = pkg_resources.resource_filename(
             __name__, "fixtures/eye4.ppm"
         )
+        read, write = os.pipe()
+        os.write(write, infile.read())
+        os.close(write)
         subprocess.check_call(
             [sys.executable, "src/coco/maxtoppm.py"],
-            stdin=infile,
+            stdin=read,
             stdout=self.outfile,
         )
         self.assertTrue(filecmp.cmp(self.outfile.name, comparefilename))
@@ -296,13 +295,11 @@ class TestMaxToPPM(unittest.TestCase):
                 stderr=subprocess.STDOUT,
             )
         )
-        self.assertRegexpMatches(
-            output, "Convert RS-DOS MAX and ART images to PPM"
-        )
-        self.assertRegexpMatches(output, self.VERSION_REGEX)
-        self.assertRegexpMatches(output, self.USAGE_REGEX)
-        self.assertRegexpMatches(output, self.POSITIONAL_ARGS_REGEX)
-        self.assertRegexpMatches(output, self.OPTIONAL_ARGS_REGEX)
+        self.assertRegex(output, "Convert RS-DOS MAX and ART images to PPM")
+        self.assertRegex(output, self.VERSION_REGEX)
+        self.assertRegex(output, self.USAGE_REGEX)
+        self.assertRegex(output, self.POSITIONAL_ARGS_REGEX)
+        self.assertRegex(output, self.OPTIONAL_ARGS_REGEX)
 
     def test_version(self):
         output = iotostr(
@@ -311,7 +308,7 @@ class TestMaxToPPM(unittest.TestCase):
                 stderr=subprocess.STDOUT,
             )
         )
-        self.assertRegexpMatches(output, self.VERSION_REGEX)
+        self.assertRegex(output, self.VERSION_REGEX)
 
     def test_unknown_argument(self):
         with self.assertRaises(subprocess.CalledProcessError) as context:
@@ -319,10 +316,8 @@ class TestMaxToPPM(unittest.TestCase):
                 [sys.executable, "src/coco/maxtoppm.py", "--oops"],
                 stderr=subprocess.STDOUT,
             )
-        self.assertRegexpMatches(
-            iotostr(context.exception.output), self.USAGE_REGEX
-        )
-        self.assertRegexpMatches(
+        self.assertRegex(iotostr(context.exception.output), self.USAGE_REGEX)
+        self.assertRegex(
             iotostr(context.exception.output),
             r"maxtoppm.py: error: unrecognized arguments: --oops",
         )
@@ -333,10 +328,8 @@ class TestMaxToPPM(unittest.TestCase):
                 [sys.executable, "src/coco/maxtoppm.py", "-br", "-rb"],
                 stderr=subprocess.STDOUT,
             )
-        self.assertRegexpMatches(
-            iotostr(context.exception.output), self.USAGE_REGEX
-        )
-        self.assertRegexpMatches(
+        self.assertRegex(iotostr(context.exception.output), self.USAGE_REGEX)
+        self.assertRegex(
             iotostr(context.exception.output),
             r"maxtoppm.py: error: argument -rb: not allowed with argument -br",
         )

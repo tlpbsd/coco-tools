@@ -3,7 +3,6 @@ Pillow==6.2.2
 pypng==0.0.18
 
 # Testing only
-nose2==0.9.1
 autopep8 >= 1.5.4
 black >= 20.8b1
 pycodestyle >= 2.6.0
