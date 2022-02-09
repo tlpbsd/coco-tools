@@ -119,7 +119,7 @@ optional arguments:
   --version   show program's version number and exit
 ```
 
-### pixtoppm
+### pixtopgm
 
 ```
 usage: pixtopgm [-h] [--version] image.pix [image.pgm]
@@ -155,7 +155,7 @@ optional arguments:
   --version   show program's version number and exit
 ```
 
-### veftoppm
+### veftopng
 
 ```
 usage: veftopng [-h] [--version] image.vef image.png
