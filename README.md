@@ -6,6 +6,10 @@ the [TRS-80 Color Computer](https://en.wikipedia.org/wiki/TRS-80_Color_Computer)
 ## Installation
 
 ```
+# To install via pip
+pip install coco-tools
+
+# To install from source
 git clone https://github.com/jamieleecho/coco-tools.git
 cd coco-tools
 python3 setup.py
@@ -21,13 +25,13 @@ usage: cm3toppm [-h] [--version] [image.cm3] [image.ppm]
 Convert RS-DOS CM3 images to PPM
 Copyright (c) 2017 by Mathieu Bouchard
 Copyright (C) 2018-2020 by Jamie Cho
-Version: 0.5
+Version: 0.6
 
 positional arguments:
   image.cm3   input CM3 image file
   image.ppm   output PPM image file
 
-optional arguments:
+options:
   -h, --help  show this help message and exit
   --version   show program's version number and exit
 ```
@@ -41,13 +45,13 @@ usage: hrstoppm [-h] [-w width] [-r height] [-s bytes] [--version]
 Convert RS-DOS HRS images to PPM
 Copyright (c) 2018 by Mathieu Bouchard
 Copyright (c) 2018-2020 by Jamie Cho
-Version: 0.5
+Version: 0.6
 
 positional arguments:
   image.hrs   input HRS image file
   image.ppm   output PPM image file
 
-optional arguments:
+options:
   -h, --help  show this help message and exit
   -w width    choose different width (this does not assume bigger pixels)
   -r height   choose height not computed from header divided by width
@@ -66,13 +70,13 @@ usage: maxtoppm [-h] [--version]
 Convert RS-DOS MAX and ART images to PPM
 Copyright (c) 2018 by Mathieu Bouchard
 Copyright (c) 2018-2020 by Mathieu Bouchard, Jamie Cho
-Version: 0.5
+Version: 0.6
 
 positional arguments:
   image       input image file
   image.ppm   output PPM image file
 
-optional arguments:
+options:
   -h, --help  show this help message and exit
   --version   show program's version number and exit
 
@@ -108,13 +112,13 @@ usage: mgetoppm [-h] [--version] [image.mge] [image.ppm]
 Convert RS-DOS MGE images to PPM
 Copyright (c) 2017 by Mathieu Bouchard
 Copyright (C) 2018-2020 by Jamie Cho
-Version: 0.5
+Version: 0.6
 
 positional arguments:
   image.mge   input MGE image file
   image.ppm   output PPM image file
 
-optional arguments:
+options:
   -h, --help  show this help message and exit
   --version   show program's version number and exit
 ```
@@ -126,13 +130,13 @@ usage: pixtopgm [-h] [--version] image.pix [image.pgm]
 
 Convert RS-DOS PIX images to PGM
 Copyright (c) 2018-2020 by Mathieu Bouchard, Jamie Cho
-Version: 0.5
+Version: 0.6
 
 positional arguments:
   image.pix   input PIX image file
   image.pgm   output PGM image file
 
-optional arguments:
+options:
   -h, --help  show this help message and exit
   --version   show program's version number and exit
 ```
@@ -144,13 +148,13 @@ usage: rattoppm [-h] [--version] [image.rat] [image.ppm]
 
 Convert RS-DOS RAT images to PPM
 Copyright (c) 2018-2020 by Mathieu Bouchard, Jamie Cho
-Version: 0.5
+Version: 0.6
 
 positional arguments:
   image.rat   input RAT image file
   image.ppm   output PPM image file
 
-optional arguments:
+options:
   -h, --help  show this help message and exit
   --version   show program's version number and exit
 ```
@@ -163,13 +167,13 @@ usage: veftopng [-h] [--version] image.vef image.png
 Convert OS-9 VEF images to PNG
 Copyright (C) 2018-2020  Travis Poppe <tlp@lickwid.net>
 Copyright (C) 2020  Jamie Cho
-Version: 0.5
+Version: 0.6
 
 positional arguments:
   image.vef   input VEF image file
   image.png   output PNG image file
 
-optional arguments:
+options:
   -h, --help  show this help message and exit
   --version   show program's version number and exit
 ```

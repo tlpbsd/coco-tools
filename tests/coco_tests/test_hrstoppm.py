@@ -22,7 +22,7 @@ class TestHRSToPPM(unittest.TestCase):
         r"image.ppm\s*output PPM image file"
     )
     OPTIONAL_ARGS_REGEX = (
-        r"optional arguments:\s*-h, --help\s*show this help message and exit"
+        r"option.*:\s*-h, --help\s*show this help message and exit"
         r"\s*-w width\s*choose different width \(this does not assume bigger "
         r"pixels\)"
         r"\s*-r height\s*choose height not computed from header divided by "

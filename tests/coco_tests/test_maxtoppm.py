@@ -25,7 +25,7 @@ class TestMaxToPPM(unittest.TestCase):
         r"image.ppm\s*output PPM image file"
     )
     OPTIONAL_ARGS_REGEX = (
-        r"optional arguments:\s*-h, --help\s*show this help message and exit"
+        r"option.*:\s*-h, --help\s*show this help message and exit"
         r"\s*--version\s*show program\'s version number and exit"
     )
     VERSION_REGEX = r"{}".format(__version__).replace(".", "\\.")
