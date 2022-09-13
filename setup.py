@@ -3,7 +3,7 @@
 import setuptools
 
 # VERSION MUST be defined on line 6
-VERSION = '0.5'
+VERSION = '0.6'
 
 with open('README.md', 'r') as fh:
     long_description = fh.read()
