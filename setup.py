@@ -43,7 +43,7 @@ setuptools.setup(
     ],
 
     install_requires=[
-        'Pillow<7.0.0',
+        'Pillow>=7.0.0',
         'pypng>=0.0.18',
     ],
     python_requires='>=3.6',

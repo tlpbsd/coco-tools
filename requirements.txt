@@ -1,6 +1,6 @@
 # Deployment Requirements
-Pillow==6.2.2
-pypng==0.0.18
+Pillow==9.2.0
+pypng==0.20220715.0
 
 # Testing only
 autopep8 >= 1.5.4
