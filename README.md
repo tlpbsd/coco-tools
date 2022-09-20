@@ -123,6 +123,23 @@ options:
   --version   show program's version number and exit
 ```
 
+### mge_viewer2
+
+```
+usage: mge_viewer2 [-h] [--version] [image.mge]
+
+View ColorMax 3 MGE files
+Copyright (c) 2022 by R. Allen Murphey
+Version: 0.6
+
+positional arguments:
+  image.mge   input MGE image file
+
+optional arguments:
+  -h, --help  show this help message and exit
+  --version   show program's version number and exit
+```
+
 ### pixtopgm
 
 ```
