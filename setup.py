@@ -43,6 +43,7 @@ setuptools.setup(
     ],
 
     install_requires=[
+        'parsimonious>=0.10.0',
         'Pillow>=7.0.0',
         'pypng>=0.0.18',
     ],
