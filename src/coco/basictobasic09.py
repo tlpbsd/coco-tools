@@ -5,41 +5,63 @@ from parsimonious.nodes import NodeVisitor
 
 grammar = Grammar(
     r"""
-    aaa_prog        = (line eol)* line eol*
+    aaa_prog        = ((line eol) / line)*
+    arr_assign      = var space* "(" space* exp space* ")" space*
+                      "=" space* exp
+    array_ref_exp   = var space* "(" space* exp space* ")"
     comment         = comment_token comment_text
-    line            = linenum space* comment space*
-    linenum_or_statements   = (linenum / statements)
-    if_statement    = if_token space* expression space* 
-                      then_token space* linenum_or_statements
-    if_else_statement    = if_token space* expression
-                           space* then_token space* linenum_or_statements
-                           space* else_token space* linenum_or_statements
-    expression      = literal / var
-                    / ((not_token space*)? expression space* op space* expression)
-                    / (open_paren_token space* expression space* close_paren_token)
-    statement       = ~r"[^:\r\n]*"
-    statements      = statement (space* colon+ statement?)* comment?
+    line            = linenum space* statements space*
+    line_or_stmnts  = linenum
+                    / statements
+    line_or_stmnts2 = linenum
+                    / statements_else
+    simple_assign   = var space* "=" space* exp
+    statement       = ("IF" space* exp space*
+                       "THEN" space* line_or_stmnts2 space*
+                       "ELSE" space* line_or_stmnts)
+                    / ("IF" space* exp space*
+                       "THEN" space* line_or_stmnts)
+                    / simple_assign
+                    / arr_assign
+    statements      = comment
+                    / (statement? (comment/((":"/space)+ (comment / statements)))* space*)
+    statements_else = (statement? (space* ":" statements)* space*)
+    val_exp         = literal
+                    / ("(" space* exp space* ")")
+                    / (un_op space* exp)
+                    / array_ref_exp
+                    / var
+    exp             = (val_exp space* bin_op space* exp)
+                    / val_exp
 
-    close_paren_token   = ~r"\)"
-    colon           = ":"
+    bin_op          = "+" / "-" / "*" / "/" / "&" / "AND" / "OR" / "="
     comment_text    = ~r"[^:\r\n$]*"
     comment_token   = ~r"(REM|')"
-    else_token      = "ELSE"
-    eol             = ~r"[\n\r]+"
+    eol             = ~r"(\n|\r)+"
     eof             = ~r"$"
-    if_token        = "IF"
     linenum         = ~r"[0-9]+"
     literal         = num_literal / str_literal
-    op              = "+" / "-" / "*" / "/" / "&" / "AND" / "OR" / "="
-    not_token       = "NOT"
-    num_literal     = ~r"((\d*\.\d*)(\s*E\s*[\+\-]?\s*[0-9]*))|(\d*\.\d*)|(\d+(\s*E\s*[\+\-]?\s*[0-9]*))|(\d+)"
-    open_paren_token= ~r"\("
+    num_literal     = ~r"([\+\-\s]*(\d*\.\d*)(\s*(?!ELSE)E\s*[\+\-]?\s*[0-9]*))|[\+\-\s]*(\d*\.\d*)|[\+\-\s]*(\d+(\s*(?!ELSE)E\s*[\+\-]?\s*[0-9]*))|[\+\-\s]*(\d+)"
     space           = ~r"\s"
     str_literal     = ~r'\"[^"\n]*\"'
-    then_token      = "THEN"
-    var             = ~r"\$?[A-Z][A-Z0-9]*"
+    un_op           = "+" / "-" / "NOT"
+    var             = ~r"\$?(?!ELSE|IF|FOR|NOT)([A-Z][A-Z0-9]*)"
     """
 )
+
+
+FOO = """
+    if_statement    = "IF" space* exp space* 
+                      "THEN" space* linenum_or_statements
+    if_else_statement    = "IF" space* exp
+                           space* "THEN" space* linenum_or_statements
+                           space* "ELSE" space* linenum_or_statements
+    exp             = array_ref_exp
+                    / binop_exp
+                    / literal
+                    / var
+                    / "(" space* exp space* ")"
+"""
 
 
 class AbstractBasicConstruct(ABC):
@@ -106,6 +128,7 @@ class BasicComment(AbstractBasicConstruct):
 
 class BasicVisitor(NodeVisitor):
     def generic_visit(self, node, visited_children):
+        print(node)
         return node
 
 
