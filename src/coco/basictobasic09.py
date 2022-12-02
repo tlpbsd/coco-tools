@@ -26,15 +26,16 @@ grammar = Grammar(
     statements      = comment
                     / (statement? (comment/((":"/space)+ (comment / statements)))* space*)
     statements_else = (statement? (space* ":" statements)* space*)
+    exp             = logic_exp
+    logic_exp       = gte_exp space* (("AND" / "OR") space* gte_exp space*)*
+    gte_exp         = sum_exp space* (("=" / "<" / "=") space* sum_exp space*)*
+    sum_exp         = prod_exp space* (("+" / "-" / "&") space* prod_exp space*)*
+    prod_exp        = val_exp space* (("*" / "/") space* val_exp space*)*
     val_exp         = literal
                     / ("(" space* exp space* ")")
                     / (un_op space* exp)
                     / array_ref_exp
                     / var
-    exp             = (val_exp space* bin_op space* exp)
-                    / val_exp
-
-    bin_op          = "+" / "-" / "*" / "/" / "&" / "AND" / "OR" / "="
     comment_text    = ~r"[^:\r\n$]*"
     comment_token   = ~r"(REM|')"
     eol             = ~r"(\n|\r)+"
@@ -50,113 +51,126 @@ grammar = Grammar(
 )
 
 
-FOO = """
-    if_statement    = "IF" space* exp space* 
-                      "THEN" space* linenum_or_statements
-    if_else_statement    = "IF" space* exp
-                           space* "THEN" space* linenum_or_statements
-                           space* "ELSE" space* linenum_or_statements
-    exp             = array_ref_exp
-                    / binop_exp
-                    / literal
-                    / var
-                    / "(" space* exp space* ")"
-"""
-
-
 class AbstractBasicConstruct(ABC):
     @abstractmethod
     def basic09_text(self):
         """Return Basic09 text that represents this construct"""
 
 
-class BasicProg(AbstractBasicConstruct):
-    def __init__(self, lines):
-        self._lines = lines
-
+class BasicComment(AbstractBasicConstruct):
+    def __init__(self, comment):
+        self._comment = comment
 
     def basic09_text(self):
-        retval = '\n'.join((line.basic09_text() for line in self._lines))
-        print(retval)
-        error
-        return retval
-
+        return f'(*{self._comment} *)'
 
 
 class BasicLine(AbstractBasicConstruct):
     def __init__(self, num, statements):
         self._num = num
         self._statements = statements
-
     
     def basic09_text(self):
         return f'{str(self._num)} {self._statements.basic09_text()}'
+
+
+class BasicProg(AbstractBasicConstruct):
+    def __init__(self, lines):
+        self._lines = lines
+
+    def basic09_text(self):
+        retval = '\n'.join((line.basic09_text() for line in self._lines))
+        return retval
 
 
 class BasicStatement(AbstractBasicConstruct):
     def __init__(self, text):
         self._text = text
 
-
     def basic09_text(self):
         return self._text
-
 
 
 class BasicStatements(AbstractBasicConstruct):
     def __init__(self, statements):
         self._statements = statements
 
-    
     def statements(self):
         return self._statements
-
 
     def basic09_text(self):
         return ':'.join((statement.basic09_text() for statement in self._statements))
 
 
-class BasicComment(AbstractBasicConstruct):
-    def __init__(self, comment):
-        self._comment = comment
+class BasicVar(AbstractBasicConstruct):
+    def __init__(self, name):
+        self._name = name
 
+    def name(self):
+        return self._name
 
     def basic09_text(self):
-        return f'(*{self._comment} *)'
-
+        return name
 
 
 class BasicVisitor(NodeVisitor):
     def generic_visit(self, node, visited_children):
-        print(node)
         return node
 
-
-    def visit_prog(self, node, visited_children):
+    def visit_aaa_prog(self, node, visited_children):
         bp = BasicProg((child for child in visited_children if isinstance(child, BasicLine)))
         print(bp.basic09_text())
         return bp
 
-
-    def visit_line(self, node, visited_children):
-        return BasicLine(visited_children[0], visited_children[2])
-
-    
-    def visit_statements(self, node, visited_children):
-        return BasicStatements((child for child in visited_children if isinstance(child, BasicStatement)))
-
-
     def visit_comment(self, node, visited_children):
         return BasicComment(visited_children[1])
-
 
     def visit_comment_text(self, node, visited_children):
         return node.full_text[node.start:node.end]
 
+    def visit_line(self, node, visited_children):
+        return BasicLine(visited_children[0], visited_children[2])
+
+    def visit_linenum(self, node, visited_children):
+        return int(node.full_text[node.start:node.end])
+
+    def visit_logic_exp(self, node, visited_children):
+        print(node)
+        return 0
+
+    def visit_num_literal(self, node, visited_children):
+        return float(node.full_text[node.start:node.end].replace(' ', ''))
+
+    def visit_simple_assignment(self, node, visitied_children):
+        var, exp, *_ = node
+        return (var, exp)
 
     def visit_statement(self, node, visited_children):
         return BasicStatement(node.full_text[node.start:node.end])
 
+    def visit_statements(self, node, visited_children):
+        return BasicStatements((child for child in visited_children if isinstance(child, BasicStatement)))
 
-    def visit_linenum(self, node, visited_children):
-        return int(node.full_text[node.start:node.end])
+    def visit_str_literal(self, node, visited_children):
+        return str(node.full_text[node.start:node.end])
+
+    def visit_val_exp(self, node, visited_children):
+        """
+        exp             = logic_exp
+        logic_exp       = gte_exp space* (("AND" / "OR") space* gte_exp space*)*
+        gte_exp         = sum_exp space* (("=" / "<" / "=") space* sum_exp space*)*
+        sum_exp         = prod_exp space* (("+" / "-" / "&") space* prod_exp space*)*
+        prod_exp        = val_exp space* (("*" / "/") space* val_exp space*)*
+        val_exp         = literal
+                        / ("(" space* exp space* ")")
+                        / (un_op space* exp)
+                        / array_ref_exp
+                        / var
+        """
+        for child in node:
+            print(f'xxx{child}')
+        return node
+
+    def visit_var(self, node, visited_children):
+        return BasicVar(node.full_text[node.start:node.end])
+
