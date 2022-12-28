@@ -13,9 +13,21 @@ class TestBasicToBasic09(unittest.TestCase):
             return resource_file.read()
 
     simple_prog = get_resource('simple.bas')
-
+    simple2_prog = get_resource('simple2.bas')
+    simple3_prog = get_resource('simple3.bas')
 
     def test_something(self):
         tree = b09.grammar.parse(self.simple_prog)
         bv = b09.BasicVisitor()
         bv.visit(tree)
+
+    def test_statements(self):
+        tree = b09.grammar.parse(self.simple2_prog)
+        bv = b09.BasicVisitor()
+        bv.visit(tree)
+
+    def test_crap(self):
+        tree = b09.grammar.parse(self.simple3_prog)
+        bv = b09.BasicVisitor()
+        bv.visit(tree)
+        error
