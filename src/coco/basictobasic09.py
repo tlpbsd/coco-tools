@@ -57,6 +57,16 @@ class AbstractBasicConstruct(ABC):
         """Return Basic09 text that represents this construct"""
 
 
+class BasicBinaryExp(AbstractBasicConstruct):
+    def __init__(self, exp1, op, exp2):
+        self._exp1 = exp1
+        self._op = op
+        self._exp2 = exp2
+
+    def basic09_text(self):
+        return f'({self._exp1.basic09_text()} {self._op} self._exp2.basic09_text())'
+
+
 class BasicComment(AbstractBasicConstruct):
     def __init__(self, comment):
         self._comment = comment
@@ -71,6 +81,15 @@ class BasicLine(AbstractBasicConstruct):
         self._statements = statements
     
     def basic09_text(self):
+        return f'{str(self._num)} {self._statements.basic09_text()}'
+
+
+class BasicLiteral(AbstractBasicConstruct):
+    def __init__(self, literal):
+        self._literal = literal
+    
+    def basic09_text(self):
+        return f'"{self._literal}"' if type(self._literal) is str else f'{self._literal}'
         return f'{str(self._num)} {self._statements.basic09_text()}'
 
 
@@ -128,6 +147,11 @@ class BasicVisitor(NodeVisitor):
     def visit_comment_text(self, node, visited_children):
         return node.full_text[node.start:node.end]
 
+    def visit_gte_exp(self, node, visited_children):
+        if len(visited_children) == 1:
+            return visited_children[0]
+        return 0
+
     def visit_line(self, node, visited_children):
         return BasicLine(visited_children[0], visited_children[2])
 
@@ -135,11 +159,18 @@ class BasicVisitor(NodeVisitor):
         return int(node.full_text[node.start:node.end])
 
     def visit_logic_exp(self, node, visited_children):
-        print(node)
+        if len(visited_children) == 1:
+            return visited_children[0]
+        print('LOGIC EXP')
+        for child in visited_children:
+            print(f'xxx{child}')
         return 0
 
     def visit_num_literal(self, node, visited_children):
-        return float(node.full_text[node.start:node.end].replace(' ', ''))
+        return BasicLiteral(float(node.full_text[node.start:node.end].replace(' ', '')))
+
+    def visit_prod_exp(self, node, visited_children):
+        return node
 
     def visit_simple_assignment(self, node, visitied_children):
         var, exp, *_ = node
@@ -152,7 +183,10 @@ class BasicVisitor(NodeVisitor):
         return BasicStatements((child for child in visited_children if isinstance(child, BasicStatement)))
 
     def visit_str_literal(self, node, visited_children):
-        return str(node.full_text[node.start:node.end])
+        return BasicLiteral(str(node.full_text[node.start:node.end]))
+
+    def visit_sum_exp(self, node, visited_children):
+        return node
 
     def visit_val_exp(self, node, visited_children):
         """
@@ -167,8 +201,13 @@ class BasicVisitor(NodeVisitor):
                         / array_ref_exp
                         / var
         """
+        if len(visited_children) == 1:
+            return visited_children[0]
+        print('VAL EXP')
         for child in node:
-            print(f'xxx{child}')
+            print(f'zzz{child}')
+        for child in visited_children:
+            print(f'yyy{child}')
         return node
 
     def visit_var(self, node, visited_children):
