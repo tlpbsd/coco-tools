@@ -16,18 +16,32 @@ class TestBasicToBasic09(unittest.TestCase):
     simple2_prog = get_resource('simple2.bas')
     simple3_prog = get_resource('simple3.bas')
 
-    def test_something(self):
-        tree = b09.grammar.parse(self.simple_prog)
-        bv = b09.BasicVisitor()
-        bv.visit(tree)
+    def test_comment(self):
+        target = b09.BasicComment(' hello world ')
+        assert target.basic09_text() == '(* hello world  *)'
 
-    def test_statements(self):
-        tree = b09.grammar.parse(self.simple2_prog)
-        bv = b09.BasicVisitor()
-        bv.visit(tree)
+    def test_comment_statement(self):
+        comment = b09.BasicComment(' hello world ')
+        target = b09.BasicStatement(comment)
+        assert target.basic09_text() == '(* hello world  *)'
 
-    def test_crap(self):
-        tree = b09.grammar.parse(self.simple3_prog)
+    def test_comment_statements(self):
+        comment = b09.BasicComment(' hello world ')
+        statement = b09.BasicStatement(comment)
+        target = b09.BasicStatements((statement,))
+        assert target.basic09_text() == '(* hello world  *)'
+
+    def test_comment_lines(self):
+        comment = b09.BasicComment(' hello world ')
+        statement = b09.BasicStatement(comment)
+        statements = b09.BasicStatements((statement,))
+        target = b09.BasicLine(25, statements)
+        assert target.basic09_text() == '25 (* hello world  *)'
+
+    def test_parse_comment_program(self):
+        tree = b09.grammar.parse('15 REM HELLO WORLD')
         bv = b09.BasicVisitor()
-        bv.visit(tree)
-        error
+        basic_prog = bv.visit(tree)
+        print(basic_prog)
+        b09_prog = basic_prog.basic09_text()
+        assert b09_prog == '15 (* HELLO WORLD *)'

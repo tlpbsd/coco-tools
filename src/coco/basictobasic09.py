@@ -3,9 +3,23 @@ from parsimonious.grammar import Grammar
 from parsimonious.nodes import NodeVisitor
 
 
+XXX = """
+    aaa_prog        = ((line eol) / line)*
+    statement       = ("IF" space* exp space*
+                       "THEN" space* line_or_stmnts2 space*
+                       "ELSE" space* line_or_stmnts)
+                    / ("IF" space* exp space*
+                       "THEN" space* line_or_stmnts)
+                    / simple_assign
+                    / arr_assign
+                    / comment
+    statements      = (statement? (comment/((":"/space)+
+                                            (comment / statements)))* space*)
+"""
+
 grammar = Grammar(
     r"""
-    aaa_prog        = ((line eol) / line)*
+    aaa_prog        = line*
     arr_assign      = var space* "(" space* exp space* ")" space*
                       "=" space* exp
     array_ref_exp   = var space* "(" space* exp space* ")"
@@ -16,16 +30,8 @@ grammar = Grammar(
     line_or_stmnts2 = linenum
                     / statements_else
     simple_assign   = var space* "=" space* exp
-    statement       = ("IF" space* exp space*
-                       "THEN" space* line_or_stmnts2 space*
-                       "ELSE" space* line_or_stmnts)
-                    / ("IF" space* exp space*
-                       "THEN" space* line_or_stmnts)
-                    / simple_assign
-                    / arr_assign
-    statements      = comment
-                    / (statement? (comment/((":"/space)+
-                                            (comment / statements)))* space*)
+    statement       = space* comment space*
+    statements      = space* statement space*
     statements_else = (statement? (space* ":" statements)* space*)
     exp             = logic_exp
     logic_exp       = gte_exp space* (("AND" / "OR") space* gte_exp space*)*
@@ -57,17 +63,6 @@ class AbstractBasicConstruct(ABC):
     @abstractmethod
     def basic09_text(self):
         """Return Basic09 text that represents this construct"""
-
-
-class BasicProg(AbstractBasicConstruct):
-    def __init__(self, lines):
-        self._lines = lines
-
-    def basic09_text(self):
-        retval = '\n'.join((line.basic09_text() for line in self._lines))
-        print(retval)
-        error
-        return retval
 
 
 class BasicBinaryExp(AbstractBasicConstruct):
@@ -112,16 +107,16 @@ class BasicProg(AbstractBasicConstruct):
         self._lines = lines
 
     def basic09_text(self):
-        retval = '\n'.join((line.basic09_text() for line in self._lines))
+        retval = '\n'.join(line.basic09_text() for line in self._lines)
         return retval
 
 
 class BasicStatement(AbstractBasicConstruct):
-    def __init__(self, text):
-        self._text = text
+    def __init__(self, basic_construct):
+        self._basic_construct = basic_construct
 
     def basic09_text(self):
-        return self._text
+        return self._basic_construct.basic09_text()
 
 
 class BasicStatements(AbstractBasicConstruct):
@@ -134,14 +129,6 @@ class BasicStatements(AbstractBasicConstruct):
     def basic09_text(self):
         return ':'.join(statement.basic09_text()
                         for statement in self._statements)
-
-
-class BasicComment(AbstractBasicConstruct):
-    def __init__(self, comment):
-        self._comment = comment
-
-    def basic09_text(self):
-        return f'(*{self._comment} *)'
 
 
 class BasicVar(AbstractBasicConstruct):
@@ -162,7 +149,6 @@ class BasicVisitor(NodeVisitor):
     def visit_aaa_prog(self, node, visited_children):
         bp = BasicProg(child for child in visited_children
                        if isinstance(child, BasicLine))
-        print(bp.basic09_text())
         return bp
 
     def visit_comment(self, node, visited_children):
@@ -177,28 +163,15 @@ class BasicVisitor(NodeVisitor):
         return 0
 
     def visit_line(self, node, visited_children):
-        return BasicLine(visited_children[0], visited_children[2])
-
-    def visit_statements(self, node, visited_children):
-        return BasicStatements(child for child in visited_children
-                               if isinstance(child, BasicStatement))
-
-    def visit_comment(self, node, visited_children):
-        return BasicComment(visited_children[1])
-
-    def visit_comment_text(self, node, visited_children):
-        return node.full_text[node.start:node.end]
+        return BasicLine(visited_children[0],
+                         next(child for child in visited_children
+                              if isinstance(child, BasicStatements)))
 
     def visit_linenum(self, node, visited_children):
         return int(node.full_text[node.start:node.end])
 
     def visit_logic_exp(self, node, visited_children):
-        if len(visited_children) == 1:
-            return visited_children[0]
-        print('LOGIC EXP')
-        for child in visited_children:
-            print(f'xxx{child}')
-        return 0
+        return node
 
     def visit_num_literal(self, node, visited_children):
         return BasicLiteral(
@@ -212,11 +185,12 @@ class BasicVisitor(NodeVisitor):
         return (var, exp)
 
     def visit_statement(self, node, visited_children):
-        return BasicStatement(node.full_text[node.start:node.end])
+        return BasicStatement(next(child for child in visited_children
+                              if isinstance(child, BasicComment)))
 
     def visit_statements(self, node, visited_children):
-        return BasicStatements(child for child in visited_children
-                               if isinstance(child, BasicStatement))
+        return BasicStatements([child for child in visited_children
+                               if isinstance(child, BasicStatement)])
 
     def visit_str_literal(self, node, visited_children):
         return BasicLiteral(str(node.full_text[node.start:node.end]))
@@ -239,11 +213,6 @@ class BasicVisitor(NodeVisitor):
         """
         if len(visited_children) == 1:
             return visited_children[0]
-        print('VAL EXP')
-        for child in node:
-            print(f'zzz{child}')
-        for child in visited_children:
-            print(f'yyy{child}')
         return node
 
     def visit_var(self, node, visited_children):
