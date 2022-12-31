@@ -38,10 +38,38 @@ class TestBasicToBasic09(unittest.TestCase):
         target = b09.BasicLine(25, statements)
         assert target.basic09_text() == '25 (* hello world  *)'
 
+    def test_basic_int_literal(self):
+        target = b09.BasicLiteral(123)
+        assert target.basic09_text() == '123'
+
+    def test_basic_float_literal(self):
+        target = b09.BasicLiteral(123.0)
+        assert target.basic09_text() == '123.0'
+
+    def test_basic_str_literal(self):
+        target = b09.BasicLiteral('123.0')
+        assert target.basic09_text() == '"123.0"'
+
     def test_parse_comment_program(self):
-        tree = b09.grammar.parse('15 REM HELLO WORLD')
+        tree = b09.grammar.parse('15 REM HELLO WORLD\n')
         bv = b09.BasicVisitor()
         basic_prog = bv.visit(tree)
         print(basic_prog)
         b09_prog = basic_prog.basic09_text()
         assert b09_prog == '15 (* HELLO WORLD *)'
+
+    def test_parse_comments_program(self):
+        tree = b09.grammar.parse('15 REM HELLO WORLD\n20 REM HERE')
+        bv = b09.BasicVisitor()
+        basic_prog = bv.visit(tree)
+        print(basic_prog)
+        b09_prog = basic_prog.basic09_text()
+        assert b09_prog == '15 (* HELLO WORLD *)\n20 (* HERE *)'
+
+    def test_parse_simple_assignment(self):
+        tree = b09.grammar.parse('10 A = 123\n20 B=123.4\n30C$="HELLO"')
+        bv = b09.BasicVisitor()
+        basic_prog = bv.visit(tree)
+        print(basic_prog)
+        b09_prog = basic_prog.basic09_text()
+        assert b09_prog == '10 A = 123\n20 B = 123.4\n30 C$ = "HELLO"'
