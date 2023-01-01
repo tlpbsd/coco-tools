@@ -1,13 +1,8 @@
 from abc import ABC, abstractmethod
 from itertools import chain
 from parsimonious.grammar import Grammar
-from parsimonious.nodes import NodeVisitor
+from parsimonious.nodes import Node, NodeVisitor
 
-
-XXX = """
-    statements      = (statement? (comment/((":"/space)+
-                                            (comment / statements)))* space*)
-"""
 
 grammar = Grammar(
     r"""
@@ -32,12 +27,12 @@ grammar = Grammar(
                        "THEN" space* line_or_stmnts)
                     / simple_assign
                     / arr_assign
-                    / comment
-    statements      = space* statement space*
+    statements      = (statement? (comment/((":"/space)+
+                                            (comment / statements)))* space*)
     statements_else = (statement? (space* ":" statements)* space*)
     exp             = logic_exp
-    logic_exp       = gte_exp space* (("AND" / "OR") space* gte_exp space*)*
-    gte_exp         = sum_exp space* (("=" / "<" / "=") space* sum_exp space*)*
+    logic_exp       = gtle_exp space* (("AND" / "OR") space* gtle_exp space*)*
+    gtle_exp        = sum_exp space* (("=" / "<>" / "<" / ">") space* sum_exp space*)*
     sum_exp         = prod_exp space* (("+" / "-" / "&") space*
                                        prod_exp space*)*
     prod_exp        = val_exp space* (("*" / "/") space* val_exp space*)*
@@ -177,8 +172,8 @@ class BasicStatements(AbstractBasicConstruct):
         return self._statements
 
     def basic09_text(self):
-        return ':'.join(statement.basic09_text()
-                        for statement in self._statements)
+        return ': '.join(statement.basic09_text()
+                         for statement in self._statements)
 
 
 class BasicVar(AbstractBasicExpression):
@@ -197,7 +192,8 @@ class BasicVisitor(NodeVisitor):
         if node.text.strip() == '':
             return ''
 
-        if node.text in ['*', '/', '+', '-', '*', '&', 'AND', 'OR']:
+        if node.text in ['*', '/', '+', '-', '*', '&', '<', '>', '<>', 'AND',
+                         'OR']:
             return BasicOperator(node.text)
 
         if len(visited_children) == 4:
@@ -210,6 +206,23 @@ class BasicVisitor(NodeVisitor):
 
             if visited_children[0] is str:
                 return visited_children[0]
+
+        if len(visited_children) == 2:
+            if isinstance(visited_children[0], BasicOpExp) and \
+               isinstance(visited_children[1], BasicOpExp):
+                exp1, exp2 = visited_children
+                return BasicOpExp(exp1.operator,
+                                  BasicBinaryExp(exp1.exp,
+                                                 exp2.operator, exp2.exp))
+            if isinstance(visited_children[0], Node) and \
+               visited_children[0].text == ':':
+                print(f'zzzzz {visited_children[1]}')
+                return visited_children[1]
+
+        print('--------------------- ****')
+        for child in visited_children:
+            print(f'xxxx {child}')
+        print('---------------------')
 
         return node
 
@@ -235,10 +248,8 @@ class BasicVisitor(NodeVisitor):
     def visit_comment_text(self, node, visited_children):
         return node.full_text[node.start:node.end]
 
-    def visit_gte_exp(self, node, visited_children):
-        if len(visited_children) < 4:
-            return visited_children[0]
-        return node
+    def visit_gtle_exp(self, node, visited_children):
+        return self.visit_prod_exp(node, visited_children)
 
     def visit_line(self, node, visited_children):
         return BasicLine(visited_children[0],
@@ -252,9 +263,7 @@ class BasicVisitor(NodeVisitor):
         return visited_children[0]
 
     def visit_logic_exp(self, node, visited_children):
-        if len(visited_children) < 4:
-            return visited_children[0]
-        return node
+        return self.visit_prod_exp(node, visited_children)
 
     def visit_num_literal(self, node, visited_children):
         num_literal = node.full_text[node.start:node.end].replace(' ', '')
@@ -282,12 +291,13 @@ class BasicVisitor(NodeVisitor):
 
     def visit_statement(self, node, visited_children):
         return BasicStatement(next(child for child in visited_children
-                              if isinstance(child, BasicComment)
-                              or isinstance(child, BasicAssignment)))
+                              if isinstance(child, BasicAssignment)))
 
     def visit_statements(self, node, visited_children):
         return BasicStatements([child for child in visited_children
-                               if isinstance(child, BasicStatement)])
+                               if isinstance(child, BasicStatement)
+                               or isinstance(child, BasicStatements)
+                               or isinstance(child, BasicComment)])
 
     def visit_str_literal(self, node, visited_children):
         return BasicLiteral(str(node.full_text[node.start+1:node.end-1]))

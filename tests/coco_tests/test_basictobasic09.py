@@ -62,44 +62,73 @@ class TestBasicToBasic09(unittest.TestCase):
         assert target.exp == strlit
         assert target.basic09_text() == '& "HELLO WORLD"'
 
-    def test_parse_comment_program(self):
-        tree = b09.grammar.parse('15 REM HELLO WORLD\n')
+    def test_basic_operator(exp):
+        target = b09.BasicOperator('*')
+        assert target.basic09_text() == '*'
+
+    def generic_test_parse(self, progin, progout):
+        tree = b09.grammar.parse(progin)
         bv = b09.BasicVisitor()
         basic_prog = bv.visit(tree)
         b09_prog = basic_prog.basic09_text()
-        assert b09_prog == '15 (* HELLO WORLD *)'
+        assert b09_prog == progout
+
+    def test_parse_comment_program(self):
+        self.generic_test_parse(
+            '15 REM HELLO WORLD\n',
+            '15 (* HELLO WORLD *)')
 
     def test_parse_comments_program(self):
-        tree = b09.grammar.parse('15 REM HELLO WORLD\n20 REM HERE')
-        bv = b09.BasicVisitor()
-        basic_prog = bv.visit(tree)
-        b09_prog = basic_prog.basic09_text()
-        assert b09_prog == '15 (* HELLO WORLD *)\n20 (* HERE *)'
+        self.generic_test_parse(
+            '15 REM HELLO WORLD\n20 REM HERE',
+            '15 (* HELLO WORLD *)\n20 (* HERE *)')
 
     def test_parse_simple_assignment(self):
-        tree = b09.grammar.parse('10 A = 123\n20 B=123.4\n30C$="HELLO"')
-        bv = b09.BasicVisitor()
-        basic_prog = bv.visit(tree)
-        b09_prog = basic_prog.basic09_text()
-        assert b09_prog == '10 A = 123\n20 B = 123.4\n30 C$ = "HELLO"'
+        self.generic_test_parse(
+            '10 A = 123\n20 B=123.4\n30C$="HELLO"\n35D$=C$',
+            '10 A = 123\n20 B = 123.4\n30 C$ = "HELLO"\n35 D$ = C$')
 
     def test_parse_paren_expression(self):
-        tree = b09.grammar.parse('10 A = (AB)')
-        bv = b09.BasicVisitor()
-        basic_prog = bv.visit(tree)
-        b09_prog = basic_prog.basic09_text()
-        assert b09_prog == '10 A = (AB)'
+        self.generic_test_parse(
+            '10 A = (AB)',
+            '10 A = (AB)')
 
     def test_parse_prod_expression(self):
-        tree = b09.grammar.parse('10 A = 64 * 32\n20 B = 10/AB')
-        bv = b09.BasicVisitor()
-        basic_prog = bv.visit(tree)
-        b09_prog = basic_prog.basic09_text()
-        assert b09_prog == '10 A = 64 * 32\n20 B = 10 / AB'
+        self.generic_test_parse(
+            '10 A = 64 * 32\n20 B = 10/AB',
+            '10 A = 64 * 32\n20 B = 10 / AB')
 
     def test_parse_add_expression(self):
-        tree = b09.grammar.parse('10 A = 64 + 32\n20 B = 10-AB')
-        bv = b09.BasicVisitor()
-        basic_prog = bv.visit(tree)
-        b09_prog = basic_prog.basic09_text()
-        assert b09_prog == '10 A = 64 + 32\n20 B = 10 - AB'
+        self.generic_test_parse(
+            '10 A = 64 + 32\n20 B = 10-AB',
+            '10 A = 64 + 32\n20 B = 10 - AB')
+
+    def test_parse_str_expression(self):
+        self.generic_test_parse(
+            '10 A$ = "A" & "Z"\n20B$=A$&B$',
+            '10 A$ = "A" & "Z"\n20 B$ = A$ & B$')
+
+    def test_parse_multi_expression(self):
+        self.generic_test_parse(
+            '10 A = 64 + 32*10 / AB -1',
+            '10 A = 64 + 32 * 10 / AB - 1')
+
+    def test_parse_gtle_expression(self):
+        self.generic_test_parse(
+            '10 A = 4 < 2\n15 B=4>2\n20C=A<>B',
+            '10 A = 4 < 2\n15 B = 4 > 2\n20 C = A <> B')
+
+    def test_parse_multi_expression2(self):
+        self.generic_test_parse(
+            '10 A=(64+32)*10/(AB-1)',
+            '10 A = (64 + 32) * 10 / (AB - 1)')
+
+    def test_parse_multi_expression3(self):
+        self.generic_test_parse(
+            '10 A = A + 2 AND 3 < 3',
+            '10 A = A + 2 AND 3 < 3')
+
+    def test_parse_multi_statement(self):
+        self.generic_test_parse(
+            '10 A=A+2:B=B+1',
+            '10 A = A + 2: B = B + 1')
