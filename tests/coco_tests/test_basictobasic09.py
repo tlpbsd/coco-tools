@@ -50,11 +50,22 @@ class TestBasicToBasic09(unittest.TestCase):
         target = b09.BasicLiteral('123.0')
         assert target.basic09_text() == '"123.0"'
 
+    def test_basic_paren_exp(self):
+        strlit = b09.BasicLiteral('HELLO WORLD')
+        target = b09.BasicParenExp(strlit)
+        assert target.basic09_text() == '("HELLO WORLD")'
+
+    def test_basic_op_exp(exp):
+        strlit = b09.BasicLiteral('HELLO WORLD')
+        target = b09.BasicOpExp('&', strlit)
+        assert target.operator == '&'
+        assert target.exp == strlit
+        assert target.basic09_text() == '& "HELLO WORLD"'
+
     def test_parse_comment_program(self):
         tree = b09.grammar.parse('15 REM HELLO WORLD\n')
         bv = b09.BasicVisitor()
         basic_prog = bv.visit(tree)
-        print(basic_prog)
         b09_prog = basic_prog.basic09_text()
         assert b09_prog == '15 (* HELLO WORLD *)'
 
@@ -62,7 +73,6 @@ class TestBasicToBasic09(unittest.TestCase):
         tree = b09.grammar.parse('15 REM HELLO WORLD\n20 REM HERE')
         bv = b09.BasicVisitor()
         basic_prog = bv.visit(tree)
-        print(basic_prog)
         b09_prog = basic_prog.basic09_text()
         assert b09_prog == '15 (* HELLO WORLD *)\n20 (* HERE *)'
 
@@ -70,6 +80,26 @@ class TestBasicToBasic09(unittest.TestCase):
         tree = b09.grammar.parse('10 A = 123\n20 B=123.4\n30C$="HELLO"')
         bv = b09.BasicVisitor()
         basic_prog = bv.visit(tree)
-        print(basic_prog)
         b09_prog = basic_prog.basic09_text()
         assert b09_prog == '10 A = 123\n20 B = 123.4\n30 C$ = "HELLO"'
+
+    def test_parse_paren_expression(self):
+        tree = b09.grammar.parse('10 A = (AB)')
+        bv = b09.BasicVisitor()
+        basic_prog = bv.visit(tree)
+        b09_prog = basic_prog.basic09_text()
+        assert b09_prog == '10 A = (AB)'
+
+    def test_parse_prod_expression(self):
+        tree = b09.grammar.parse('10 A = 64 * 32\n20 B = 10/AB')
+        bv = b09.BasicVisitor()
+        basic_prog = bv.visit(tree)
+        b09_prog = basic_prog.basic09_text()
+        assert b09_prog == '10 A = 64 * 32\n20 B = 10 / AB'
+
+    def test_parse_add_expression(self):
+        tree = b09.grammar.parse('10 A = 64 + 32\n20 B = 10-AB')
+        bv = b09.BasicVisitor()
+        basic_prog = bv.visit(tree)
+        b09_prog = basic_prog.basic09_text()
+        assert b09_prog == '10 A = 64 + 32\n20 B = 10 - AB'

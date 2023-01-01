@@ -42,10 +42,12 @@ grammar = Grammar(
                                        prod_exp space*)*
     prod_exp        = val_exp space* (("*" / "/") space* val_exp space*)*
     val_exp         = literal
-                    / ("(" space* exp space* ")")
+                    / paren_exp
                     / (un_op space* exp)
                     / array_ref_exp
                     / var
+                    / exp
+    paren_exp       =  ("(" space* exp space* ")")
     comment_text    = ~r"[^:\r\n$]*"
     comment_token   = ~r"(REM|')"
     eof             = ~r"$"
@@ -87,8 +89,8 @@ class BasicBinaryExp(AbstractBasicExpression):
         self._exp2 = exp2
 
     def basic09_text(self):
-        return (f'({self._exp1.basic09_text()} {self._op}'
-                f'{self._exp2.basic09_text()})')
+        return (f'{self._exp1.basic09_text()} {self._op} '
+                f'{self._exp2.basic09_text()}')
 
 
 class BasicComment(AbstractBasicConstruct):
@@ -115,6 +117,39 @@ class BasicLiteral(AbstractBasicExpression):
     def basic09_text(self):
         return (f'"{self._literal}"' if type(self._literal) is str
                 else f'{self._literal}')
+
+
+class BasicOperator(AbstractBasicConstruct):
+    def __init__(self, operator):
+        self._operator = operator
+
+    def basic09_text(self):
+        return self._operator
+
+
+class BasicOpExp(AbstractBasicConstruct):
+    def __init__(self, operator, exp):
+        self._operator = operator
+        self._exp = exp
+
+    @property
+    def operator(self):
+        return self._operator
+
+    @property
+    def exp(self):
+        return self._exp
+
+    def basic09_text(self):
+        return f'{self.operator} {self.exp.basic09_text()}'
+
+
+class BasicParenExp(AbstractBasicExpression):
+    def __init__(self, exp):
+        self._exp = exp
+
+    def basic09_text(self):
+        return f'({self._exp.basic09_text()})'
 
 
 class BasicProg(AbstractBasicConstruct):
@@ -159,6 +194,23 @@ class BasicVar(AbstractBasicExpression):
 
 class BasicVisitor(NodeVisitor):
     def generic_visit(self, node, visited_children):
+        if node.text.strip() == '':
+            return ''
+
+        if node.text in ['*', '/', '+', '-', '*', '&', 'AND', 'OR']:
+            return BasicOperator(node.text)
+
+        if len(visited_children) == 4:
+            operator, _, exp, _ = visited_children
+            return BasicOpExp(operator.basic09_text(), exp)
+
+        if len(visited_children) == 1:
+            if isinstance(visited_children[0], AbstractBasicConstruct):
+                return visited_children[0]
+
+            if visited_children[0] is str:
+                return visited_children[0]
+
         return node
 
     def visit_aaa_prog(self, node, visited_children):
@@ -168,11 +220,11 @@ class BasicVisitor(NodeVisitor):
     def visit_multi_line(self, node, visited_children):
         return next(child for child in visited_children
                     if isinstance(child, BasicLine))
-    
+
     def visit_multi_lines(self, node, visited_children):
         return (child for child in visited_children
                 if isinstance(child, BasicLine))
-    
+
     def visit_maybe_line(self, node, visited_children):
         return (child for child in visited_children
                 if isinstance(child, BasicLine))
@@ -209,13 +261,24 @@ class BasicVisitor(NodeVisitor):
         val = float(num_literal)
         return BasicLiteral(int(val) if val == int(val) else val)
 
+    def visit_paren_exp(self, node, visited_children):
+        return BasicParenExp(visited_children[2])
+
     def visit_prod_exp(self, node, visited_children):
         if len(visited_children) < 4:
-            return visited_children[0]
+            v1, v2, v3 = visited_children
+            if isinstance(v2, str) and isinstance(v3, str):
+                return visited_children[0]
+            if isinstance(v2, str) and isinstance(v3, str):
+                return visited_children[0]
+            return BasicBinaryExp(v1, v3.operator, v3.exp)
         return node
 
     def visit_simple_assign(self, node, visited_children):
         return BasicAssignment(visited_children[0], visited_children[4])
+
+    def visit_space(self, node, visited_children):
+        return node.text
 
     def visit_statement(self, node, visited_children):
         return BasicStatement(next(child for child in visited_children
@@ -230,23 +293,9 @@ class BasicVisitor(NodeVisitor):
         return BasicLiteral(str(node.full_text[node.start+1:node.end-1]))
 
     def visit_sum_exp(self, node, visited_children):
-        if len(visited_children) < 4:
-            return visited_children[0]
-        return node
+        return self.visit_prod_exp(node, visited_children)
 
     def visit_val_exp(self, node, visited_children):
-        """
-        exp             = logic_exp
-        logic_exp = gte_exp space* (("AND" / "OR") space* gte_exp space*)*
-        gte_exp = sum_exp space* (("=" / "<" / "=") space* sum_exp space*)*
-        sum_exp = prod_exp space* (("+" / "-" / "&") space* prod_exp space*)*
-        prod_exp = val_exp space* (("*" / "/") space* val_exp space*)*
-        val_exp  = literal
-                        / ("(" space* exp space* ")")
-                        / (un_op space* exp)
-                        / array_ref_exp
-                        / var
-        """
         if len(visited_children) < 2:
             return visited_children[0]
         return node
