@@ -59,9 +59,12 @@ grammar = Grammar(
 
 
 class AbstractBasicConstruct(ABC):
+    def indent_spaces(self, indent_level):
+        return '    ' * indent_level
+
     @abstractmethod
-    def basic09_text(self):
-        """Return Basic09 text that represents this construct"""
+    def basic09_text(self, indent_level):
+        """Return the Basic09 text that represents this construct"""
 
 
 class AbstractBasicExpression(AbstractBasicConstruct):
@@ -73,8 +76,9 @@ class BasicAssignment(AbstractBasicConstruct):
         self._var = var
         self._exp = exp
 
-    def basic09_text(self):
-        return f'{self._var.basic09_text()} = {self._exp.basic09_text()}'
+    def basic09_text(self, indent_level):
+        return f'{self._var.basic09_text(indent_level)} = ' \
+               f'{self._exp.basic09_text(indent_level)}'
 
 
 class BasicBinaryExp(AbstractBasicExpression):
@@ -83,16 +87,16 @@ class BasicBinaryExp(AbstractBasicExpression):
         self._op = op
         self._exp2 = exp2
 
-    def basic09_text(self):
-        return (f'{self._exp1.basic09_text()} {self._op} '
-                f'{self._exp2.basic09_text()}')
+    def basic09_text(self, indent_level):
+        return (f'{self._exp1.basic09_text(indent_level)} {self._op} '
+                f'{self._exp2.basic09_text(indent_level)}')
 
 
 class BasicComment(AbstractBasicConstruct):
     def __init__(self, comment):
         self._comment = comment
 
-    def basic09_text(self):
+    def basic09_text(self, indent_level):
         return f'(*{self._comment} *)'
 
 
@@ -101,15 +105,16 @@ class BasicLine(AbstractBasicConstruct):
         self._num = num
         self._statements = statements
 
-    def basic09_text(self):
-        return f'{str(self._num)} {self._statements.basic09_text()}'
+    def basic09_text(self, indent_level):
+        return f'{str(self._num)} ' \
+               f'{self._statements.basic09_text(indent_level)}'
 
 
 class BasicLiteral(AbstractBasicExpression):
     def __init__(self, literal):
         self._literal = literal
 
-    def basic09_text(self):
+    def basic09_text(self, indent_level):
         return (f'"{self._literal}"' if type(self._literal) is str
                 else f'{self._literal}')
 
@@ -118,7 +123,7 @@ class BasicOperator(AbstractBasicConstruct):
     def __init__(self, operator):
         self._operator = operator
 
-    def basic09_text(self):
+    def basic09_text(self, indent_level):
         return self._operator
 
 
@@ -135,24 +140,25 @@ class BasicOpExp(AbstractBasicConstruct):
     def exp(self):
         return self._exp
 
-    def basic09_text(self):
-        return f'{self.operator} {self.exp.basic09_text()}'
+    def basic09_text(self, indent_level):
+        return f'{self.operator} {self.exp.basic09_text(indent_level)}'
 
 
 class BasicParenExp(AbstractBasicExpression):
     def __init__(self, exp):
         self._exp = exp
 
-    def basic09_text(self):
-        return f'({self._exp.basic09_text()})'
+    def basic09_text(self, indent_level):
+        return f'({self._exp.basic09_text(indent_level)})'
 
 
 class BasicProg(AbstractBasicConstruct):
     def __init__(self, lines):
         self._lines = lines
 
-    def basic09_text(self):
-        retval = '\n'.join(line.basic09_text() for line in self._lines)
+    def basic09_text(self, indent_level):
+        retval = '\n'.join(line.basic09_text(indent_level)
+                           for line in self._lines)
         return retval
 
 
@@ -160,8 +166,9 @@ class BasicStatement(AbstractBasicConstruct):
     def __init__(self, basic_construct):
         self._basic_construct = basic_construct
 
-    def basic09_text(self):
-        return self._basic_construct.basic09_text()
+    def basic09_text(self, indent_level):
+        return self.indent_spaces(indent_level) + \
+               self._basic_construct.basic09_text(indent_level)
 
 
 class BasicStatements(AbstractBasicConstruct):
@@ -171,8 +178,8 @@ class BasicStatements(AbstractBasicConstruct):
     def statements(self):
         return self._statements
 
-    def basic09_text(self):
-        return ': '.join(statement.basic09_text()
+    def basic09_text(self, indent_level):
+        return ': '.join(statement.basic09_text(indent_level)
                          for statement in self._statements)
 
 
@@ -183,7 +190,7 @@ class BasicVar(AbstractBasicExpression):
     def name(self):
         return self._name
 
-    def basic09_text(self):
+    def basic09_text(self, indent_level):
         return self._name
 
 
@@ -198,7 +205,7 @@ class BasicVisitor(NodeVisitor):
 
         if len(visited_children) == 4:
             operator, _, exp, _ = visited_children
-            return BasicOpExp(operator.basic09_text(), exp)
+            return BasicOpExp(operator.basic09_text(0), exp)
 
         if len(visited_children) == 1:
             if isinstance(visited_children[0], AbstractBasicConstruct):
