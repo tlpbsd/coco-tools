@@ -179,8 +179,9 @@ class BasicStatements(AbstractBasicConstruct):
         return self._statements
 
     def basic09_text(self, indent_level):
-        return ': '.join(statement.basic09_text(indent_level)
-                         for statement in self._statements)
+        indent = '\n' + self.indent_spaces(indent_level)
+        return indent.join(statement.basic09_text(indent_level)
+                           for statement in self._statements)
 
 
 class BasicVar(AbstractBasicExpression):

@@ -131,4 +131,4 @@ class TestBasicToBasic09(unittest.TestCase):
     def test_parse_multi_statement(self):
         self.generic_test_parse(
             '10 A=A+2:B=B+1',
-            '10 A = A + 2: B = B + 1')
+            '10 A = A + 2\nB = B + 1')
