@@ -110,8 +110,16 @@ class BasicIf(AbstractBasicStatement):
         self._statements = statements
 
     def basic09_text(self, indent_level):
-        return f'IF {self._exp.basic09_text(indent_level)} ' \
-               f'THEN {self._statements.basic09_text(indent_level)}'
+        if (isinstance(self._statements, BasicGoto) and
+                self._statements.implicit):
+            return f'{self.indent_spaces(indent_level)}' \
+                   f'IF {self._exp.basic09_text(indent_level)} ' \
+                   f'THEN {self._statements.basic09_text(0)}'
+        else:
+            return f'{self.indent_spaces(indent_level)}' \
+                   f'IF {self._exp.basic09_text(indent_level)} THEN\n' \
+                   f'{self._statements.basic09_text(indent_level + 1)}\n' \
+                   f'ENDIF'
 
 
 class BasicGoto(AbstractBasicStatement):
@@ -119,9 +127,14 @@ class BasicGoto(AbstractBasicStatement):
         self._linenum = linenum
         self._implicit = implicit
 
+    @property
+    def implicit(self):
+        return self._implicit
+
     def basic09_text(self, indent_level):
-        return f'{self._linenum}' if self._implicit \
-               else f'GOTO {self._linenum}'
+        return f'{self.indent_spaces(indent_level)}{self._linenum}' \
+            if self._implicit \
+            else f'{self.indent_spaces(indent_level)}GOTO {self._linenum}'
 
 
 class BasicLine(AbstractBasicConstruct):
@@ -252,13 +265,7 @@ class BasicVisitor(NodeVisitor):
                                                  exp2.operator, exp2.exp))
             if isinstance(visited_children[0], Node) and \
                visited_children[0].text == ':':
-                print(f'zzzzz {visited_children[1]}')
                 return visited_children[1]
-
-        print('--------------------- ****')
-        for child in visited_children:
-            print(f'xxxx {child}')
-        print('---------------------')
 
         return node
 
@@ -331,8 +338,6 @@ class BasicVisitor(NodeVisitor):
         return node.text
 
     def visit_statement(self, node, visited_children):
-        for child in visited_children:
-            print(f'gggggg {child}')
         return BasicStatement(next(child for child in visited_children
                               if isinstance(child, AbstractBasicStatement)))
 

@@ -50,16 +50,18 @@ class TestBasicToBasic09(unittest.TestCase):
 
     def test_basic_goto(self):
         target = b09.BasicGoto(123, True)
-        assert target.basic09_text(1) == '123'
+        assert target.basic09_text(1) == '    123'
+        assert target.implicit is True
         target = b09.BasicGoto(1234, False)
-        assert target.basic09_text(1) == 'GOTO 1234'
+        assert target.basic09_text(1) == '    GOTO 1234'
+        assert target.implicit is False
 
     def test_if(self):
         strlit = b09.BasicLiteral('HW')
         exp = b09.BasicBinaryExp(strlit, '=', strlit)
         goto = b09.BasicGoto(123, True)
         target = b09.BasicIf(exp, goto)
-        assert target.basic09_text(1) == 'IF "HW" = "HW" THEN 123'
+        assert target.basic09_text(1) == '    IF "HW" = "HW" THEN 123'
 
     def test_basic_int_literal(self):
         target = b09.BasicLiteral(123)
@@ -155,4 +157,4 @@ class TestBasicToBasic09(unittest.TestCase):
     def test_simple_if_statement(self):
         self.generic_test_parse(
             '1 IF A=1 THEN 2\n2 IF A<10 THEN B = B - 2 * 1',
-            '1 IF A = 1 THEN 2\n2 IF A < 10 THEN B = B - 2 * 1')
+            '1 IF A = 1 THEN 2\n2 IF A < 10 THEN\n    B = B - 2 * 1\nENDIF')
