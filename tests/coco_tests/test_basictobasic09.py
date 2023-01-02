@@ -16,6 +16,12 @@ class TestBasicToBasic09(unittest.TestCase):
     simple2_prog = get_resource('simple2.bas')
     simple3_prog = get_resource('simple3.bas')
 
+    def test_basic_binary_exp(self):
+        var = b09.BasicVar('HW')
+        strlit = b09.BasicLiteral('HW')
+        target = b09.BasicBinaryExp(var, '=', strlit)
+        assert target.basic09_text(1) == 'HW = "HW"'
+
     def test_comment(self):
         target = b09.BasicComment(' hello world ')
         assert target.basic09_text(1) == '(* hello world  *)'
@@ -38,13 +44,26 @@ class TestBasicToBasic09(unittest.TestCase):
         target = b09.BasicLine(25, statements)
         assert target.basic09_text(1) == '25     (* hello world  *)'
 
-    def test_basic_int_literal(self):
-        target = b09.BasicLiteral(123)
-        assert target.basic09_text(2) == '123'
-
     def test_basic_float_literal(self):
         target = b09.BasicLiteral(123.0)
         assert target.basic09_text(2) == '123.0'
+
+    def test_basic_goto(self):
+        target = b09.BasicGoto(123, True)
+        assert target.basic09_text(1) == '123'
+        target = b09.BasicGoto(1234, False)
+        assert target.basic09_text(1) == 'GOTO 1234'
+
+    def test_if(self):
+        strlit = b09.BasicLiteral('HW')
+        exp = b09.BasicBinaryExp(strlit, '=', strlit)
+        goto = b09.BasicGoto(123, True)
+        target = b09.BasicIf(exp, goto)
+        assert target.basic09_text(1) == 'IF "HW" = "HW" THEN 123'
+
+    def test_basic_int_literal(self):
+        target = b09.BasicLiteral(123)
+        assert target.basic09_text(2) == '123'
 
     def test_basic_str_literal(self):
         target = b09.BasicLiteral('123.0')
@@ -132,3 +151,8 @@ class TestBasicToBasic09(unittest.TestCase):
         self.generic_test_parse(
             '10 A=A+2:B=B+1',
             '10 A = A + 2\nB = B + 1')
+
+    def test_simple_if_statement(self):
+        self.generic_test_parse(
+            '1 IF A=1 THEN 2\n2 IF A<10 THEN B = B - 2 * 1',
+            '1 IF A = 1 THEN 2\n2 IF A < 10 THEN B = B - 2 * 1')

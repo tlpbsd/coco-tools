@@ -71,7 +71,11 @@ class AbstractBasicExpression(AbstractBasicConstruct):
     pass
 
 
-class BasicAssignment(AbstractBasicConstruct):
+class AbstractBasicStatement(AbstractBasicConstruct):
+    pass
+
+
+class BasicAssignment(AbstractBasicStatement):
     def __init__(self, var, exp):
         self._var = var
         self._exp = exp
@@ -98,6 +102,26 @@ class BasicComment(AbstractBasicConstruct):
 
     def basic09_text(self, indent_level):
         return f'(*{self._comment} *)'
+
+
+class BasicIf(AbstractBasicStatement):
+    def __init__(self, exp, statements):
+        self._exp = exp
+        self._statements = statements
+
+    def basic09_text(self, indent_level):
+        return f'IF {self._exp.basic09_text(indent_level)} ' \
+               f'THEN {self._statements.basic09_text(indent_level)}'
+
+
+class BasicGoto(AbstractBasicStatement):
+    def __init__(self, linenum, implicit):
+        self._linenum = linenum
+        self._implicit = implicit
+
+    def basic09_text(self, indent_level):
+        return f'{self._linenum}' if self._implicit \
+               else f'GOTO {self._linenum}'
 
 
 class BasicLine(AbstractBasicConstruct):
@@ -162,7 +186,7 @@ class BasicProg(AbstractBasicConstruct):
         return retval
 
 
-class BasicStatement(AbstractBasicConstruct):
+class BasicStatement(AbstractBasicStatement):
     def __init__(self, basic_construct):
         self._basic_construct = basic_construct
 
@@ -200,9 +224,13 @@ class BasicVisitor(NodeVisitor):
         if node.text.strip() == '':
             return ''
 
-        if node.text in ['*', '/', '+', '-', '*', '&', '<', '>', '<>', 'AND',
-                         'OR']:
+        if node.text in ['*', '/', '+', '-', '*', '&', '<', '>', '<>', '=',
+                         'AND', 'OR']:
             return BasicOperator(node.text)
+
+        if len(visited_children) == 7:
+            _, _, exp, _, _, _, statements = visited_children
+            return BasicIf(exp, statements)
 
         if len(visited_children) == 4:
             operator, _, exp, _ = visited_children
@@ -267,6 +295,11 @@ class BasicVisitor(NodeVisitor):
     def visit_linenum(self, node, visited_children):
         return int(node.full_text[node.start:node.end])
 
+    def visit_line_or_stmnts(self, node, visited_children):
+        if isinstance(visited_children[0], int):
+            return BasicGoto(visited_children[0], True)
+        return visited_children[0]
+
     def visit_literal(self, node, visited_children):
         return visited_children[0]
 
@@ -298,8 +331,10 @@ class BasicVisitor(NodeVisitor):
         return node.text
 
     def visit_statement(self, node, visited_children):
+        for child in visited_children:
+            print(f'gggggg {child}')
         return BasicStatement(next(child for child in visited_children
-                              if isinstance(child, BasicAssignment)))
+                              if isinstance(child, AbstractBasicStatement)))
 
     def visit_statements(self, node, visited_children):
         return BasicStatements([child for child in visited_children
