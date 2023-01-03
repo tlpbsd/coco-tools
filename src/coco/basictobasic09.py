@@ -1,5 +1,5 @@
 from abc import ABC, abstractmethod
-from itertools import chain
+from itertools import chain, islice
 from parsimonious.grammar import Grammar
 from parsimonious.nodes import Node, NodeVisitor
 
@@ -10,10 +10,10 @@ grammar = Grammar(
     multi_line      = line eol
     multi_lines     = multi_line*
     maybe_line      = line?
-    arr_assign      = var space* "(" space* exp space* ")" space*
-                      "=" space* exp
-    array_ref_exp   = var space* "(" space* exp space* ")"
+    array_ref_exp   = var space* exp_list
+    arr_assign      = array_ref_exp space* "=" space* exp
     comment         = comment_token comment_text
+    exp_list        = "(" space* exp space* ("," space* exp space*)* ")"
     line            = linenum space* statements space*
     line_or_stmnts  = linenum
                     / statements
@@ -75,6 +75,17 @@ class AbstractBasicStatement(AbstractBasicConstruct):
     pass
 
 
+class BasicArrayRef(AbstractBasicStatement):
+    def __init__(self, var, indices):
+        self._var = var
+        self._indices = indices
+
+    def basic09_text(self, indent_level):
+        index_text = ', '.join(index.basic09_text(indent_level)
+                               for index in self._indices)
+        return f'{self._var.basic09_text(indent_level)}({index_text})'
+
+
 class BasicAssignment(AbstractBasicStatement):
     def __init__(self, var, exp):
         self._var = var
@@ -104,6 +115,31 @@ class BasicComment(AbstractBasicConstruct):
         return f'(*{self._comment} *)'
 
 
+class BasicExpressionList(AbstractBasicStatement):
+    def __init__(self, exp_list):
+        self._exp_list = exp_list
+
+    def basic09_text(self, indent_level):
+        exp_list_text = ', '.join(exp.basic09_text(indent_level)
+                                  for exp in self._exp_list)
+        return f'({exp_list})'
+
+
+class BasicGoto(AbstractBasicStatement):
+    def __init__(self, linenum, implicit):
+        self._linenum = linenum
+        self._implicit = implicit
+
+    @property
+    def implicit(self):
+        return self._implicit
+
+    def basic09_text(self, indent_level):
+        return f'{self.indent_spaces(indent_level)}{self._linenum}' \
+            if self._implicit \
+            else f'{self.indent_spaces(indent_level)}GOTO {self._linenum}'
+
+
 class BasicIf(AbstractBasicStatement):
     def __init__(self, exp, statements):
         self._exp = exp
@@ -120,21 +156,6 @@ class BasicIf(AbstractBasicStatement):
                    f'IF {self._exp.basic09_text(indent_level)} THEN\n' \
                    f'{self._statements.basic09_text(indent_level + 1)}\n' \
                    f'ENDIF'
-
-
-class BasicGoto(AbstractBasicStatement):
-    def __init__(self, linenum, implicit):
-        self._linenum = linenum
-        self._implicit = implicit
-
-    @property
-    def implicit(self):
-        return self._implicit
-
-    def basic09_text(self, indent_level):
-        return f'{self.indent_spaces(indent_level)}{self._linenum}' \
-            if self._implicit \
-            else f'{self.indent_spaces(indent_level)}GOTO {self._linenum}'
 
 
 class BasicLine(AbstractBasicConstruct):
@@ -241,14 +262,16 @@ class BasicVisitor(NodeVisitor):
                          'AND', 'OR']:
             return BasicOperator(node.text)
 
-        if len(visited_children) == 7:
+        if len(visited_children) == 7 and \
+            isinstance(visited_children[0], Node) and \
+            visited_children[0].text == 'IF':
             _, _, exp, _, _, _, statements = visited_children
             return BasicIf(exp, statements)
 
         if len(visited_children) == 4:
-            operator, _, exp, _ = visited_children
-            return BasicOpExp(operator.basic09_text(0), exp)
-
+            if isinstance(visited_children[0], BasicOperator):
+                operator, _, exp, _ = visited_children
+                return BasicOpExp(operator.basic09_text(0), exp)
         if len(visited_children) == 1:
             if isinstance(visited_children[0], AbstractBasicConstruct):
                 return visited_children[0]
@@ -273,6 +296,12 @@ class BasicVisitor(NodeVisitor):
         bp = BasicProg(chain(visited_children[0], visited_children[1]))
         return bp
 
+    def visit_arr_assign(self, node, visited_children):
+        var, _, _, _, *index_exp_list, val_exp = visited_children
+        index_exp_list = (exp for exp in index_exp_list
+                        if isinstance(exp, AbstractBasicExpression))
+        return BasicAssignment(BasicArrayRef(var, index_exp_list), val_exp)
+
     def visit_multi_line(self, node, visited_children):
         return next(child for child in visited_children
                     if isinstance(child, BasicLine))
@@ -290,6 +319,18 @@ class BasicVisitor(NodeVisitor):
 
     def visit_comment_text(self, node, visited_children):
         return node.full_text[node.start:node.end]
+
+    def visit_exp_list(self, node, visited_children):
+        for child in visited_children:
+            print(f'xxxx {child}')
+        _, _, exp1, _, *exp_node_list, _ = visited_children
+        exp_list = (
+            next(islice(node, 3, None))
+            for node in exp_node_list
+        )
+        vals = [exp1, *exp_list]
+        print(vals)
+        return BasicExpressionList((exp1, *exp_list))
 
     def visit_gtle_exp(self, node, visited_children):
         return self.visit_prod_exp(node, visited_children)

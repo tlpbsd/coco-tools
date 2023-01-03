@@ -16,6 +16,12 @@ class TestBasicToBasic09(unittest.TestCase):
     simple2_prog = get_resource('simple2.bas')
     simple3_prog = get_resource('simple3.bas')
 
+    def test_basic_assignment(self):
+        var = b09.BasicVar('HW')
+        exp = b09.BasicLiteral(123)
+        target = b09.BasicAssignment(var, exp)
+        assert target.basic09_text(1) == 'HW = 123'
+
     def test_basic_binary_exp(self):
         var = b09.BasicVar('HW')
         strlit = b09.BasicLiteral('HW')
@@ -94,6 +100,11 @@ class TestBasicToBasic09(unittest.TestCase):
         b09_prog = basic_prog.basic09_text(0)
         assert b09_prog == progout
 
+    def test_parse_array_assignment(self):
+        self.generic_test_parse(
+            '10 A (123 - 1 - (2/2),1,2)=123+64',
+            '10 A(123 - 1 - (2 / 2), 1, 2) = 123 + 64')
+
     def test_parse_comment_program(self):
         self.generic_test_parse(
             '15 REM HELLO WORLD\n',
@@ -121,8 +132,8 @@ class TestBasicToBasic09(unittest.TestCase):
 
     def test_parse_add_expression(self):
         self.generic_test_parse(
-            '10 A = 64 + 32\n20 B = 10-AB',
-            '10 A = 64 + 32\n20 B = 10 - AB')
+            '10 A = 64 + 32\n20 B = 10-AB+32',
+            '10 A = 64 + 32\n20 B = 10 - AB + 32')
 
     def test_parse_str_expression(self):
         self.generic_test_parse(
