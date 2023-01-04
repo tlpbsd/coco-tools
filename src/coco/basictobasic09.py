@@ -14,17 +14,20 @@ grammar = Grammar(
     arr_assign      = array_ref_exp space* "=" space* exp
     comment         = comment_token comment_text
     exp_list        = "(" space* exp space* ("," space* exp space*)* ")"
+    if_else_stmnt   = ("IF" space* exp space*
+                       "THEN" space* line_or_stmnts2 space*
+                       "ELSE" space* line_or_stmnts)
+
+    if_stmnt        = ("IF" space* exp space*
+                       "THEN" space* line_or_stmnts)
     line            = linenum space* statements space*
     line_or_stmnts  = linenum
                     / statements
     line_or_stmnts2 = linenum
                     / statements_else
     simple_assign   = var space* "=" space* exp
-    statement       = ("IF" space* exp space*
-                       "THEN" space* line_or_stmnts2 space*
-                       "ELSE" space* line_or_stmnts)
-                    / ("IF" space* exp space*
-                       "THEN" space* line_or_stmnts)
+    statement       = if_else_stmnt
+                    / if_stmnt
                     / simple_assign
                     / arr_assign
     statements      = (statement? (comment/((":"/space)+
@@ -262,12 +265,6 @@ class BasicVisitor(NodeVisitor):
                          'AND', 'OR']:
             return BasicOperator(node.text)
 
-        if len(visited_children) == 7 and \
-            isinstance(visited_children[0], Node) and \
-            visited_children[0].text == 'IF':
-            _, _, exp, _, _, _, statements = visited_children
-            return BasicIf(exp, statements)
-
         if len(visited_children) == 4:
             if isinstance(visited_children[0], BasicOperator):
                 operator, _, exp, _ = visited_children
@@ -302,18 +299,6 @@ class BasicVisitor(NodeVisitor):
                         if isinstance(exp, AbstractBasicExpression))
         return BasicAssignment(BasicArrayRef(var, index_exp_list), val_exp)
 
-    def visit_multi_line(self, node, visited_children):
-        return next(child for child in visited_children
-                    if isinstance(child, BasicLine))
-
-    def visit_multi_lines(self, node, visited_children):
-        return (child for child in visited_children
-                if isinstance(child, BasicLine))
-
-    def visit_maybe_line(self, node, visited_children):
-        return (child for child in visited_children
-                if isinstance(child, BasicLine))
-
     def visit_comment(self, node, visited_children):
         return BasicComment(visited_children[1])
 
@@ -331,6 +316,10 @@ class BasicVisitor(NodeVisitor):
         vals = [exp1, *exp_list]
         print(vals)
         return BasicExpressionList((exp1, *exp_list))
+
+    def visit_if_stmnt(self, node, visited_children):
+        _, _, exp, _, _, _, statements = visited_children
+        return BasicIf(exp, statements)
 
     def visit_gtle_exp(self, node, visited_children):
         return self.visit_prod_exp(node, visited_children)
@@ -353,6 +342,18 @@ class BasicVisitor(NodeVisitor):
 
     def visit_logic_exp(self, node, visited_children):
         return self.visit_prod_exp(node, visited_children)
+
+    def visit_maybe_line(self, node, visited_children):
+        return (child for child in visited_children
+                if isinstance(child, BasicLine))
+
+    def visit_multi_line(self, node, visited_children):
+        return next(child for child in visited_children
+                    if isinstance(child, BasicLine))
+
+    def visit_multi_lines(self, node, visited_children):
+        return (child for child in visited_children
+                if isinstance(child, BasicLine))
 
     def visit_num_literal(self, node, visited_children):
         num_literal = node.full_text[node.start:node.end].replace(' ', '')
