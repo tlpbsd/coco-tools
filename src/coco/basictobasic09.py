@@ -13,7 +13,8 @@ grammar = Grammar(
     array_ref_exp   = var space* exp_list
     arr_assign      = array_ref_exp space* "=" space* exp
     comment         = comment_token comment_text
-    exp_list        = "(" space* exp space* ("," space* exp space*)* ")"
+    exp_list        = "(" space* exp space* exp_sub_list* ")"
+    exp_sub_list    = ("," space* exp space*)
     if_else_stmnt   = ("IF" space* exp space*
                        "THEN" space* line_or_stmnts2 space*
                        "ELSE" space* line_or_stmnts)
@@ -306,12 +307,22 @@ class BasicVisitor(NodeVisitor):
         return node.full_text[node.start:node.end]
 
     def visit_exp_list(self, node, visited_children):
-        for child in visited_children:
-            print(f'xxxx {child}')
         _, _, exp1, _, *exp_node_list, _ = visited_children
+        for e in exp_node_list[0]:
+            print(f'----------- {next(islice(e, 2, None))}')
         exp_list = (
-            next(islice(node, 3, None))
-            for node in exp_node_list
+            next(islice(node, 2, None) for node in exp_node_list[0])
+        )
+        vals = [exp1, *exp_list]
+        print(vals)
+        return BasicExpressionList((exp1, *exp_list))
+
+    def visit_exp_sub_list(self, node, visited_children):
+        _, _, exp, _ = visited_children
+        for e in exp_node_list[0]:
+            print(f'----------- {next(islice(e, 2, None))}')
+        exp_list = (
+            next(islice(node, 2, None) for node in exp_node_list[0])
         )
         vals = [exp1, *exp_list]
         print(vals)
