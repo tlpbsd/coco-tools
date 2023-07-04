@@ -31,10 +31,11 @@ class TestMGE_Viewer2(unittest.TestCase):
             subprocess.check_output(
                 [
                     sys.executable,
-                    "src/coco/mge_viewer2.py",
+                    "coco/mge_viewer2.py",
                     infilename,
                     "baz",
                 ],
+                env={"PYTHONPATH": "."},
                 stderr=subprocess.STDOUT,
             )
         self.assertRegex(iotostr(context.exception.output), self.USAGE_REGEX)
@@ -46,7 +47,8 @@ class TestMGE_Viewer2(unittest.TestCase):
     def test_help(self):
         output = iotostr(
             subprocess.check_output(
-                [sys.executable, "src/coco/mge_viewer2.py", "-h"],
+                [sys.executable, "coco/mge_viewer2.py", "-h"],
+                env={"PYTHONPATH": "."},
                 stderr=subprocess.STDOUT,
             )
         )
@@ -59,7 +61,8 @@ class TestMGE_Viewer2(unittest.TestCase):
     def test_version(self):
         output = iotostr(
             subprocess.check_output(
-                [sys.executable, "src/coco/mge_viewer2.py", "--version"],
+                [sys.executable, "coco/mge_viewer2.py", "--version"],
+                env={"PYTHONPATH": "."},
                 stderr=subprocess.STDOUT,
             )
         )
@@ -68,7 +71,8 @@ class TestMGE_Viewer2(unittest.TestCase):
     def test_unknown_argument(self):
         with self.assertRaises(subprocess.CalledProcessError) as context:
             subprocess.check_output(
-                [sys.executable, "src/coco/mge_viewer2.py", "--oops"],
+                [sys.executable, "coco/mge_viewer2.py", "--oops"],
+                env={"PYTHONPATH": "."},
                 stderr=subprocess.STDOUT,
             )
         self.assertRegex(iotostr(context.exception.output), self.USAGE_REGEX)

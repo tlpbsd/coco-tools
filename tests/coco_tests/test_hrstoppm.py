@@ -94,11 +94,12 @@ class TestHRSToPPM(unittest.TestCase):
             subprocess.check_output(
                 [
                     sys.executable,
-                    "src/coco/hrstoppm.py",
+                    "coco/hrstoppm.py",
                     infilename,
                     self.outfile.name,
                     "baz",
                 ],
+                env={"PYTHONPATH": "."},
                 stderr=subprocess.STDOUT,
             )
         self.assertRegex(iotostr(context.exception.output), self.USAGE_REGEX)
@@ -119,7 +120,8 @@ class TestHRSToPPM(unittest.TestCase):
         os.write(write, infile.read())
         os.close(write)
         subprocess.check_call(
-            [sys.executable, "src/coco/hrstoppm.py"],
+            [sys.executable, "coco/hrstoppm.py"],
+            env={"PYTHONPATH": "."},
             stdin=read,
             stdout=self.outfile,
         )
@@ -133,14 +135,16 @@ class TestHRSToPPM(unittest.TestCase):
             __name__, "fixtures/monalisa.ppm"
         )
         subprocess.check_call(
-            [sys.executable, "src/coco/hrstoppm.py", infilename],
+            [sys.executable, "coco/hrstoppm.py", infilename],
+            env={"PYTHONPATH": "."},
             stdout=self.outfile,
         )
         self.assertTrue(filecmp.cmp(self.outfile.name, comparefilename))
 
     def test_help(self):
         output = subprocess.check_output(
-            [sys.executable, "src/coco/hrstoppm.py", "-h"],
+            [sys.executable, "coco/hrstoppm.py", "-h"],
+            env={"PYTHONPATH": "."},
             stderr=subprocess.STDOUT,
         )
         self.assertRegex(iotostr(output), "Convert RS-DOS HRS images to PPM")
@@ -151,7 +155,8 @@ class TestHRSToPPM(unittest.TestCase):
 
     def test_version(self):
         output = subprocess.check_output(
-            [sys.executable, "src/coco/hrstoppm.py", "--version"],
+            [sys.executable, "coco/hrstoppm.py", "--version"],
+            env={"PYTHONPATH": "."},
             stderr=subprocess.STDOUT,
         )
         self.assertRegex(iotostr(output), self.VERSION_REGEX)
@@ -159,7 +164,8 @@ class TestHRSToPPM(unittest.TestCase):
     def test_unknown_argument(self):
         with self.assertRaises(subprocess.CalledProcessError) as context:
             subprocess.check_output(
-                [sys.executable, "src/coco/hrstoppm.py", "--oops"],
+                [sys.executable, "coco/hrstoppm.py", "--oops"],
+                env={"PYTHONPATH": "."},
                 stderr=subprocess.STDOUT,
             )
         self.assertRegex(iotostr(context.exception.output), self.USAGE_REGEX)

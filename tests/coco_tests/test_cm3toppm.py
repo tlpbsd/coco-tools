@@ -53,11 +53,12 @@ class TestCM3ToPPM(unittest.TestCase):
             subprocess.check_output(
                 [
                     sys.executable,
-                    "src/coco/cm3toppm.py",
+                    "coco/cm3toppm.py",
                     infilename,
                     self.outfile.name,
                     "baz",
                 ],
+                env={"PYTHONPATH": "."},
                 stderr=subprocess.STDOUT,
             )
         self.assertRegex(iotostr(context.exception.output), self.USAGE_REGEX)
@@ -76,7 +77,8 @@ class TestCM3ToPPM(unittest.TestCase):
         os.write(write, infile.read())
         os.close(write)
         subprocess.check_call(
-            [sys.executable, "src/coco/cm3toppm.py"],
+            [sys.executable, "coco/cm3toppm.py"],
+            env={"PYTHONPATH": "."},
             stdin=read,
             stdout=self.outfile,
         )
@@ -90,14 +92,16 @@ class TestCM3ToPPM(unittest.TestCase):
             __name__, "fixtures/clip1.ppm"
         )
         subprocess.check_call(
-            [sys.executable, "src/coco/cm3toppm.py", infilename],
+            [sys.executable, "coco/cm3toppm.py", infilename],
+            env={"PYTHONPATH": "."},
             stdout=self.outfile,
         )
         self.assertTrue(filecmp.cmp(self.outfile.name, comparefilename))
 
     def test_help(self):
         output = subprocess.check_output(
-            [sys.executable, "src/coco/cm3toppm.py", "-h"],
+            [sys.executable, "coco/cm3toppm.py", "-h"],
+            env={"PYTHONPATH": "."},
             stderr=subprocess.STDOUT,
         )
         self.assertRegex(iotostr(output), "Convert RS-DOS CM3 images to PPM")
@@ -108,7 +112,8 @@ class TestCM3ToPPM(unittest.TestCase):
 
     def test_version(self):
         output = subprocess.check_output(
-            [sys.executable, "src/coco/cm3toppm.py", "--version"],
+            [sys.executable, "coco/cm3toppm.py", "--version"],
+            env={"PYTHONPATH": "."},
             stderr=subprocess.STDOUT,
         )
         self.assertRegex(iotostr(output), self.VERSION_REGEX)
@@ -116,7 +121,8 @@ class TestCM3ToPPM(unittest.TestCase):
     def test_unknown_argument(self):
         with self.assertRaises(subprocess.CalledProcessError) as context:
             subprocess.check_output(
-                [sys.executable, "src/coco/cm3toppm.py", "--oops"],
+                [sys.executable, "coco/cm3toppm.py", "--oops"],
+                env={"PYTHONPATH": "."},
                 stderr=subprocess.STDOUT,
             )
         self.assertRegex(iotostr(context.exception.output), self.USAGE_REGEX)

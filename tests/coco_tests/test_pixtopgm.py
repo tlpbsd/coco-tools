@@ -52,11 +52,12 @@ class TestPixToPGM(unittest.TestCase):
             subprocess.check_output(
                 [
                     sys.executable,
-                    "src/coco/pixtopgm.py",
+                    "coco/pixtopgm.py",
                     infilename,
                     self.outfile.name,
                     "baz",
                 ],
+                env={"PYTHONPATH": "."},
                 stderr=subprocess.STDOUT,
             )
         self.assertRegex(iotostr(context.exception.output), self.USAGE_REGEX)
@@ -71,14 +72,16 @@ class TestPixToPGM(unittest.TestCase):
             __name__, "fixtures/sue.pgm"
         )
         subprocess.check_call(
-            [sys.executable, "src/coco/pixtopgm.py", infile],
+            [sys.executable, "coco/pixtopgm.py", infile],
+            env={"PYTHONPATH": "."},
             stdout=self.outfile,
         )
         self.assertTrue(filecmp.cmp(self.outfile.name, comparefilename))
 
     def test_help(self):
         output = subprocess.check_output(
-            [sys.executable, "src/coco/pixtopgm.py", "-h"],
+            [sys.executable, "coco/pixtopgm.py", "-h"],
+            env={"PYTHONPATH": "."},
             stderr=subprocess.STDOUT,
         )
         self.assertRegex(iotostr(output), "Convert RS-DOS PIX images to PGM")
@@ -89,7 +92,8 @@ class TestPixToPGM(unittest.TestCase):
 
     def test_version(self):
         output = subprocess.check_output(
-            [sys.executable, "src/coco/pixtopgm.py", "--version"],
+            [sys.executable, "coco/pixtopgm.py", "--version"],
+            env={"PYTHONPATH": "."},
             stderr=subprocess.STDOUT,
         )
         self.assertRegex(iotostr(output), self.VERSION_REGEX)
@@ -100,7 +104,8 @@ class TestPixToPGM(unittest.TestCase):
                 __name__, "fixtures/sue.pix"
             )
             subprocess.check_output(
-                [sys.executable, "src/coco/pixtopgm.py", infile, "--oops"],
+                [sys.executable, "coco/pixtopgm.py", infile, "--oops"],
+                env={"PYTHONPATH": "."},
                 stderr=subprocess.STDOUT,
             )
         self.assertRegex(iotostr(context.exception.output), self.USAGE_REGEX)

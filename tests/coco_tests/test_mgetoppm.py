@@ -53,11 +53,12 @@ class TestMGEToPPM(unittest.TestCase):
             subprocess.check_output(
                 [
                     sys.executable,
-                    "src/coco/mgetoppm.py",
+                    "coco/mgetoppm.py",
                     infilename,
                     self.outfile.name,
                     "baz",
                 ],
+                env={"PYTHONPATH": "."},
                 stderr=subprocess.STDOUT,
             )
         self.assertRegex(iotostr(context.exception.output), self.USAGE_REGEX)
@@ -79,7 +80,8 @@ class TestMGEToPPM(unittest.TestCase):
         os.write(write, infile.read())
         os.close(write)
         subprocess.check_call(
-            [sys.executable, "src/coco/mgetoppm.py"],
+            [sys.executable, "coco/mgetoppm.py"],
+            env={"PYTHONPATH": "."},
             stdin=read,
             stdout=self.outfile,
         )
@@ -93,7 +95,8 @@ class TestMGEToPPM(unittest.TestCase):
             __name__, "fixtures/dragon1.ppm"
         )
         subprocess.check_call(
-            [sys.executable, "src/coco/mgetoppm.py", infilename],
+            [sys.executable, "coco/mgetoppm.py", infilename],
+            env={"PYTHONPATH": "."},
             stdout=self.outfile,
         )
         self.assertTrue(filecmp.cmp(self.outfile.name, comparefilename))
@@ -101,7 +104,8 @@ class TestMGEToPPM(unittest.TestCase):
     def test_help(self):
         output = iotostr(
             subprocess.check_output(
-                [sys.executable, "src/coco/mgetoppm.py", "-h"],
+                [sys.executable, "coco/mgetoppm.py", "-h"],
+                env={"PYTHONPATH": "."},
                 stderr=subprocess.STDOUT,
             )
         )
@@ -114,7 +118,8 @@ class TestMGEToPPM(unittest.TestCase):
     def test_version(self):
         output = iotostr(
             subprocess.check_output(
-                [sys.executable, "src/coco/mgetoppm.py", "--version"],
+                [sys.executable, "coco/mgetoppm.py", "--version"],
+                env={"PYTHONPATH": "."},
                 stderr=subprocess.STDOUT,
             )
         )
@@ -123,7 +128,8 @@ class TestMGEToPPM(unittest.TestCase):
     def test_unknown_argument(self):
         with self.assertRaises(subprocess.CalledProcessError) as context:
             subprocess.check_output(
-                [sys.executable, "src/coco/mgetoppm.py", "--oops"],
+                [sys.executable, "coco/mgetoppm.py", "--oops"],
+                env={"PYTHONPATH": "."},
                 stderr=subprocess.STDOUT,
             )
         self.assertRegex(iotostr(context.exception.output), self.USAGE_REGEX)

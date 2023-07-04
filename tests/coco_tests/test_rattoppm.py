@@ -53,11 +53,12 @@ class TestRatToPPM(unittest.TestCase):
             subprocess.check_output(
                 [
                     sys.executable,
-                    "src/coco/rattoppm.py",
+                    "coco/rattoppm.py",
                     infilename,
                     self.outfile.name,
                     "baz",
                 ],
+                env={"PYTHONPATH": "."},
                 stderr=subprocess.STDOUT,
             )
         self.assertRegex(iotostr(context.exception.output), self.USAGE_REGEX)
@@ -78,7 +79,8 @@ class TestRatToPPM(unittest.TestCase):
         os.write(write, infile.read())
         os.close(write)
         subprocess.check_call(
-            [sys.executable, "src/coco/rattoppm.py"],
+            [sys.executable, "coco/rattoppm.py"],
+            env={"PYTHONPATH": "."},
             stdin=read,
             stdout=self.outfile,
         )
@@ -92,7 +94,8 @@ class TestRatToPPM(unittest.TestCase):
             __name__, "fixtures/watrfall.ppm"
         )
         subprocess.check_call(
-            [sys.executable, "src/coco/rattoppm.py", infilename],
+            [sys.executable, "coco/rattoppm.py", infilename],
+            env={"PYTHONPATH": "."},
             stdout=self.outfile,
         )
         self.assertTrue(filecmp.cmp(self.outfile.name, comparefilename))
@@ -100,7 +103,8 @@ class TestRatToPPM(unittest.TestCase):
     def test_help(self):
         output = iotostr(
             subprocess.check_output(
-                [sys.executable, "src/coco/rattoppm.py", "-h"],
+                [sys.executable, "coco/rattoppm.py", "-h"],
+                env={"PYTHONPATH": "."},
                 stderr=subprocess.STDOUT,
             )
         )
@@ -113,7 +117,8 @@ class TestRatToPPM(unittest.TestCase):
     def test_version(self):
         output = iotostr(
             subprocess.check_output(
-                [sys.executable, "src/coco/rattoppm.py", "--version"],
+                [sys.executable, "coco/rattoppm.py", "--version"],
+                env={"PYTHONPATH": "."},
                 stderr=subprocess.STDOUT,
             )
         )
@@ -122,7 +127,8 @@ class TestRatToPPM(unittest.TestCase):
     def test_unknown_argument(self):
         with self.assertRaises(subprocess.CalledProcessError) as context:
             subprocess.check_output(
-                [sys.executable, "src/coco/rattoppm.py", "--oops"],
+                [sys.executable, "coco/rattoppm.py", "--oops"],
+                env={"PYTHONPATH": "."},
                 stderr=subprocess.STDOUT,
             )
         self.assertRegex(iotostr(context.exception.output), self.USAGE_REGEX)
