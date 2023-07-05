@@ -13,8 +13,9 @@ grammar = Grammar(
     array_ref_exp   = var space* exp_list
     arr_assign      = array_ref_exp space* "=" space* exp
     comment         = comment_token comment_text
-    exp_list        = "(" space* exp space* exp_sub_list* ")"
-    exp_sub_list    = ("," space* exp space*)
+    exp_list        = "(" space* exp space* exp_sublist ")"
+    exp_sublist     = exp_sublist_mbr*
+    exp_sublist_mbr = ("," space* exp space*)
     if_else_stmnt   = ("IF" space* exp space*
                        "THEN" space* line_or_stmnts2 space*
                        "ELSE" space* line_or_stmnts)
@@ -85,9 +86,8 @@ class BasicArrayRef(AbstractBasicStatement):
         self._indices = indices
 
     def basic09_text(self, indent_level):
-        index_text = ', '.join(index.basic09_text(indent_level)
-                               for index in self._indices)
-        return f'{self._var.basic09_text(indent_level)}({index_text})'
+        return f'{self._var.basic09_text(indent_level)}' \
+               f'{self._indices.basic09_text(indent_level)}'
 
 
 class BasicAssignment(AbstractBasicStatement):
@@ -126,7 +126,7 @@ class BasicExpressionList(AbstractBasicStatement):
     def basic09_text(self, indent_level):
         exp_list_text = ', '.join(exp.basic09_text(indent_level)
                                   for exp in self._exp_list)
-        return f'({exp_list})'
+        return f'({exp_list_text})'
 
 
 class BasicGoto(AbstractBasicStatement):
@@ -295,10 +295,14 @@ class BasicVisitor(NodeVisitor):
         return bp
 
     def visit_arr_assign(self, node, visited_children):
-        var, _, _, _, *index_exp_list, val_exp = visited_children
-        index_exp_list = (exp for exp in index_exp_list
-                        if isinstance(exp, AbstractBasicExpression))
-        return BasicAssignment(BasicArrayRef(var, index_exp_list), val_exp)
+        """array_ref_exp space* "=" space* exp"""
+        array_ref_exp, _, _, _, val_exp = visited_children
+        return BasicAssignment(array_ref_exp, val_exp)
+
+    def visit_array_ref_exp(self, node, visited_children):
+        var, _, exp_list = visited_children
+        return BasicArrayRef(var, exp_list)
+
 
     def visit_comment(self, node, visited_children):
         return BasicComment(visited_children[1])
@@ -307,26 +311,15 @@ class BasicVisitor(NodeVisitor):
         return node.full_text[node.start:node.end]
 
     def visit_exp_list(self, node, visited_children):
-        _, _, exp1, _, *exp_node_list, _ = visited_children
-        for e in exp_node_list[0]:
-            print(f'----------- {next(islice(e, 2, None))}')
-        exp_list = (
-            next(islice(node, 2, None) for node in exp_node_list[0])
-        )
-        vals = [exp1, *exp_list]
-        print(vals)
-        return BasicExpressionList((exp1, *exp_list))
+        _, _, exp1, _, exp_sublist, _ = visited_children
+        return BasicExpressionList((exp1, *exp_sublist))
 
-    def visit_exp_sub_list(self, node, visited_children):
+    def visit_exp_sublist(self, node, visited_children):
+        return visited_children
+
+    def visit_exp_sublist_mbr(self, node, visited_children):
         _, _, exp, _ = visited_children
-        for e in exp_node_list[0]:
-            print(f'----------- {next(islice(e, 2, None))}')
-        exp_list = (
-            next(islice(node, 2, None) for node in exp_node_list[0])
-        )
-        vals = [exp1, *exp_list]
-        print(vals)
-        return BasicExpressionList((exp1, *exp_list))
+        return exp
 
     def visit_if_stmnt(self, node, visited_children):
         _, _, exp, _, _, _, statements = visited_children
