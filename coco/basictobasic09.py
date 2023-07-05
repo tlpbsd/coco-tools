@@ -3,7 +3,6 @@ from itertools import chain, islice
 from parsimonious.grammar import Grammar
 from parsimonious.nodes import Node, NodeVisitor
 
-
 grammar = Grammar(
     r"""
     aaa_prog        = multi_lines maybe_line eof
@@ -302,7 +301,6 @@ class BasicVisitor(NodeVisitor):
     def visit_array_ref_exp(self, node, visited_children):
         var, _, exp_list = visited_children
         return BasicArrayRef(var, exp_list)
-
 
     def visit_comment(self, node, visited_children):
         return BasicComment(visited_children[1])
