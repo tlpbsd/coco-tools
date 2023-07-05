@@ -56,6 +56,7 @@ class TestVEFToPNG(unittest.TestCase):
         coco.veftopng.start([infilename, self.outfile.name])
         self.assertTrue(filecmp.cmp(self.outfile.name, comparefilename))
 
+    @unix_only
     def test_too_many_arguments(self):
         infilename = pkg_resources.resource_filename(
             __name__, "fixtures/trekies.vef"
@@ -78,6 +79,7 @@ class TestVEFToPNG(unittest.TestCase):
             r"veftopng.py: error: unrecognized arguments: baz",
         )
 
+    @unix_only
     def test_help(self):
         output = subprocess.check_output(
             [sys.executable, "coco/veftopng.py", "-h"],
@@ -90,6 +92,7 @@ class TestVEFToPNG(unittest.TestCase):
         self.assertRegex(iotostr(output), self.POSITIONAL_ARGS_REGEX)
         self.assertRegex(iotostr(output), self.OPTIONAL_ARGS_REGEX)
 
+    @unix_only
     def test_version(self):
         output = subprocess.check_output(
             [sys.executable, "coco/veftopng.py", "--version"],
@@ -98,6 +101,7 @@ class TestVEFToPNG(unittest.TestCase):
         )
         self.assertRegex(iotostr(output), self.VERSION_REGEX)
 
+    @unix_only
     def test_unknown_argument(self):
         infilename = pkg_resources.resource_filename(
             __name__, "fixtures/trekies.vef"

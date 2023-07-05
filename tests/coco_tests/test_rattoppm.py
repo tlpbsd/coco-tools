@@ -45,6 +45,7 @@ class TestRatToPPM(unittest.TestCase):
         coco.rattoppm.start([infilename, self.outfile.name])
         self.assertTrue(filecmp.cmp(self.outfile.name, comparefilename))
 
+    @unix_only
     def test_too_many_arguments(self):
         infilename = pkg_resources.resource_filename(
             __name__, "fixtures/watrfall.rat"
@@ -86,6 +87,7 @@ class TestRatToPPM(unittest.TestCase):
         )
         self.assertTrue(filecmp.cmp(self.outfile.name, comparefilename))
 
+    @unix_only
     def test_converts_rat_to_ppm_via_stdin(self):
         infilename = pkg_resources.resource_filename(
             __name__, "fixtures/watrfall.rat"
@@ -100,6 +102,7 @@ class TestRatToPPM(unittest.TestCase):
         )
         self.assertTrue(filecmp.cmp(self.outfile.name, comparefilename))
 
+    @unix_only
     def test_help(self):
         output = iotostr(
             subprocess.check_output(
@@ -114,6 +117,7 @@ class TestRatToPPM(unittest.TestCase):
         self.assertRegex(output, self.POSITIONAL_ARGS_REGEX)
         self.assertRegex(output, self.OPTIONAL_ARGS_REGEX)
 
+    @unix_only
     def test_version(self):
         output = iotostr(
             subprocess.check_output(
@@ -124,6 +128,7 @@ class TestRatToPPM(unittest.TestCase):
         )
         self.assertRegex(output, self.VERSION_REGEX)
 
+    @unix_only
     def test_unknown_argument(self):
         with self.assertRaises(subprocess.CalledProcessError) as context:
             subprocess.check_output(

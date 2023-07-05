@@ -238,6 +238,7 @@ class TestMaxToPPM(unittest.TestCase):
             "would be 6144 bytes\n"
         )
 
+    @unix_only
     def test_too_many_arguments(self):
         infilename = pkg_resources.resource_filename(
             __name__, "fixtures/eye4.max"
@@ -277,6 +278,7 @@ class TestMaxToPPM(unittest.TestCase):
         )
         self.assertTrue(filecmp.cmp(self.outfile.name, comparefilename))
 
+    @unix_only
     def test_converts_max_to_ppm_via_stdin(self):
         infilename = pkg_resources.resource_filename(
             __name__, "fixtures/eye4.max"
@@ -291,6 +293,7 @@ class TestMaxToPPM(unittest.TestCase):
         )
         self.assertTrue(filecmp.cmp(self.outfile.name, comparefilename))
 
+    @unix_only
     def test_help(self):
         output = iotostr(
             subprocess.check_output(
@@ -305,6 +308,7 @@ class TestMaxToPPM(unittest.TestCase):
         self.assertRegex(output, self.POSITIONAL_ARGS_REGEX)
         self.assertRegex(output, self.OPTIONAL_ARGS_REGEX)
 
+    @unix_only
     def test_version(self):
         output = iotostr(
             subprocess.check_output(
@@ -315,6 +319,7 @@ class TestMaxToPPM(unittest.TestCase):
         )
         self.assertRegex(output, self.VERSION_REGEX)
 
+    @unix_only
     def test_unknown_argument(self):
         with self.assertRaises(subprocess.CalledProcessError) as context:
             subprocess.check_output(
@@ -328,6 +333,7 @@ class TestMaxToPPM(unittest.TestCase):
             r"maxtoppm.py: error: unrecognized arguments: --oops",
         )
 
+    @unix_only
     def test_conflicting_arguments(self):
         with self.assertRaises(subprocess.CalledProcessError) as context:
             subprocess.check_output(

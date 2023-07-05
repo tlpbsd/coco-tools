@@ -10,6 +10,8 @@ import coco.pixtopgm
 from coco import __version__
 from coco.util import iotostr
 
+from .util import unix_only
+
 
 class TestPixToPGM(unittest.TestCase):
     USAGE_REGEX = r"\[-h\] \[--version\] image.pix \[image.pgm\]"
@@ -44,6 +46,7 @@ class TestPixToPGM(unittest.TestCase):
         coco.pixtopgm.start([infilename, self.outfile.name])
         self.assertTrue(filecmp.cmp(self.outfile.name, comparefilename))
 
+    @unix_only
     def test_too_many_arguments(self):
         infilename = pkg_resources.resource_filename(
             __name__, "fixtures/sue.pix"
@@ -66,6 +69,7 @@ class TestPixToPGM(unittest.TestCase):
             r"pixtopgm.py: error: unrecognized arguments: baz",
         )
 
+    @unix_only
     def test_converts_pix_to_pgm_via_stdout(self):
         infile = pkg_resources.resource_filename(__name__, "fixtures/sue.pix")
         comparefilename = pkg_resources.resource_filename(
@@ -78,6 +82,7 @@ class TestPixToPGM(unittest.TestCase):
         )
         self.assertTrue(filecmp.cmp(self.outfile.name, comparefilename))
 
+    @unix_only
     def test_help(self):
         output = subprocess.check_output(
             [sys.executable, "coco/pixtopgm.py", "-h"],
@@ -90,6 +95,7 @@ class TestPixToPGM(unittest.TestCase):
         self.assertRegex(iotostr(output), self.POSITIONAL_ARGS_REGEX)
         self.assertRegex(iotostr(output), self.OPTIONAL_ARGS_REGEX)
 
+    @unix_only
     def test_version(self):
         output = subprocess.check_output(
             [sys.executable, "coco/pixtopgm.py", "--version"],
@@ -98,6 +104,7 @@ class TestPixToPGM(unittest.TestCase):
         )
         self.assertRegex(iotostr(output), self.VERSION_REGEX)
 
+    @unix_only
     def test_unknown_argument(self):
         with self.assertRaises(subprocess.CalledProcessError) as context:
             infile = pkg_resources.resource_filename(

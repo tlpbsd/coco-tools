@@ -45,6 +45,7 @@ class TestCM3ToPPM(unittest.TestCase):
         coco.cm3toppm.start([infilename, self.outfile.name])
         self.assertTrue(filecmp.cmp(self.outfile.name, comparefilename))
 
+    @unix_only
     def test_too_many_arguments(self):
         infilename = pkg_resources.resource_filename(
             __name__, "fixtures/clip1.cm3"
@@ -84,6 +85,7 @@ class TestCM3ToPPM(unittest.TestCase):
         )
         self.assertTrue(filecmp.cmp(self.outfile.name, comparefilename))
 
+    @unix_only
     def test_converts_cm3_to_ppm_via_stdin(self):
         infilename = pkg_resources.resource_filename(
             __name__, "fixtures/clip1.cm3"
@@ -98,6 +100,7 @@ class TestCM3ToPPM(unittest.TestCase):
         )
         self.assertTrue(filecmp.cmp(self.outfile.name, comparefilename))
 
+    @unix_only
     def test_help(self):
         output = subprocess.check_output(
             [sys.executable, "coco/cm3toppm.py", "-h"],
@@ -110,6 +113,7 @@ class TestCM3ToPPM(unittest.TestCase):
         self.assertRegex(iotostr(output), self.POSITIONAL_ARGS_REGEX)
         self.assertRegex(iotostr(output), self.OPTIONAL_ARGS_REGEX)
 
+    @unix_only
     def test_version(self):
         output = subprocess.check_output(
             [sys.executable, "coco/cm3toppm.py", "--version"],
@@ -118,6 +122,7 @@ class TestCM3ToPPM(unittest.TestCase):
         )
         self.assertRegex(iotostr(output), self.VERSION_REGEX)
 
+    @unix_only
     def test_unknown_argument(self):
         with self.assertRaises(subprocess.CalledProcessError) as context:
             subprocess.check_output(
