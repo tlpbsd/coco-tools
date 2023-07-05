@@ -54,9 +54,9 @@ setuptools.setup(
 
     # You can just specify the packages manually here if your project is
     # simple. Or you can use find_packages().
-    packages=setuptools.find_packages(where='src'),
+    packages=setuptools.find_packages(where='.'),
     package_dir={
-        '': 'src',
+        '': '.',
     },
 
     entry_points={
