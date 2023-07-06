@@ -11,6 +11,8 @@ grammar = Grammar(
     maybe_line      = line?
     array_ref_exp   = var space* exp_list
     arr_assign      = array_ref_exp space* "=" space* exp
+    str_array_ref_exp   = str_var space* exp_list
+    str_arr_assign  = str_array_ref_exp space* "=" space* str_exp
     comment         = comment_token comment_text
     exp_list        = "(" space* exp space* exp_sublist ")"
     exp_sublist     = exp_sublist_mbr*
@@ -26,38 +28,56 @@ grammar = Grammar(
                     / statements
     line_or_stmnts2 = linenum
                     / statements_else
-    simple_assign   = var space* "=" space* exp
+    str_assign      = str_var space* "=" space* str_exp
+    num_assign      = var space* "=" space* exp
     statement       = if_else_stmnt
                     / if_stmnt
-                    / simple_assign
+                    / print_statement
+                    / num_assign
+                    / str_assign
                     / arr_assign
+                    / str_arr_assign
     statements      = (statement? (comment/((":"/space)+
                                             (comment / statements)))* space*)
     statements_else = (statement? (space* ":" statements)* space*)
-    exp             = logic_exp
-    logic_exp       = gtle_exp space* (("AND" / "OR") space* gtle_exp space*)*
-    gtle_exp        = sum_exp space* (("=" / "<>" / "<" / ">") space* sum_exp space*)*
-    sum_exp         = prod_exp space* (("+" / "-" / "&") space*
-                                       prod_exp space*)*
-    prod_exp        = val_exp space* (("*" / "/") space* val_exp space*)*
-    val_exp         = literal
+    exp             = num_exp
+    num_exp         = num_gtle_exp space* (("AND" / "OR") space* num_gtle_exp space*)*
+    num_gtle_exp    = num_sum_exp space* (("=" / "<>" / "<" / ">") space* num_sum_exp space*)*
+    num_sum_exp     = num_prod_exp space* (("+" / "-" / "&") space*
+                                           num_prod_exp space*)*
+    num_prod_exp    = val_exp space* (("*" / "/") space* val_exp space*)*
+    val_exp         = num_literal
                     / paren_exp
                     / (un_op space* exp)
                     / array_ref_exp
                     / var
-                    / exp
     paren_exp       =  ("(" space* exp space* ")")
+    str_exp         = str_simple_exp space* (("+") space*
+                                             str_simple_exp space*)* 
+    str_simple_exp  = str_literal
+                    / str_array_ref_exp
+                    / str_var
     comment_text    = ~r"[^:\r\n$]*"
     comment_token   = ~r"(REM|')"
     eof             = ~r"$"
     eol             = ~r"[\n\r]+"
     linenum         = ~r"[0-9]+"
-    literal         = num_literal / str_literal
+    literal         = num_literal
     num_literal     = ~r"([\+\-\s]*(\d*\.\d*)(\s*(?!ELSE)E\s*[\+\-]?\s*\d*))|[\+\-\s]*(\d*\.\d*)|[\+\-\s]*(\d+(\s*(?!ELSE)E\s*[\+\-]?\s*\d*))|[\+\-\s]*(\d+)"
     space           = ~r" "
     str_literal     = ~r'\"[^"\n]*\"'
     un_op           = "+" / "-" / "NOT"
-    var             = ~r"(?!ELSE|IF|FOR|NOT)([A-Z][A-Z0-9]*)\$?"
+    var             = ~r"(?!ELSE|IF|FOR|NOT|([A-Z][A-Z0-9]*\$))([A-Z][A-Z0-9]*)"
+    str_var         = ~r"(?!ELSE|IF|FOR|NOT)([A-Z][A-Z0-9]*)\$"
+    print_statement = ("PRINT"/"?") space* print_args
+    print_args      = print_arg0
+                    / print_arg
+    print_arg0      = (print_arg1 space* print_control space* print_args space*)
+    print_arg1      = print_control 
+                    / print_arg
+    print_arg       = exp 
+                    / str_exp
+    print_control   = ~r"(;|,)"
     """  # noqa
 )
 
@@ -69,18 +89,28 @@ class AbstractBasicConstruct(ABC):
     @abstractmethod
     def basic09_text(self, indent_level):
         """Return the Basic09 text that represents this construct"""
+    
+    def is_expr(self):
+        return False
 
+    def is_str_expr(self):
+        return False
 
 class AbstractBasicExpression(AbstractBasicConstruct):
-    pass
+    def __init__(self, is_str_expr=False):
+        self._is_str_expr = is_str_expr
+
+    def is_expr(self):
+        return True
 
 
 class AbstractBasicStatement(AbstractBasicConstruct):
     pass
 
 
-class BasicArrayRef(AbstractBasicStatement):
-    def __init__(self, var, indices):
+class BasicArrayRef(AbstractBasicExpression):
+    def __init__(self, var, indices, is_str_expr=False):
+        super().__init__(is_str_expr=is_str_expr)
         self._var = var
         self._indices = indices
 
@@ -100,7 +130,8 @@ class BasicAssignment(AbstractBasicStatement):
 
 
 class BasicBinaryExp(AbstractBasicExpression):
-    def __init__(self, exp1, op, exp2):
+    def __init__(self, exp1, op, exp2, is_str_expr=False):
+        super().__init__(is_str_expr=True)
         self._exp1 = exp1
         self._op = op
         self._exp2 = exp2
@@ -172,7 +203,8 @@ class BasicLine(AbstractBasicConstruct):
 
 
 class BasicLiteral(AbstractBasicExpression):
-    def __init__(self, literal):
+    def __init__(self, literal, is_str_expr=False):
+        super().__init__(is_str_expr=is_str_expr)
         self._literal = literal
 
     def basic09_text(self, indent_level):
@@ -246,7 +278,8 @@ class BasicStatements(AbstractBasicConstruct):
 
 
 class BasicVar(AbstractBasicExpression):
-    def __init__(self, name):
+    def __init__(self, name, is_str_expr=False):
+        super().__init__(is_str_expr=is_str_expr)
         self._name = name
 
     def name(self):
@@ -255,6 +288,39 @@ class BasicVar(AbstractBasicExpression):
     def basic09_text(self, indent_level):
         return self._name
 
+class BasicPrintStatement(AbstractBasicStatement):
+    def __init__(self, literal):
+        self._literal = literal
+    
+    def basic09_text(self, indent_level):
+        return self.indent_spaces(indent_level) + \
+               f'PRINT {self._literal.basic09_text(indent_level)}'
+
+class BasicPrintControl(AbstractBasicConstruct):
+    def __init__(self, control_char):
+        self._control_char = control_char
+    
+    def basic09_text(self, indent_level):
+        return self._control_char
+
+class BasicPrintArgs(AbstractBasicConstruct):
+    def __init__(self, args):
+        self._args = args
+    
+    @property
+    def args(self):
+        return self._args
+
+    def basic09_text(self, indent_level):
+        processed_args = []
+        for ii, arg in enumerate(self.args):
+            processed_args.append(arg.basic09_text(indent_level))
+            if (ii < len(self.args) - 1) \
+                and isinstance(arg, BasicPrintControl) \
+                and not isinstance(self.args[ii + 1], BasicPrintControl):
+                processed_args.append(' ')
+
+        return ''.join(processed_args)
 
 class BasicVisitor(NodeVisitor):
     def generic_visit(self, node, visited_children):
@@ -294,13 +360,20 @@ class BasicVisitor(NodeVisitor):
         return bp
 
     def visit_arr_assign(self, node, visited_children):
-        """array_ref_exp space* "=" space* exp"""
         array_ref_exp, _, _, _, val_exp = visited_children
         return BasicAssignment(array_ref_exp, val_exp)
 
     def visit_array_ref_exp(self, node, visited_children):
         var, _, exp_list = visited_children
         return BasicArrayRef(var, exp_list)
+
+    def visit_str_arr_assign(self, node, visited_children):
+        str_array_ref_exp, _, _, _, str_exp = visited_children
+        return BasicAssignment(str_array_ref_exp, str_exp)
+
+    def visit_str_array_ref_exp(self, node, visited_children):
+        str_var, _, exp_list = visited_children
+        return BasicArrayRef(str_var, exp_list, is_str_expr=True)
 
     def visit_comment(self, node, visited_children):
         return BasicComment(visited_children[1])
@@ -323,8 +396,8 @@ class BasicVisitor(NodeVisitor):
         _, _, exp, _, _, _, statements = visited_children
         return BasicIf(exp, statements)
 
-    def visit_gtle_exp(self, node, visited_children):
-        return self.visit_prod_exp(node, visited_children)
+    def visit_num_gtle_exp(self, node, visited_children):
+        return self.visit_num_prod_exp(node, visited_children)
 
     def visit_line(self, node, visited_children):
         return BasicLine(visited_children[0],
@@ -342,8 +415,21 @@ class BasicVisitor(NodeVisitor):
     def visit_literal(self, node, visited_children):
         return visited_children[0]
 
-    def visit_logic_exp(self, node, visited_children):
-        return self.visit_prod_exp(node, visited_children)
+    def visit_num_exp(self, node, visited_children):
+        return self.visit_num_prod_exp(node, visited_children)
+
+    def visit_str_exp(self, node, visited_children):
+        if len(visited_children) < 4:
+            v1, v2, v3 = visited_children
+            if isinstance(v2, str) and isinstance(v3, str):
+                return visited_children[0]
+            if isinstance(v2, str) and isinstance(v3, str):
+                return visited_children[0]
+            return BasicBinaryExp(v1, v3.operator, v3.exp, True)
+        return node
+
+    def visit_str_simple_exp(self, node, visited_children):
+        return visited_children[0]
 
     def visit_maybe_line(self, node, visited_children):
         return (child for child in visited_children
@@ -365,7 +451,7 @@ class BasicVisitor(NodeVisitor):
     def visit_paren_exp(self, node, visited_children):
         return BasicParenExp(visited_children[2])
 
-    def visit_prod_exp(self, node, visited_children):
+    def visit_num_prod_exp(self, node, visited_children):
         if len(visited_children) < 4:
             v1, v2, v3 = visited_children
             if isinstance(v2, str) and isinstance(v3, str):
@@ -375,7 +461,10 @@ class BasicVisitor(NodeVisitor):
             return BasicBinaryExp(v1, v3.operator, v3.exp)
         return node
 
-    def visit_simple_assign(self, node, visited_children):
+    def visit_num_assign(self, node, visited_children):
+        return BasicAssignment(visited_children[0], visited_children[4])
+
+    def visit_str_assign(self, node, visited_children):
         return BasicAssignment(visited_children[0], visited_children[4])
 
     def visit_space(self, node, visited_children):
@@ -392,10 +481,10 @@ class BasicVisitor(NodeVisitor):
                                or isinstance(child, BasicComment)])
 
     def visit_str_literal(self, node, visited_children):
-        return BasicLiteral(str(node.full_text[node.start+1:node.end-1]))
+        return BasicLiteral(str(node.full_text[node.start+1:node.end-1]), True)
 
-    def visit_sum_exp(self, node, visited_children):
-        return self.visit_prod_exp(node, visited_children)
+    def visit_num_sum_exp(self, node, visited_children):
+        return self.visit_num_prod_exp(node, visited_children)
 
     def visit_val_exp(self, node, visited_children):
         if len(visited_children) < 2:
@@ -404,3 +493,25 @@ class BasicVisitor(NodeVisitor):
 
     def visit_var(self, node, visited_children):
         return BasicVar(node.full_text[node.start:node.end])
+
+    def visit_str_var(self, node, visited_children):
+        return BasicVar(node.full_text[node.start:node.end], True)
+    
+    def visit_print_statement(self, node, visited_children):
+        return BasicPrintStatement(visited_children[2])
+
+    def visit_print_args(self, node, visited_children):
+        return BasicPrintArgs([visited_children[0]])
+
+    def visit_print_arg0(self, node, visited_children):
+        arg, _, ctrl, _, args, _ = visited_children
+        return BasicPrintArgs([arg, ctrl] + args.args)
+
+    def visit_print_arg1(self, node, visited_children):
+        return visited_children[0]
+    
+    def visit_print_arg(self, node, visited_children):
+        return visited_children[0]
+    
+    def visit_print_control(self, node, visited_children):
+        return BasicPrintControl(node.text)

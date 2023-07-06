@@ -1,0 +1,1 @@
+procedure at32param location:integerrun locate(location % 32, location / 32)

@@ -100,10 +100,25 @@ class TestBasicToBasic09(unittest.TestCase):
         b09_prog = basic_prog.basic09_text(0)
         assert b09_prog == progout
 
+    def test_parse_array_ref(self):
+        self.generic_test_parse(
+            '10 A = B(123 - 1 - (2/2),1,2)',
+            '10 A = B(123 - 1 - (2 / 2), 1, 2)')
+
     def test_parse_array_assignment(self):
         self.generic_test_parse(
             '10 A (123 - 1 - (2/2),1,2)=123+64',
             '10 A(123 - 1 - (2 / 2), 1, 2) = 123 + 64')
+
+    def test_parse_str_array_ref(self):
+        self.generic_test_parse(
+            '10 A$ = B$(123 - 1 - (2/2),1,2)',
+            '10 A$ = B$(123 - 1 - (2 / 2), 1, 2)')
+
+    def test_parse_str_array_assignment(self):
+        self.generic_test_parse(
+            '10 A$ (123 - 1 - (2/2),1,2)="123"+"64"',
+            '10 A$(123 - 1 - (2 / 2), 1, 2) = "123" + "64"')
 
     def test_parse_comment_program(self):
         self.generic_test_parse(
@@ -137,8 +152,8 @@ class TestBasicToBasic09(unittest.TestCase):
 
     def test_parse_str_expression(self):
         self.generic_test_parse(
-            '10 A$ = "A" & "Z"\n20B$=A$&B$',
-            '10 A$ = "A" & "Z"\n20 B$ = A$ & B$')
+            '10 A$ = "A" + "Z"\n20B$=A$+B$',
+            '10 A$ = "A" + "Z"\n20 B$ = A$ + B$')
 
     def test_parse_multi_expression(self):
         self.generic_test_parse(
@@ -169,3 +184,27 @@ class TestBasicToBasic09(unittest.TestCase):
         self.generic_test_parse(
             '1 IF A=1 THEN 2\n2 IF A<10 THEN B = B - 2 * 1',
             '1 IF A = 1 THEN 2\n2 IF A < 10 THEN\n    B = B - 2 * 1\nENDIF')
+
+    def test_simple_print_statement(self):
+        self.generic_test_parse(
+            '11 PRINT "HELLO WORLD"',
+            '11 PRINT "HELLO WORLD"'
+        )
+
+    def test_simple_print_statement2(self):
+        self.generic_test_parse(
+            '11 PRINT 3 + 3',
+            '11 PRINT 3 + 3'
+        )
+
+    def test_simple_print_statement3(self):
+        self.generic_test_parse(
+            '11 PRINT A$ + B$',
+            '11 PRINT A$ + B$'
+        )
+    
+    def test_print_multi(self):
+        self.generic_test_parse(
+            '11 PRINT A$ , B$',
+            '11 PRINT A$, B$'
+        )

@@ -102,3 +102,7 @@ src/static
 .bash*
 cfg/
 .coverage*
+os9boot.dsk
+snap/
+*~
+*.tmp
