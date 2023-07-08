@@ -1,1 +1,0 @@
-procedure clsparam color:bytedim fill_color:bytedim fill_buffer(32):byteif color > 8 or color < 0 then  fill_color = 143else  if color = 0 then    fill_color = 128  else    fill_color = ((color - 1) * 16) + 143endiffor ii=1 to 32  fill_buffer(ii) = fill_colornext ii
