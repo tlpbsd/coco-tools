@@ -106,10 +106,19 @@ procedure ecb_reset
 
 procedure ecb_point
     param x, y, c0: integer
-    dim address, c1: integer
-    run _ecb_get_point_info(x, y, address, c1, c0)
+    dim address, c: integer
+    run _ecb_get_point_info(x, y, address, c, c0)
     if address = -1 then
         error 52
+    endif
+    if c0 > $80 then
+        if land(c, c0) <> 0 then
+            c0 = 1 + land($7f, c0) / 16
+        else
+            c0 = 0
+        endif
+    else
+        c0 = -1
     endif
 
 
@@ -128,8 +137,12 @@ procedure _ecb_get_point_info
 
 
 procedure foo
+    dim c: integer
     run ecb_cls(0)
     run ecb_set(0, 0, 0)
     run ecb_set(63, 0, 1)
     run ecb_set(0, 31, 5)
     run ecb_set(63, 31, 8)
+    run ecb_point(63, 31, c)
+    print c
+    
