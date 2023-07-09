@@ -208,3 +208,9 @@ class TestBasicToBasic09(unittest.TestCase):
             '11 PRINT A$ , B$',
             '11 PRINT A$, B$'
         )
+
+    def test_print_odd(self):
+        self.generic_test_parse(
+            '11 PRINT A$,,B$',
+            '11 PRINT A$, "", B$'
+        )

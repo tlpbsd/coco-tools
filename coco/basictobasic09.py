@@ -70,9 +70,8 @@ grammar = Grammar(
     var             = ~r"(?!ELSE|IF|FOR|NOT|([A-Z][A-Z0-9]*\$))([A-Z][A-Z0-9]*)"
     str_var         = ~r"(?!ELSE|IF|FOR|NOT)([A-Z][A-Z0-9]*)\$"
     print_statement = ("PRINT"/"?") space* print_args
-    print_args      = print_arg0
-                    / print_arg
-    print_arg0      = (print_arg1 space* print_control space* print_args space*)
+    print_args      = print_arg0*
+    print_arg0      = print_arg1 space*
     print_arg1      = print_control 
                     / print_arg
     print_arg       = exp 
@@ -289,12 +288,12 @@ class BasicVar(AbstractBasicExpression):
         return self._name
 
 class BasicPrintStatement(AbstractBasicStatement):
-    def __init__(self, literal):
-        self._literal = literal
+    def __init__(self, print_args):
+        self._print_args = print_args
     
     def basic09_text(self, indent_level):
         return self.indent_spaces(indent_level) + \
-               f'PRINT {self._literal.basic09_text(indent_level)}'
+               f'PRINT {self._print_args.basic09_text(indent_level)}'
 
 class BasicPrintControl(AbstractBasicConstruct):
     def __init__(self, control_char):
@@ -313,11 +312,17 @@ class BasicPrintArgs(AbstractBasicConstruct):
 
     def basic09_text(self, indent_level):
         processed_args = []
+
         for ii, arg in enumerate(self.args):
+            is_control = isinstance(arg, BasicPrintControl)
+            if is_control and \
+               ((ii <= 0) or
+                isinstance(self.args[ii - 1], BasicPrintControl)):
+                processed_args.append('""')
+
             processed_args.append(arg.basic09_text(indent_level))
             if (ii < len(self.args) - 1) \
-                and isinstance(arg, BasicPrintControl) \
-                and not isinstance(self.args[ii + 1], BasicPrintControl):
+                and is_control:
                 processed_args.append(' ')
 
         return ''.join(processed_args)
@@ -498,14 +503,15 @@ class BasicVisitor(NodeVisitor):
         return BasicVar(node.full_text[node.start:node.end], True)
     
     def visit_print_statement(self, node, visited_children):
-        return BasicPrintStatement(visited_children[2])
+        _, _, print_args = visited_children
+        return BasicPrintStatement(print_args)
 
     def visit_print_args(self, node, visited_children):
-        return BasicPrintArgs([visited_children[0]])
+        return BasicPrintArgs(visited_children)
 
     def visit_print_arg0(self, node, visited_children):
-        arg, _, ctrl, _, args, _ = visited_children
-        return BasicPrintArgs([arg, ctrl] + args.args)
+        arg, _ = visited_children
+        return arg
 
     def visit_print_arg1(self, node, visited_children):
         return visited_children[0]
