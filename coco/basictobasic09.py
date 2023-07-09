@@ -17,11 +17,10 @@ grammar = Grammar(
     exp_list        = "(" space* exp space* exp_sublist ")"
     exp_sublist     = exp_sublist_mbr*
     exp_sublist_mbr = ("," space* exp space*)
-    if_else_stmnt   = ("IF" space* exp space*
+    if_else_stmnt   = ("IF" space* if_exp space*
                        "THEN" space* line_or_stmnts2 space*
                        "ELSE" space* line_or_stmnts)
-
-    if_stmnt        = ("IF" space* exp space*
+    if_stmnt        = ("IF" space* if_exp space*
                        "THEN" space* line_or_stmnts)
     line            = linenum space* statements space*
     line_or_stmnts  = linenum
@@ -41,8 +40,17 @@ grammar = Grammar(
                                             (comment / statements)))* space*)
     statements_else = (statement? (space* ":" statements)* space*)
     exp             = num_exp
+    if_exp          = bool_exp
+                    / num_exp
+    bool_exp        = bool_val_exp space* (("AND" / "OR") space* bool_val_exp space*)*
+    bool_val_exp    = bool_paren_exp
+                    / bool_unop_exp
+                    / bool_bin_exp
+    bool_paren_exp  = "(" space* bool_exp space* ")"
+    bool_unop_exp   = "NOT" space* bool_paren_exp space*
+    bool_bin_exp    = num_sum_exp space* ("<=" / ">=" / "<>" / "<" / ">" / "=>" / "=<" / "=") space* num_sum_exp space*
     num_exp         = num_gtle_exp space* (("AND" / "OR") space* num_gtle_exp space*)*
-    num_gtle_exp    = num_sum_exp space* (("=" / "<>" / "<" / ">") space* num_sum_exp space*)*
+    num_gtle_exp    = num_sum_exp space* (("<=" / ">=" / "<>" / "<" / ">" / "=>" / "=<" / "=") space* num_sum_exp space*)*
     num_sum_exp     = num_prod_exp space* (("+" / "-" / "&") space*
                                            num_prod_exp space*)*
     num_prod_exp    = val_exp space* (("*" / "/") space* val_exp space*)*
@@ -51,7 +59,7 @@ grammar = Grammar(
                     / (un_op space* exp)
                     / array_ref_exp
                     / var
-    paren_exp       =  ("(" space* exp space* ")")
+    paren_exp       =  "(" space* exp space* ")" space*
     str_exp         = str_simple_exp space* (("+") space*
                                              str_simple_exp space*)* 
     str_simple_exp  = str_literal
@@ -135,6 +143,12 @@ class BasicBinaryExp(AbstractBasicExpression):
         self._op = op
         self._exp2 = exp2
 
+    def basic09_text(self, indent_level):
+        return (f'{self._exp1.basic09_text(indent_level)} {self._op} '
+                f'{self._exp2.basic09_text(indent_level)}')
+
+
+class BasicBooleanExp(BasicBinaryExp):
     def basic09_text(self, indent_level):
         return (f'{self._exp1.basic09_text(indent_level)} {self._op} '
                 f'{self._exp2.basic09_text(indent_level)}')
@@ -333,7 +347,7 @@ class BasicVisitor(NodeVisitor):
             return ''
 
         if node.text in ['*', '/', '+', '-', '*', '&', '<', '>', '<>', '=',
-                         'AND', 'OR']:
+                         '<=', '=<', '>=', '=>', 'AND', 'OR']:
             return BasicOperator(node.text)
 
         if len(visited_children) == 4:
@@ -401,6 +415,29 @@ class BasicVisitor(NodeVisitor):
         _, _, exp, _, _, _, statements = visited_children
         return BasicIf(exp, statements)
 
+    def visit_if_exp(self, node, visited_children):
+        return visited_children[0]
+
+    def visit_bool_exp(self, node, visited_children):
+        exp1, op, exp2 = visited_children
+        if op == '' or exp2 == '':
+            return exp1
+        else:
+            return exp2
+
+    def visit_bool_val_exp(self, node, visited_children):
+        return visited_children[0]
+
+    def visit_bool_paren_exp(self, node, visited_children):
+        pass
+
+    def visit_bool_unop_exp(self, node, visited_children):
+        pass
+
+    def visit_bool_bin_exp(self, node, visited_children):
+        exp1, _, op, _, exp2, _ = visited_children
+        return BasicBooleanExp(exp1, op.basic09_text(0), exp2)
+
     def visit_num_gtle_exp(self, node, visited_children):
         return self.visit_num_prod_exp(node, visited_children)
 
@@ -457,14 +494,10 @@ class BasicVisitor(NodeVisitor):
         return BasicParenExp(visited_children[2])
 
     def visit_num_prod_exp(self, node, visited_children):
-        if len(visited_children) < 4:
-            v1, v2, v3 = visited_children
-            if isinstance(v2, str) and isinstance(v3, str):
-                return visited_children[0]
-            if isinstance(v2, str) and isinstance(v3, str):
-                return visited_children[0]
-            return BasicBinaryExp(v1, v3.operator, v3.exp)
-        return node
+        v1, v2, v3 = visited_children
+        if isinstance(v2, str) and isinstance(v3, str):
+            return v1
+        return BasicBinaryExp(v1, v3.operator, v3.exp)
 
     def visit_num_assign(self, node, visited_children):
         return BasicAssignment(visited_children[0], visited_children[4])

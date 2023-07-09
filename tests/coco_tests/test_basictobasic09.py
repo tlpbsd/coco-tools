@@ -82,14 +82,14 @@ class TestBasicToBasic09(unittest.TestCase):
         target = b09.BasicParenExp(strlit)
         assert target.basic09_text(2) == '("HELLO WORLD")'
 
-    def test_basic_op_exp(exp):
+    def test_basic_op_exp(self):
         strlit = b09.BasicLiteral('HELLO WORLD')
         target = b09.BasicOpExp('&', strlit)
         assert target.operator == '&'
         assert target.exp == strlit
         assert target.basic09_text(1) == '& "HELLO WORLD"'
 
-    def test_basic_operator(exp):
+    def test_basic_operator(self):
         target = b09.BasicOperator('*')
         assert target.basic09_text(2) == '*'
 
@@ -184,6 +184,11 @@ class TestBasicToBasic09(unittest.TestCase):
         self.generic_test_parse(
             '1 IF A=1 THEN 2\n2 IF A<10 THEN B = B - 2 * 1',
             '1 IF A = 1 THEN 2\n2 IF A < 10 THEN\n    B = B - 2 * 1\nENDIF')
+
+    def test_binary_if_statement(self):
+        self.generic_test_parse(
+            '1 IF A=1 AND B=2 THEN 2\n2 IF A<10 THEN B = B - 2 * 1',
+            '1 IF A = 1 AND B = 2 THEN 2\n2 IF A < 10 THEN\n    B = B - 2 * 1\nENDIF')
 
     def test_simple_print_statement(self):
         self.generic_test_parse(
