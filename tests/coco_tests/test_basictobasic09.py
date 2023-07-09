@@ -190,6 +190,11 @@ class TestBasicToBasic09(unittest.TestCase):
             '1 IF A=1 AND B=2 THEN 2\n2 IF A<10 THEN B = B - 2 * 1',
             '1 IF A = 1 AND B = 2 THEN 2\n2 IF A < 10 THEN\n    B = B - 2 * 1\nENDIF')
 
+    def test_paren_if_statement(self):
+        self.generic_test_parse(
+            '1 IF (A=1 AND B=2) THEN 2\n2 IF A<10 THEN B = B - 2 * 1',
+            '1 IF (A = 1 AND B = 2) THEN 2\n2 IF A < 10 THEN\n    B = B - 2 * 1\nENDIF')
+
     def test_simple_print_statement(self):
         self.generic_test_parse(
             '11 PRINT "HELLO WORLD"',

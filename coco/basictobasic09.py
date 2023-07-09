@@ -148,7 +148,7 @@ class BasicBinaryExp(AbstractBasicExpression):
                 f'{self._exp2.basic09_text(indent_level)}')
 
 
-class BasicBooleanExp(BasicBinaryExp):
+class BasicBooleanBinaryExp(BasicBinaryExp):
     def basic09_text(self, indent_level):
         return (f'{self._exp1.basic09_text(indent_level)} {self._op} '
                 f'{self._exp2.basic09_text(indent_level)}')
@@ -254,6 +254,11 @@ class BasicParenExp(AbstractBasicExpression):
     def __init__(self, exp):
         self._exp = exp
 
+    def basic09_text(self, indent_level):
+        return f'({self._exp.basic09_text(indent_level)})'
+
+
+class BasicBooleanParenExp(BasicParenExp):
     def basic09_text(self, indent_level):
         return f'({self._exp.basic09_text(indent_level)})'
 
@@ -419,24 +424,24 @@ class BasicVisitor(NodeVisitor):
         return visited_children[0]
 
     def visit_bool_exp(self, node, visited_children):
-        exp1, op, exp2 = visited_children
-        if op == '' or exp2 == '':
+        exp1, _, exp2 = visited_children
+        if exp2 == '':
             return exp1
         else:
-            return exp2
+            return BasicBooleanBinaryExp(exp1, exp2.operator, exp2.exp)
 
     def visit_bool_val_exp(self, node, visited_children):
         return visited_children[0]
 
     def visit_bool_paren_exp(self, node, visited_children):
-        pass
+        return BasicBooleanParenExp(visited_children[2])
 
     def visit_bool_unop_exp(self, node, visited_children):
         pass
 
     def visit_bool_bin_exp(self, node, visited_children):
         exp1, _, op, _, exp2, _ = visited_children
-        return BasicBooleanExp(exp1, op.basic09_text(0), exp2)
+        return BasicBooleanBinaryExp(exp1, op.basic09_text(0), exp2)
 
     def visit_num_gtle_exp(self, node, visited_children):
         return self.visit_num_prod_exp(node, visited_children)
