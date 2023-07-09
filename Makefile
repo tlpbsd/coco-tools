@@ -23,4 +23,4 @@ clean :
 	rm -rf $(TARGET) $(TMPTARGET) build dist coco_tools.egg-info $(MODULE_DIR)/*~
 
 run : $(TARGET)
-	$(MAME) coco3 -rompath $(MAME_DIR)/roms -speed 2 -window -ext:fdc:wd17xx:0 525qd -flop1 $(TARGET)
+	$(MAME) coco3 -rompath $(MAME_DIR)/roms -speed 4 -window -ext:fdc:wd17xx:0 525qd -flop1 $(TARGET)
