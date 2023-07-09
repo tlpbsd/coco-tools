@@ -144,8 +144,12 @@ class BasicBinaryExp(AbstractBasicExpression):
         self._exp2 = exp2
 
     def basic09_text(self, indent_level):
-        return (f'{self._exp1.basic09_text(indent_level)} {self._op} '
-                f'{self._exp2.basic09_text(indent_level)}')
+        if self._op in {'AND', 'OR'}:
+            return f'L{self._op}({self._exp1.basic09_text(indent_level)}, '\
+                   f'{self._exp2.basic09_text(indent_level)})'
+        else:
+            return (f'{self._exp1.basic09_text(indent_level)} {self._op} '
+                    f'{self._exp2.basic09_text(indent_level)}')
 
 
 class BasicBooleanBinaryExp(BasicBinaryExp):

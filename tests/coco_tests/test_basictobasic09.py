@@ -224,3 +224,15 @@ class TestBasicToBasic09(unittest.TestCase):
             '11 PRINT A$,,B$',
             '11 PRINT A$, "", B$'
         )
+
+    def test_land(self):
+        self.generic_test_parse(
+            '11 PRINT A=A AND 4',
+            '11 PRINT LAND(A = A, 4)'
+        )
+
+    def test_lor(self):
+        self.generic_test_parse(
+            '11 Z = A=B OR F=Z',
+            '11 Z = LOR(A = B, F = Z)'
+        )
