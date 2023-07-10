@@ -171,9 +171,10 @@ class TestBasicToBasic09(unittest.TestCase):
             '10 A = (64 + 32) * 10 / (AB - 1)')
 
     def test_parse_multi_expression3(self):
+        # Note that the output is not a legal Basic09 construct
         self.generic_test_parse(
             '10 A = A + 2 AND 3 < 3',
-            '10 A = A + 2 AND 3 < 3')
+            '10 A = LAND(A + 2, 3 < 3)')
 
     def test_parse_multi_statement(self):
         self.generic_test_parse(
@@ -235,4 +236,28 @@ class TestBasicToBasic09(unittest.TestCase):
         self.generic_test_parse(
             '11 Z = A=B OR F=Z',
             '11 Z = LOR(A = B, F = Z)'
+        )
+
+    def test_lnot(self):
+        self.generic_test_parse(
+            '11 Z = NOT A=B',
+            '11 Z = LNOT(A = B)'
+        )
+
+    def test_if_not(self):
+        self.generic_test_parse(
+            '100 IF NOT A=3 THEN 20',
+            '100 IF NOT(A = 3) THEN 20'
+        )
+    
+    def test_sound(self):
+        self.generic_test_parse(
+            '11 SOUND 100, A+B',
+            '11 RUN ecb_sound(100, A + B, 31)'
+        )
+    
+    def test_cls(self):
+        self.generic_test_parse(
+            '11 CLS A+B\n12 CLS',
+            '11 RUN ecb_cls(A + B)\n12 RUN ecb_cls(1)'
         )

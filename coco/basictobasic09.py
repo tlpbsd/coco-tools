@@ -3,8 +3,46 @@ from itertools import chain, islice
 from parsimonious.grammar import Grammar
 from parsimonious.nodes import Node, NodeVisitor
 
+FUNCTIONS = {
+    'ABS': 'ABS',
+    'ATN': 'ATN',
+    'CHR$': 'CHR$',
+    'COS': 'COS',
+    'EXP': 'EXP',
+    'INT': 'INT',
+    'LEFT$': 'LEFT$',
+    'LEN': 'LEN',
+    'LOG': 'LOG',
+    'MID$': 'MID$',
+    'PEEK': 'PEEK',
+    'RESET': 'RUN ecb_reset',
+    'RIGHT$': 'RIGHT$',
+    'RND': 'RND',
+    'SET': 'RUN ecb_set',
+    'SGN': 'SGN',
+    'SIN': 'SIN',
+    'SQR': 'SQR',
+    'TAB': 'TAB',
+    'TAN': 'TAN',
+    'VAL': 'VAL',
+}
+
+KEYWORDS = '|'.join(
+    chain((
+        'AND',
+        'CLS',
+        'ELSE',
+        'FOR',
+        'IF',
+        'NOT',
+        'OR',
+        'PRINT',
+        'REM',
+        'SOUND',
+    ), FUNCTIONS.keys()))
+
 grammar = Grammar(
-    r"""
+    rf"""
     aaa_prog        = multi_lines maybe_line eof
     multi_line      = line eol
     multi_lines     = multi_line*
@@ -36,29 +74,30 @@ grammar = Grammar(
                     / str_assign
                     / arr_assign
                     / str_arr_assign
+                    / sound
+                    / cls
     statements      = (statement? (comment/((":"/space)+
                                             (comment / statements)))* space*)
     statements_else = (statement? (space* ":" statements)* space*)
-    exp             = num_exp
+    exp             = "NOT"? space* num_exp space*
     if_exp          = bool_exp
                     / num_exp
-    bool_exp        = bool_val_exp space* (("AND" / "OR") space* bool_val_exp space*)*
+    bool_exp        = "NOT"? space* bool_val_exp space* (("AND" / "OR") space* bool_val_exp space*)*
     bool_val_exp    = bool_paren_exp
-                    / bool_unop_exp
                     / bool_bin_exp
     bool_paren_exp  = "(" space* bool_exp space* ")"
-    bool_unop_exp   = "NOT" space* bool_paren_exp space*
     bool_bin_exp    = num_sum_exp space* ("<=" / ">=" / "<>" / "<" / ">" / "=>" / "=<" / "=") space* num_sum_exp space*
     num_exp         = num_gtle_exp space* (("AND" / "OR") space* num_gtle_exp space*)*
     num_gtle_exp    = num_sum_exp space* (("<=" / ">=" / "<>" / "<" / ">" / "=>" / "=<" / "=") space* num_sum_exp space*)*
-    num_sum_exp     = num_prod_exp space* (("+" / "-" / "&") space*
+    num_sum_exp     = num_prod_exp space* (("+" / "-") space*
                                            num_prod_exp space*)*
     num_prod_exp    = val_exp space* (("*" / "/") space* val_exp space*)*
     val_exp         = num_literal
                     / paren_exp
-                    / (un_op space* exp)
+                    / unop_exp
                     / array_ref_exp
                     / var
+    unop_exp        = unop space* exp
     paren_exp       =  "(" space* exp space* ")" space*
     str_exp         = str_simple_exp space* (("+") space*
                                              str_simple_exp space*)* 
@@ -74,9 +113,9 @@ grammar = Grammar(
     num_literal     = ~r"([\+\-\s]*(\d*\.\d*)(\s*(?!ELSE)E\s*[\+\-]?\s*\d*))|[\+\-\s]*(\d*\.\d*)|[\+\-\s]*(\d+(\s*(?!ELSE)E\s*[\+\-]?\s*\d*))|[\+\-\s]*(\d+)"
     space           = ~r" "
     str_literal     = ~r'\"[^"\n]*\"'
-    un_op           = "+" / "-" / "NOT"
-    var             = ~r"(?!ELSE|IF|FOR|NOT|([A-Z][A-Z0-9]*\$))([A-Z][A-Z0-9]*)"
-    str_var         = ~r"(?!ELSE|IF|FOR|NOT)([A-Z][A-Z0-9]*)\$"
+    unop            = "+" / "-"
+    var             = ~r"(?!{KEYWORDS}|([A-Z][A-Z0-9]*\$))([A-Z][A-Z0-9]*)"
+    str_var         = ~r"(?!{KEYWORDS})([A-Z][A-Z0-9]*)\$"
     print_statement = ("PRINT"/"?") space* print_args
     print_args      = print_arg0*
     print_arg0      = print_arg1 space*
@@ -85,6 +124,9 @@ grammar = Grammar(
     print_arg       = exp 
                     / str_exp
     print_control   = ~r"(;|,)"
+    sound           = "SOUND" space* exp space* "," space* exp space*
+    cls             = "CLS" space* exp? space*
+    functions       = ~r"{'|'.join(FUNCTIONS.keys())}"
     """  # noqa
 )
 
@@ -233,6 +275,10 @@ class BasicOperator(AbstractBasicConstruct):
     def __init__(self, operator):
         self._operator = operator
 
+    @property
+    def operator(self):
+        return self._operator
+
     def basic09_text(self, indent_level):
         return self._operator
 
@@ -251,7 +297,18 @@ class BasicOpExp(AbstractBasicConstruct):
         return self._exp
 
     def basic09_text(self, indent_level):
-        return f'{self.operator} {self.exp.basic09_text(indent_level)}'
+        if self.operator == 'NOT':
+            return f'L{self.operator}({self.exp.basic09_text(indent_level)})'
+        else:
+            return f'{self.operator} {self.exp.basic09_text(indent_level)}'
+
+
+class BasicBooleanOpExp(BasicOpExp):
+    def basic09_text(self, indent_level):
+        if self.operator == 'NOT':
+            return f'{self.operator}({self.exp.basic09_text(indent_level)})'
+        else:
+            return f'{self.operator} {self.exp.basic09_text(indent_level)}'
 
 
 class BasicParenExp(AbstractBasicExpression):
@@ -350,19 +407,41 @@ class BasicPrintArgs(AbstractBasicConstruct):
 
         return ''.join(processed_args)
 
+
+class BasicSound(AbstractBasicStatement):
+    def __init__(self, exp1, exp2):
+        self._exp1 = exp1
+        self._exp2 = exp2
+
+    def basic09_text(self, indent_level):
+        return f'RUN ecb_sound({self._exp1.basic09_text(indent_level)}, ' \
+            f'{self._exp2.basic09_text(indent_level)}, 31)'
+
+
+class BasicCls(AbstractBasicStatement):
+    def __init__(self, exp = None):
+        self._exp = exp
+
+    def basic09_text(self, indent_level):
+        return self.indent_spaces(indent_level) + (
+            'RUN ecb_cls(1)' if not self._exp else \
+               f'RUN ecb_cls({self._exp.basic09_text(indent_level)})'
+        )
+
+
 class BasicVisitor(NodeVisitor):
     def generic_visit(self, node, visited_children):
         if node.text.strip() == '':
             return ''
 
-        if node.text in ['*', '/', '+', '-', '*', '&', '<', '>', '<>', '=',
-                         '<=', '=<', '>=', '=>', 'AND', 'OR']:
+        if node.text in {'*', '/', '+', '-', '*', '&', '<', '>', '<>', '=',
+                         '<=', '=<', '>=', '=>', 'AND', 'OR', 'NOT'}:
             return BasicOperator(node.text)
 
         if len(visited_children) == 4:
             if isinstance(visited_children[0], BasicOperator):
                 operator, _, exp, _ = visited_children
-                return BasicOpExp(operator.basic09_text(0), exp)
+                return BasicOpExp(operator.operator, exp)
         if len(visited_children) == 1:
             if isinstance(visited_children[0], AbstractBasicConstruct):
                 return visited_children[0]
@@ -409,6 +488,12 @@ class BasicVisitor(NodeVisitor):
     def visit_comment_text(self, node, visited_children):
         return node.full_text[node.start:node.end]
 
+    def visit_exp(self, node, visited_children):
+        not_keyword, _, exp, _ = visited_children
+        if isinstance(not_keyword, BasicOperator):
+            return BasicOpExp(not_keyword.operator, exp)
+        return exp
+
     def visit_exp_list(self, node, visited_children):
         _, _, exp1, _, exp_sublist, _ = visited_children
         return BasicExpressionList((exp1, *exp_sublist))
@@ -428,11 +513,11 @@ class BasicVisitor(NodeVisitor):
         return visited_children[0]
 
     def visit_bool_exp(self, node, visited_children):
-        exp1, _, exp2 = visited_children
-        if exp2 == '':
-            return exp1
-        else:
-            return BasicBooleanBinaryExp(exp1, exp2.operator, exp2.exp)
+        not_keyword, _, exp1, _, exp2 = visited_children
+        exp = exp1 if exp2 == '' \
+            else BasicBooleanBinaryExp(exp1, exp2.operator, exp2.exp)
+        return exp if not isinstance(not_keyword, BasicOperator) \
+            else BasicBooleanOpExp(not_keyword.operator, exp)
 
     def visit_bool_val_exp(self, node, visited_children):
         return visited_children[0]
@@ -440,12 +525,9 @@ class BasicVisitor(NodeVisitor):
     def visit_bool_paren_exp(self, node, visited_children):
         return BasicBooleanParenExp(visited_children[2])
 
-    def visit_bool_unop_exp(self, node, visited_children):
-        pass
-
     def visit_bool_bin_exp(self, node, visited_children):
         exp1, _, op, _, exp2, _ = visited_children
-        return BasicBooleanBinaryExp(exp1, op.basic09_text(0), exp2)
+        return BasicBooleanBinaryExp(exp1, op.operator, exp2)
 
     def visit_num_gtle_exp(self, node, visited_children):
         return self.visit_num_prod_exp(node, visited_children)
@@ -498,6 +580,13 @@ class BasicVisitor(NodeVisitor):
         num_literal = node.full_text[node.start:node.end].replace(' ', '')
         val = float(num_literal)
         return BasicLiteral(int(val) if val == int(val) else val)
+
+    def visit_unop_exp(self, node, visited_children):
+        op, _, exp = visited_children
+        return BasicOpExp(op.operator, exp)
+
+    def visit_unop(self, node, visited_children):
+        return visited_children[0]
 
     def visit_paren_exp(self, node, visited_children):
         return BasicParenExp(visited_children[2])
@@ -563,3 +652,12 @@ class BasicVisitor(NodeVisitor):
     
     def visit_print_control(self, node, visited_children):
         return BasicPrintControl(node.text)
+    
+    def visit_sound(self, node, visited_children):
+        _, _, exp1, _, _, _, exp2, _ = visited_children
+        return BasicSound(exp1, exp2)
+    
+    def visit_cls(self, node, visited_children):
+        _, _, exp, _ = visited_children
+        return BasicCls(exp if isinstance(exp, AbstractBasicExpression) \
+            else None)
