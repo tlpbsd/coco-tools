@@ -5,26 +5,66 @@ from parsimonious.nodes import Node, NodeVisitor
 
 FUNCTIONS = {
     'ABS': 'ABS',
+    'ASC': 'ASC',
     'ATN': 'ATN',
-    'CHR$': 'CHR$',
     'COS': 'COS',
     'EXP': 'EXP',
     'INT': 'INT',
-    'LEFT$': 'LEFT$',
     'LEN': 'LEN',
     'LOG': 'LOG',
-    'MID$': 'MID$',
     'PEEK': 'PEEK',
-    'RESET': 'RUN ecb_reset',
-    'RIGHT$': 'RIGHT$',
     'RND': 'RND',
-    'SET': 'RUN ecb_set',
     'SGN': 'SGN',
     'SIN': 'SIN',
     'SQR': 'SQR',
-    'TAB': 'TAB',
     'TAN': 'TAN',
+}
+
+QUOTED_FUNCTION_NAMES = [
+    '"' + name + '"' for name in FUNCTIONS.keys()
+]
+
+STR2_FUNCTIONS = {
+    'LEFT$': 'LEFT$',
+    'RIGHT$': 'RIGHT$',
+}
+
+STR3_FUNCTIONS = {
+    'MID$': 'MID$',
+}
+
+STR_NUM_FUNCTIONS = {
     'VAL': 'VAL',
+}
+
+NUM_STR_FUNCTIONS = {
+    'CHR$': 'CHR$',
+    'TAB': 'TAB',
+}
+
+STATEMENTS2 = {
+    'RESET': 'RUN ecb_reset',
+}
+
+STATEMENTS3 = {
+    'SET': 'RUN ecb_set',
+}
+
+FUNCTIONS_TO_STATEMENTS = {
+    'BUTTON': 'RUN ecb_button',
+    'JOYSTK': 'RUN ecb_joystk',
+}
+
+FUNCTIONS_TO_STATEMENTS2 = {
+   'POINT': 'RUN ecb_point',
+}
+
+NUM_STR_FUNCTIONS_TO_STATEMENTS = {
+    'HEX$': 'RUN ecb_hex',
+}
+
+STR_FUNCTIONS_TO_STATEMENTS = {
+    'INKEY$': 'RUN ecb_inkey',    
 }
 
 KEYWORDS = '|'.join(
@@ -39,7 +79,17 @@ KEYWORDS = '|'.join(
         'PRINT',
         'REM',
         'SOUND',
-    ), FUNCTIONS.keys()))
+    ), FUNCTIONS.keys()
+    , STR2_FUNCTIONS.keys()
+    , STR3_FUNCTIONS.keys()
+    , STR_NUM_FUNCTIONS.keys()
+    , NUM_STR_FUNCTIONS.keys()
+    , STATEMENTS2.keys()
+    , STATEMENTS3.keys()
+    , FUNCTIONS_TO_STATEMENTS.keys()
+    , FUNCTIONS_TO_STATEMENTS2.keys()
+    , NUM_STR_FUNCTIONS_TO_STATEMENTS.keys()
+    , STR_FUNCTIONS_TO_STATEMENTS.keys()))
 
 grammar = Grammar(
     rf"""
@@ -92,11 +142,14 @@ grammar = Grammar(
     num_sum_exp     = num_prod_exp space* (("+" / "-") space*
                                            num_prod_exp space*)*
     num_prod_exp    = val_exp space* (("*" / "/") space* val_exp space*)*
+    func_exp        = ({ ' / '.join(QUOTED_FUNCTION_NAMES)}) space* "(" space* exp space* ")" space*
     val_exp         = num_literal
+                    / hex_literal
                     / paren_exp
                     / unop_exp
                     / array_ref_exp
                     / var
+                    / func_exp
     unop_exp        = unop space* exp
     paren_exp       =  "(" space* exp space* ")" space*
     str_exp         = str_simple_exp space* (("+") space*
@@ -110,12 +163,13 @@ grammar = Grammar(
     eol             = ~r"[\n\r]+"
     linenum         = ~r"[0-9]+"
     literal         = num_literal
+    hex_literal     = ~r"&\s*H\s*[0-9A-F][0-9A-F]?[0-9A-F]?[0-9A-F]?[0-9A-F]?[0-9A-F]?"
     num_literal     = ~r"([\+\-\s]*(\d*\.\d*)(\s*(?!ELSE)E\s*[\+\-]?\s*\d*))|[\+\-\s]*(\d*\.\d*)|[\+\-\s]*(\d+(\s*(?!ELSE)E\s*[\+\-]?\s*\d*))|[\+\-\s]*(\d+)"
     space           = ~r" "
     str_literal     = ~r'\"[^"\n]*\"'
     unop            = "+" / "-"
-    var             = ~r"(?!{KEYWORDS}|([A-Z][A-Z0-9]*\$))([A-Z][A-Z0-9]*)"
-    str_var         = ~r"(?!{KEYWORDS})([A-Z][A-Z0-9]*)\$"
+    var             = ~r"(?!{KEYWORDS}|([A-Z][A-Z0-9]*\$))([A-Z][A-Z0-9]?)"
+    str_var         = ~r"(?!{KEYWORDS})([A-Z][A-Z0-9]?)\$"
     print_statement = ("PRINT"/"?") space* print_args
     print_args      = print_arg0*
     print_arg0      = print_arg1 space*
@@ -208,7 +262,7 @@ class BasicComment(AbstractBasicConstruct):
         return f'(*{self._comment} *)'
 
 
-class BasicExpressionList(AbstractBasicStatement):
+class BasicExpressionList(AbstractBasicConstruct):
     def __init__(self, exp_list):
         self._exp_list = exp_list
 
@@ -216,6 +270,16 @@ class BasicExpressionList(AbstractBasicStatement):
         exp_list_text = ', '.join(exp.basic09_text(indent_level)
                                   for exp in self._exp_list)
         return f'({exp_list_text})'
+
+
+class BasicFunctionCall(AbstractBasicExpression):
+    def __init__(self, function_name, arguments):
+        self._function_name = function_name
+        self._arguments = arguments
+
+    def basic09_text(self, indent_level):
+        return f'{self._function_name}' \
+               f'{self._arguments.basic09_text(indent_level)}'
 
 
 class BasicGoto(AbstractBasicStatement):
@@ -269,6 +333,17 @@ class BasicLiteral(AbstractBasicExpression):
     def basic09_text(self, indent_level):
         return (f'"{self._literal}"' if type(self._literal) is str
                 else f'{self._literal}')
+
+
+class HexLiteral(AbstractBasicExpression):
+    def __init__(self, literal):
+        super().__init__(is_str_expr=False)
+        self._literal = literal
+
+    def basic09_text(self, indent_level):
+        val = int(f'0x{self._literal}', 16)
+        return f'${self._literal}' if val < 0x8000 \
+            else f'{val}'
 
 
 class BasicOperator(AbstractBasicConstruct):
@@ -581,6 +656,10 @@ class BasicVisitor(NodeVisitor):
         val = float(num_literal)
         return BasicLiteral(int(val) if val == int(val) else val)
 
+    def visit_hex_literal(self, node, visited_children):
+        hex_literal = node.text[node.text.find('H') + 1:]
+        return HexLiteral(hex_literal)
+
     def visit_unop_exp(self, node, visited_children):
         op, _, exp = visited_children
         return BasicOpExp(op.operator, exp)
@@ -596,6 +675,11 @@ class BasicVisitor(NodeVisitor):
         if isinstance(v2, str) and isinstance(v3, str):
             return v1
         return BasicBinaryExp(v1, v3.operator, v3.exp)
+
+    def visit_func_exp(self, node, visited_children):
+        func, _, _, _, exp, _, _, _ = visited_children
+        return BasicFunctionCall(FUNCTIONS[func.text],
+                                 BasicExpressionList([exp]))
 
     def visit_num_assign(self, node, visited_children):
         return BasicAssignment(visited_children[0], visited_children[4])

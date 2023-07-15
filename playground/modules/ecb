@@ -1,34 +1,6 @@
-procedure ecb_locate
-    param x, y: integer
-
-    dim tmp_buffer(3): byte
-    tmp_buffer(1) = $02
-    tmp_buffer(2) = $20 + x
-    tmp_buffer(3) = $20 + y
-    put #1, tmp_buffer
-
-
 procedure ecb_at
     param location: integer
     run ecb_locate(land(location, 31), mod(location, 32))
-
-
-procedure ecb_text_address
-    param address: integer
-    type rregisters = cc, a, b, dp:byte; x, y, u:integer
-    dim rregs: rregisters
-    dim reqid: byte
-
-    (* getstat ss.alfas *)
-    rregs.a = 1
-    rregs.b = $1c
-    reqid = $8d
-    run syscall(reqid, rregs)
-    if land(rregs.cc, 1) <> 0 then
-        address = -1
-    else
-        address = rregs.x
-    endif
 
 
 procedure ecb_cls
@@ -59,13 +31,67 @@ procedure ecb_cls
     endif
 
 
-procedure ecb_sound
-    param f, d, v:integer
-    if f < 0 or f > 255 or d < 0 or d > 255 or v < 0 or v > 63 then
+procedure ecb_hex(val, str)
+    param val: real
+    param str: string
+    dim ival: integer
+    dim tmp: string
+
+    if (val < 0 or val > 65536)
+        error 52
+    end if
+
+    ival = val
+    _ecb_hex_digit(land($f, val / 0x1000), str)
+    _ecb_hex_digit(land($f, val / 0x100), tmp)
+    str = str + tmp
+    _ecb_hex_digit(land($f, val / 0x10), tmp)
+    str = str + tmp
+    _ecb_hex_digit(land($f, val), tmp)
+    str = str + tmp
+
+
+procedure ecb_locate
+    param x, y: integer
+
+    dim tmp_buffer(3): byte
+    tmp_buffer(1) = $02
+    tmp_buffer(2) = $20 + x
+    tmp_buffer(3) = $20 + y
+    put #1, tmp_buffer
+
+
+procedure ecb_point
+    param x, y, c0: integer
+    dim address, c: integer
+    run _ecb_get_point_info(x, y, address, c, c0)
+    if address = -1 then
         error 52
     endif
-    f = 1.0 / (-2.24219E-05 * f + 0.005961832)
-    run gfx2("tone", f, d, v)
+    if c0 > $80 then
+        if land(c, c0) <> 0 then
+            c0 = 1 + land($7f, c0) / 16
+        else
+            c0 = 0
+        endif
+    else
+        c0 = -1
+    endif
+
+
+procedure ecb_reset
+    param x, y: integer
+    dim address, c0, c1: integer
+    run _ecb_get_point_info(x, y, address, c1, c0)
+    if address = -1 then
+        error 52
+    endif
+    if c0 < $80 then
+        c0 = $80
+    else
+        c0 = land(c0, $8f)
+    endif
+    poke address, land(c0, $ff - c1)
 
 
 procedure ecb_set
@@ -89,36 +115,40 @@ procedure ecb_set
     poke address, lor(c0, (c - 1) * 16 + c1)
 
 
-procedure ecb_reset
-    param x, y: integer
-    dim address, c0, c1: integer
-    run _ecb_get_point_info(x, y, address, c1, c0)
-    if address = -1 then
+procedure ecb_sound
+    param f, d, v:integer
+    if f < 0 or f > 255 or d < 0 or d > 255 or v < 0 or v > 63 then
         error 52
     endif
-    if c0 < $80 then
-        c0 = $80
-    else
-        c0 = land(c0, $8f)
-    endif
-    poke address, land(c0, $ff - c1)
+    f = 1.0 / (-2.24219E-05 * f + 0.005961832)
+    run gfx2("tone", f, d, v)
 
 
-procedure ecb_point
-    param x, y, c0: integer
-    dim address, c: integer
-    run _ecb_get_point_info(x, y, address, c, c0)
-    if address = -1 then
-        error 52
-    endif
-    if c0 > $80 then
-        if land(c, c0) <> 0 then
-            c0 = 1 + land($7f, c0) / 16
-        else
-            c0 = 0
-        endif
+procedure ecb_text_address
+    param address: integer
+    type rregisters = cc, a, b, dp:byte; x, y, u:integer
+    dim rregs: rregisters
+    dim reqid: byte
+
+    (* getstat ss.alfas *)
+    rregs.a = 1
+    rregs.b = $1c
+    reqid = $8d
+    run syscall(reqid, rregs)
+    if land(rregs.cc, 1) <> 0 then
+        address = -1
     else
-        c0 = -1
+        address = rregs.x
+    endif
+
+
+procedure _ecb_hex_digit
+    param val: integer
+    param str: string
+    if val < 10 then
+        str = chr$(val + '0')
+    else
+        str = chr$(val + 'A')
     endif
 
 

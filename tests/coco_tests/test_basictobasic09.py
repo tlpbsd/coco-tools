@@ -261,3 +261,22 @@ class TestBasicToBasic09(unittest.TestCase):
             '11 CLS A+B\n12 CLS',
             '11 RUN ecb_cls(A + B)\n12 RUN ecb_cls(1)'
         )
+    
+    def test_funcs(self):
+        for ecb_func, b09_func in b09.FUNCTIONS.items():
+            self.generic_test_parse(
+                f'11X={ecb_func}(1)',
+                f'11 X = {b09_func}(1)',
+            )
+
+
+    def test_hex_literal(self):
+        self.generic_test_parse(
+            f'11 PRINT&H1234',
+            f'11 PRINT $1234',
+        )
+
+        self.generic_test_parse(
+            f'11 PRINT&HFFFFFF',
+            f'11 PRINT 16777215',
+        )
