@@ -29,13 +29,25 @@ STR2_FUNCTIONS = {
     'RIGHT$': 'RIGHT$',
 }
 
+QUOTED_STR2_FUNCTION_NAMES = [
+    '"' + name + '"' for name in STR2_FUNCTIONS.keys()
+]
+
 STR3_FUNCTIONS = {
     'MID$': 'MID$',
 }
 
+QUOTED_STR3_FUNCTION_NAMES = [
+    '"' + name + '"' for name in STR3_FUNCTIONS.keys()
+]
+
 STR_NUM_FUNCTIONS = {
     'VAL': 'VAL',
 }
+
+QUOTED_STR_NUM_FUNCTIONS_NAMES = [
+    '"' + name + '"' for name in STR_NUM_FUNCTIONS.keys()
+]
 
 NUM_STR_FUNCTIONS = {
     'CHR$': 'CHR$',
@@ -143,6 +155,7 @@ grammar = Grammar(
                                            num_prod_exp space*)*
     num_prod_exp    = val_exp space* (("*" / "/") space* val_exp space*)*
     func_exp        = ({ ' / '.join(QUOTED_FUNCTION_NAMES)}) space* "(" space* exp space* ")" space*
+    func_str_exp    = ({ ' / '.join(QUOTED_STR_NUM_FUNCTIONS_NAMES)}) space* "(" space* str_exp space* ")" space*
     val_exp         = num_literal
                     / hex_literal
                     / paren_exp
@@ -150,13 +163,18 @@ grammar = Grammar(
                     / array_ref_exp
                     / var
                     / func_exp
+                    / func_str_exp
     unop_exp        = unop space* exp
     paren_exp       =  "(" space* exp space* ")" space*
     str_exp         = str_simple_exp space* (("+") space*
                                              str_simple_exp space*)* 
+    str2_func_exp   = ({ ' / '.join(QUOTED_STR2_FUNCTION_NAMES)}) space* "(" space* str_exp space* "," space* exp space* ")" space*
+    str3_func_exp   = ({ ' / '.join(QUOTED_STR3_FUNCTION_NAMES)}) space* "(" space* str_exp space* "," space* exp space* "," space* exp space* ")" space*
     str_simple_exp  = str_literal
                     / str_array_ref_exp
                     / str_var
+                    / str2_func_exp
+                    / str3_func_exp
     comment_text    = ~r"[^:\r\n$]*"
     comment_token   = ~r"(REM|')"
     eof             = ~r"$"
@@ -639,6 +657,17 @@ class BasicVisitor(NodeVisitor):
             return BasicBinaryExp(v1, v3.operator, v3.exp, True)
         return node
 
+    def visit_str2_func_exp(self, node, visited_children):
+        func, _, _, _, str_exp, _, _, _, exp, _, _, _ = visited_children
+        return BasicFunctionCall(STR2_FUNCTIONS[func.text],
+                                 BasicExpressionList([str_exp, exp]))
+
+    def visit_str3_func_exp(self, node, visited_children):
+        func, _, _, _, str_exp, _, _, _, exp1, _, _, _, exp2, _, _, _ \
+            = visited_children
+        return BasicFunctionCall(STR3_FUNCTIONS[func.text],
+                                 BasicExpressionList([str_exp, exp1, exp2]))
+
     def visit_str_simple_exp(self, node, visited_children):
         return visited_children[0]
 
@@ -682,6 +711,11 @@ class BasicVisitor(NodeVisitor):
     def visit_func_exp(self, node, visited_children):
         func, _, _, _, exp, _, _, _ = visited_children
         return BasicFunctionCall(FUNCTIONS[func.text],
+                                 BasicExpressionList([exp]))
+
+    def visit_func_str_exp(self, node, visited_children):
+        func, _, _, _, exp, _, _, _ = visited_children
+        return BasicFunctionCall(STR_NUM_FUNCTIONS[func.text],
                                  BasicExpressionList([exp]))
 
     def visit_num_assign(self, node, visited_children):

@@ -281,3 +281,25 @@ class TestBasicToBasic09(unittest.TestCase):
             f'11 PRINT&HFFFFFF',
             f'11 PRINT 16777215',
         )
+
+    def test_left_and_right(self):
+        self.generic_test_parse(
+            f'11 AA$=LEFT$("HELLO" , 3)',
+            f'11 AA$ = LEFT$("HELLO", 3)'
+        )
+        self.generic_test_parse(
+            f'11 AA$=RIGHT$("HELLO" , 3)',
+            f'11 AA$ = RIGHT$("HELLO", 3)'
+        )
+
+    def test_mid(self):
+        self.generic_test_parse(
+            f'11 AA$=MID$("HELLO" , 3,2)',
+            f'11 AA$ = MID$("HELLO", 3, 2)'
+        )
+
+    def test_val(self):
+        self.generic_test_parse(
+            f'11 AA = VAL("2334")',
+            f'11 AA = VAL("2334")'
+        )
