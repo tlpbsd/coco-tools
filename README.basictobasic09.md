@@ -25,14 +25,24 @@ The utility provides a best effort for conversion which means:
 ## Supported constructs
 Most Color BASIC and some Extended Color BASIC and Super Extended Color BASIC
 features are supported. These include:
-include: ABS, +, AND, ASC, ATN, BUTTON, CHR$, CLEAR, CLS, COS, DATA, DIM, /,
-END, ELSE, =, EXP, FOR, GOTO, GOSUB, >, HEX$, IF, INKEY$, INPUT, INT, JOYSTK,
-LEFT$, LEN, <, LET, LOG, MID$, *, NEXT, NOT, OPEN, OR, PRINT, READ, REM, RESET,
+include: ABS, +, AND, ASC, ATN, BUTTON, CHR$, CLS, COS, DATA, DIM, /,
+END, ELSE, =, EXP, FOR, GOTO, GOSUB, >, IF, INKEY$, INPUT, INT, JOYSTK, LEFT$,
+LEN, <, LET, LOG, MID$, *, NEXT, NOT, OPEN, OR, PRINT, READ, REM, RESET,
 RESTORE, RETURN, RIGHT$, RND, SET, SGN, SIN, SOUND, SQR, STEP, STOP, STR$, -,
 TAB, TAN, THEN, TO, VAL
 
 ## Supported constructs that need some explanation
-* By default variables
+* Hexadecimal literals of the form 0xABCDEF are supported. For values less
+  than 0x8000, the values are converted to integers of the form $ABCD. For
+  values greater than that, they are converted to REAL literals with the
+  equivalent value.
+* By default variables are not DIMensioned and assumed to be STRING or REAL.
+  They are initialized to "" or 0 at the beginning of the output program.
+* Numeric literal expressions are assumed to be INTEGERs unless that have
+  a decimal point or exponent or cannot be represented by an INTEGER. So
+  PRINT 3 / 2 will print 1.5 in Color BASIC but the converted BASIC09 program
+  will print 1.
+* `CLEAR N` is mapped to `(* CLEAR N *)` but `CLEAR  N, M` is disallowed.
 * `CLS` requires that we map the VDG screen for any value that is <> `1`.
   The same is true for `POINT`, `RESET` and `SET`. Note that this can easily
   result in unexpected memory errors while running the program. Running it
@@ -49,7 +59,7 @@ TAB, TAN, THEN, TO, VAL
 * Converting numeric values into a string formats the number with NO spaces
   and one decimal point, even if the value is an integer.
 * Some constructs require introducing an intermediary variable including
-  BUTTON, INKEY and JOYSTK.
+  BUTTON, INKEY, JOYSTK and POINT.
 10 IF (INKEY$() + "") THEN 10 is converted into a construct that looks like:
 ```
 10 RUN INKEY$(TMP1): IF TMP1 = "" THEN 10
@@ -58,8 +68,8 @@ TAB, TAN, THEN, TO, VAL
 
 ## Unsupported Color BASIC constructs
 * These constructs are NOT supported by basictobasic09:
-AUDIO, CLOAD, CONT, CSAVE, EOF, EVAL, EXEC, LIST, LLIST, LOAD, MEM, MOTOR,
-NEW, PEEK, POKE, RUN, SKIPF, USR
+AUDIO, CLEAR, CLOAD, CONT, CSAVE, EOF, EVAL, EXEC, LIST, LLIST, LOAD, MEM,
+MOTOR, NEW, PEEK, POKE, RUN, SKIPF, USR
 * It is NOT possible to GOTO, GOSUB, ON GOTO or ON GOSUB to a variable.
 * NEXT statements MUST have the iteration variable specified.
 * NEXT statements must be nested and not interleaved. For example, this is legal:
