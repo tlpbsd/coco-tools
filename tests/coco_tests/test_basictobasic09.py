@@ -189,12 +189,14 @@ class TestBasicToBasic09(unittest.TestCase):
     def test_binary_if_statement(self):
         self.generic_test_parse(
             '1 IF A=1 AND B=2 THEN 2\n2 IF A<10 THEN B = B - 2 * 1',
-            '1 IF A = 1 AND B = 2 THEN 2\n2 IF A < 10 THEN\n    B = B - 2 * 1\nENDIF')
+            '1 IF A = 1 AND B = 2 THEN 2\n2 IF A < 10 THEN\n'
+            '    B = B - 2 * 1\nENDIF')
 
     def test_paren_if_statement(self):
         self.generic_test_parse(
             '1 IF (A=1 AND B=2) THEN 2\n2 IF A<10 THEN B = B - 2 * 1',
-            '1 IF (A = 1 AND B = 2) THEN 2\n2 IF A < 10 THEN\n    B = B - 2 * 1\nENDIF')
+            '1 IF (A = 1 AND B = 2) THEN 2\n2 IF A < 10 THEN\n'
+            '    B = B - 2 * 1\nENDIF')
 
     def test_simple_print_statement(self):
         self.generic_test_parse(
@@ -213,7 +215,7 @@ class TestBasicToBasic09(unittest.TestCase):
             '11 PRINT A$ + B$',
             '11 PRINT A$ + B$'
         )
-    
+
     def test_print_multi(self):
         self.generic_test_parse(
             '11 PRINT A$ , B$',
@@ -249,26 +251,25 @@ class TestBasicToBasic09(unittest.TestCase):
             '100 IF NOT A=3 THEN 20',
             '100 IF NOT(A = 3) THEN 20'
         )
-    
+
     def test_sound(self):
         self.generic_test_parse(
             '11 SOUND 100, A+B',
             '11 RUN ecb_sound(100, A + B, 31)'
         )
-    
+
     def test_cls(self):
         self.generic_test_parse(
             '11 CLS A+B\n12 CLS',
             '11 RUN ecb_cls(A + B)\n12 RUN ecb_cls(1)'
         )
-    
+
     def test_funcs(self):
         for ecb_func, b09_func in b09.FUNCTIONS.items():
             self.generic_test_parse(
                 f'11X={ecb_func}(1)',
                 f'11 X = {b09_func}(1)',
             )
-
 
     def test_hex_literal(self):
         self.generic_test_parse(

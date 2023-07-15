@@ -64,7 +64,7 @@ NUM_STR_FUNCTIONS_TO_STATEMENTS = {
 }
 
 STR_FUNCTIONS_TO_STATEMENTS = {
-    'INKEY$': 'RUN ecb_inkey',    
+    'INKEY$': 'RUN ecb_inkey',
 }
 
 KEYWORDS = '|'.join(
@@ -79,17 +79,17 @@ KEYWORDS = '|'.join(
         'PRINT',
         'REM',
         'SOUND',
-    ), FUNCTIONS.keys()
-    , STR2_FUNCTIONS.keys()
-    , STR3_FUNCTIONS.keys()
-    , STR_NUM_FUNCTIONS.keys()
-    , NUM_STR_FUNCTIONS.keys()
-    , STATEMENTS2.keys()
-    , STATEMENTS3.keys()
-    , FUNCTIONS_TO_STATEMENTS.keys()
-    , FUNCTIONS_TO_STATEMENTS2.keys()
-    , NUM_STR_FUNCTIONS_TO_STATEMENTS.keys()
-    , STR_FUNCTIONS_TO_STATEMENTS.keys()))
+    ), FUNCTIONS.keys(),
+       STR2_FUNCTIONS.keys(),
+       STR3_FUNCTIONS.keys(),
+       STR_NUM_FUNCTIONS.keys(),
+       NUM_STR_FUNCTIONS.keys(),
+       STATEMENTS2.keys(),
+       STATEMENTS3.keys(),
+       FUNCTIONS_TO_STATEMENTS.keys(),
+       FUNCTIONS_TO_STATEMENTS2.keys(),
+       NUM_STR_FUNCTIONS_TO_STATEMENTS.keys(),
+       STR_FUNCTIONS_TO_STATEMENTS.keys()))
 
 grammar = Grammar(
     rf"""
@@ -192,12 +192,14 @@ class AbstractBasicConstruct(ABC):
     @abstractmethod
     def basic09_text(self, indent_level):
         """Return the Basic09 text that represents this construct"""
-    
+        pass
+
     def is_expr(self):
         return False
 
     def is_str_expr(self):
         return False
+
 
 class AbstractBasicExpression(AbstractBasicConstruct):
     def __init__(self, is_str_expr=False):
@@ -442,25 +444,28 @@ class BasicVar(AbstractBasicExpression):
     def basic09_text(self, indent_level):
         return self._name
 
+
 class BasicPrintStatement(AbstractBasicStatement):
     def __init__(self, print_args):
         self._print_args = print_args
-    
+
     def basic09_text(self, indent_level):
         return self.indent_spaces(indent_level) + \
                f'PRINT {self._print_args.basic09_text(indent_level)}'
 
+
 class BasicPrintControl(AbstractBasicConstruct):
     def __init__(self, control_char):
         self._control_char = control_char
-    
+
     def basic09_text(self, indent_level):
         return self._control_char
+
 
 class BasicPrintArgs(AbstractBasicConstruct):
     def __init__(self, args):
         self._args = args
-    
+
     @property
     def args(self):
         return self._args
@@ -471,13 +476,12 @@ class BasicPrintArgs(AbstractBasicConstruct):
         for ii, arg in enumerate(self.args):
             is_control = isinstance(arg, BasicPrintControl)
             if is_control and \
-               ((ii <= 0) or
-                isinstance(self.args[ii - 1], BasicPrintControl)):
+                ((ii <= 0) or
+                 isinstance(self.args[ii - 1], BasicPrintControl)):
                 processed_args.append('""')
 
             processed_args.append(arg.basic09_text(indent_level))
-            if (ii < len(self.args) - 1) \
-                and is_control:
+            if (ii < len(self.args) - 1) and is_control:
                 processed_args.append(' ')
 
         return ''.join(processed_args)
@@ -494,14 +498,13 @@ class BasicSound(AbstractBasicStatement):
 
 
 class BasicCls(AbstractBasicStatement):
-    def __init__(self, exp = None):
+    def __init__(self, exp=None):
         self._exp = exp
 
     def basic09_text(self, indent_level):
-        return self.indent_spaces(indent_level) + (
-            'RUN ecb_cls(1)' if not self._exp else \
-               f'RUN ecb_cls({self._exp.basic09_text(indent_level)})'
-        )
+        return self.indent_spaces(indent_level) \
+            + ('RUN ecb_cls(1)' if not self._exp else
+               f'RUN ecb_cls({self._exp.basic09_text(indent_level)})')
 
 
 class BasicVisitor(NodeVisitor):
@@ -716,7 +719,7 @@ class BasicVisitor(NodeVisitor):
 
     def visit_str_var(self, node, visited_children):
         return BasicVar(node.full_text[node.start:node.end], True)
-    
+
     def visit_print_statement(self, node, visited_children):
         _, _, print_args = visited_children
         return BasicPrintStatement(print_args)
@@ -730,18 +733,18 @@ class BasicVisitor(NodeVisitor):
 
     def visit_print_arg1(self, node, visited_children):
         return visited_children[0]
-    
+
     def visit_print_arg(self, node, visited_children):
         return visited_children[0]
-    
+
     def visit_print_control(self, node, visited_children):
         return BasicPrintControl(node.text)
-    
+
     def visit_sound(self, node, visited_children):
         _, _, exp1, _, _, _, exp2, _ = visited_children
         return BasicSound(exp1, exp2)
-    
+
     def visit_cls(self, node, visited_children):
         _, _, exp, _ = visited_children
-        return BasicCls(exp if isinstance(exp, AbstractBasicExpression) \
-            else None)
+        return BasicCls(exp if isinstance(exp, AbstractBasicExpression)
+                        else None)
