@@ -54,13 +54,25 @@ NUM_STR_FUNCTIONS = {
     'TAB': 'TAB',
 }
 
+QUOTED_NUM_STR_FUNCTIONS_NAMES = [
+    '"' + name + '"' for name in NUM_STR_FUNCTIONS.keys()
+]
+
 STATEMENTS2 = {
     'RESET': 'RUN ecb_reset',
 }
 
+QUOTED_STATEMENTS2_NAMES = [
+    '"' + name + '"' for name in STATEMENTS2.keys()
+]
+
 STATEMENTS3 = {
     'SET': 'RUN ecb_set',
 }
+
+QUOTED_STATEMENTS3_NAMES = [
+    '"' + name + '"' for name in STATEMENTS3.keys()
+]
 
 FUNCTIONS_TO_STATEMENTS = {
     'BUTTON': 'RUN ecb_button',
@@ -85,6 +97,8 @@ KEYWORDS = '|'.join(
         'CLS',
         'ELSE',
         'FOR',
+        'GOSUB',
+        'GOTO',
         'IF',
         'NOT',
         'OR',
@@ -138,6 +152,12 @@ grammar = Grammar(
                     / str_arr_assign
                     / sound
                     / cls
+                    / go_statement
+                    / statement2
+                    / statement3
+                    / data_statement
+    statement2      =({ ' / '.join(QUOTED_STATEMENTS2_NAMES)}) space* "(" space* exp space* "," space* exp space* ")" space*
+    statement3      = ({ ' / '.join(QUOTED_STATEMENTS3_NAMES)}) space* "(" space* exp space* "," space* exp space* "," space* exp space* ")" space*
     statements      = (statement? (comment/((":"/space)+
                                             (comment / statements)))* space*)
     statements_else = (statement? (space* ":" statements)* space*)
@@ -170,11 +190,14 @@ grammar = Grammar(
                                              str_simple_exp space*)* 
     str2_func_exp   = ({ ' / '.join(QUOTED_STR2_FUNCTION_NAMES)}) space* "(" space* str_exp space* "," space* exp space* ")" space*
     str3_func_exp   = ({ ' / '.join(QUOTED_STR3_FUNCTION_NAMES)}) space* "(" space* str_exp space* "," space* exp space* "," space* exp space* ")" space*
+    num_str_func_exp= ({ ' / '.join(QUOTED_NUM_STR_FUNCTIONS_NAMES)}) space* "(" space* exp space* ")" space*
+
     str_simple_exp  = str_literal
                     / str_array_ref_exp
                     / str_var
                     / str2_func_exp
                     / str3_func_exp
+                    / num_str_func_exp
     comment_text    = ~r"[^:\r\n$]*"
     comment_token   = ~r"(REM|')"
     eof             = ~r"$"
@@ -198,7 +221,12 @@ grammar = Grammar(
     print_control   = ~r"(;|,)"
     sound           = "SOUND" space* exp space* "," space* exp space*
     cls             = "CLS" space* exp? space*
+    go_statement    = ("GOTO" / "GOSUB") space* linenum space*
     functions       = ~r"{'|'.join(FUNCTIONS.keys())}"
+    data_statement  = "DATA" space* data_elements space*
+    data_elements   = data_element data_element0*
+    data_element0   = "," space* data_element
+    data_element    = data_str_element / num_literal
     """  # noqa
 )
 
@@ -292,27 +320,31 @@ class BasicExpressionList(AbstractBasicConstruct):
         return f'({exp_list_text})'
 
 
-class BasicFunctionCall(AbstractBasicExpression):
-    def __init__(self, function_name, arguments):
-        self._function_name = function_name
+class BasicRunCall(AbstractBasicStatement):
+    def __init__(self, run_invocation, arguments):
+        self._run_invocation = run_invocation
         self._arguments = arguments
 
     def basic09_text(self, indent_level):
-        return f'{self._function_name}' \
+        return f'{self.indent_spaces(indent_level)}' \
+               f'{self._run_invocation}' \
                f'{self._arguments.basic09_text(indent_level)}'
 
 
 class BasicGoto(AbstractBasicStatement):
-    def __init__(self, linenum, implicit):
+    def __init__(self, linenum, implicit, is_gosub=False):
         self._linenum = linenum
         self._implicit = implicit
+        self._is_gosub = is_gosub
 
     @property
     def implicit(self):
         return self._implicit
 
-    def basic09_text(self, indent_level):
-        return f'{self.indent_spaces(indent_level)}{self._linenum}' \
+    def basic09_text(self, indent_level):        
+        if self._is_gosub:
+            return f'{self.indent_spaces(indent_level)}GOSUB {self._linenum}'
+        return f'{self._linenum}' \
             if self._implicit \
             else f'{self.indent_spaces(indent_level)}GOTO {self._linenum}'
 
@@ -439,15 +471,17 @@ class BasicStatement(AbstractBasicStatement):
 
 
 class BasicStatements(AbstractBasicConstruct):
-    def __init__(self, statements):
+    def __init__(self, statements, multi_line=True):
         self._statements = statements
+        self._multi_line = multi_line
 
     def statements(self):
         return self._statements
 
     def basic09_text(self, indent_level):
-        indent = '\n' + self.indent_spaces(indent_level)
-        return indent.join(statement.basic09_text(indent_level)
+        joiner = ('\n' + self.indent_spaces(indent_level)) \
+            if self._multi_line else r' \ '
+        return joiner.join(statement.basic09_text(indent_level)
                            for statement in self._statements)
 
 
@@ -523,6 +557,16 @@ class BasicCls(AbstractBasicStatement):
         return self.indent_spaces(indent_level) \
             + ('RUN ecb_cls(1)' if not self._exp else
                f'RUN ecb_cls({self._exp.basic09_text(indent_level)})')
+
+
+class BasicFunctionCall(AbstractBasicExpression):
+    def __init__(self, func, args):
+        self._func = func
+        self._args = args
+
+    def basic09_text(self, indent_level):
+        return f'{self._func}' \
+               f'{self._args.basic09_text(indent_level)}'
 
 
 class BasicVisitor(NodeVisitor):
@@ -668,6 +712,11 @@ class BasicVisitor(NodeVisitor):
         return BasicFunctionCall(STR3_FUNCTIONS[func.text],
                                  BasicExpressionList([str_exp, exp1, exp2]))
 
+    def visit_num_str_func_exp(self, node, visited_children):
+        func, _, _, _, exp, _, _, _ = visited_children
+        return BasicFunctionCall(NUM_STR_FUNCTIONS[func.text],
+                                 BasicExpressionList([exp]))
+
     def visit_str_simple_exp(self, node, visited_children):
         return visited_children[0]
 
@@ -733,9 +782,7 @@ class BasicVisitor(NodeVisitor):
 
     def visit_statements(self, node, visited_children):
         return BasicStatements([child for child in visited_children
-                               if isinstance(child, BasicStatement)
-                               or isinstance(child, BasicStatements)
-                               or isinstance(child, BasicComment)])
+                               if isinstance(child, AbstractBasicConstruct)])
 
     def visit_str_literal(self, node, visited_children):
         return BasicLiteral(str(node.full_text[node.start+1:node.end-1]), True)
@@ -782,3 +829,18 @@ class BasicVisitor(NodeVisitor):
         _, _, exp, _ = visited_children
         return BasicCls(exp if isinstance(exp, AbstractBasicExpression)
                         else None)
+
+    def visit_statement2(self, node, visited_children):
+        func, _, _, _, exp1, _, _, _, exp2, _, _, _ = visited_children
+        return BasicRunCall(STATEMENTS2[func.text],
+                            BasicExpressionList([exp1, exp2]))
+
+    def visit_statement3(self, node, visited_children):
+        func, _, _, _, exp1, _, _, _, exp2, _, _, _, exp3, _, _, _ \
+            = visited_children
+        return BasicRunCall(STATEMENTS3[func.text],
+                           BasicExpressionList([exp1, exp2, exp3]))
+
+    def visit_go_statement(self, node, visited_children):
+        go, _, linenum, _ = visited_children
+        return BasicGoto(linenum, False, is_gosub=go.text == 'GOSUB')

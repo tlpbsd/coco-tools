@@ -56,7 +56,7 @@ class TestBasicToBasic09(unittest.TestCase):
 
     def test_basic_goto(self):
         target = b09.BasicGoto(123, True)
-        assert target.basic09_text(1) == '    123'
+        assert target.basic09_text(1) == '123'
         assert target.implicit is True
         target = b09.BasicGoto(1234, False)
         assert target.basic09_text(1) == '    GOTO 1234'
@@ -302,4 +302,36 @@ class TestBasicToBasic09(unittest.TestCase):
         self.generic_test_parse(
             f'11 AA = VAL("2334")',
             f'11 AA = VAL("2334")'
+        )
+
+    def test_num_str_funcs(self):
+        for ecb_func, b09_func in b09.NUM_STR_FUNCTIONS.items():
+            self.generic_test_parse(
+                f'11X$={ecb_func}(1)',
+                f'11 X$ = {b09_func}(1)',
+            )
+
+    def test_builtin_statements(self):
+        for ecb_func, b09_func in b09.STATEMENTS2.items():
+            self.generic_test_parse(
+                f'11{ecb_func}(1,2)',
+                f'11 {b09_func}(1, 2)',
+            )
+
+        for ecb_func, b09_func in b09.STATEMENTS3.items():
+            self.generic_test_parse(
+                f'11{ecb_func}(1,2    , 3)',
+                f'11 {b09_func}(1, 2, 3)',
+            )
+    
+    def test_goto(self):
+        self.generic_test_parse(
+            f'11GOTO20',
+            f'11 GOTO 20',
+        )
+
+    def test_gosub(self):
+        self.generic_test_parse(
+            f'11GOSUB20',
+            f'11 GOSUB 20',
         )

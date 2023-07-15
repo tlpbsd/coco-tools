@@ -36,6 +36,9 @@ TAB, TAN, THEN, TO, VAL
   than 0x8000, the values are converted to integers of the form $ABCD. For
   values greater than that, they are converted to REAL literals with the
   equivalent value.
+* VAL is a direct port that uses BASIC09's implementation of VAL. This means
+  that when parsing HEX numbers they should look like "$1234" instead of
+  "&H1234".
 * By default variables are not DIMensioned and assumed to be STRING or REAL.
   They are initialized to "" or 0 at the beginning of the output program.
 * Numeric literal expressions are assumed to be INTEGERs unless that have
