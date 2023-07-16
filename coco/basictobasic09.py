@@ -155,6 +155,7 @@ grammar = Grammar(
     num_assign      = var space* "=" space* exp
     statement       = if_else_stmnt
                     / if_stmnt
+                    / print_at_statement
                     / print_statement
                     / num_assign
                     / str_assign
@@ -222,7 +223,8 @@ grammar = Grammar(
     unop            = "+" / "-"
     var             = ~r"(?!{KEYWORDS}|([A-Z][A-Z0-9]*\$))([A-Z][A-Z0-9]?)"
     str_var         = ~r"(?!{KEYWORDS})([A-Z][A-Z0-9]?)\$"
-    print_statement = ("PRINT"/"?") space* print_args
+    print_statement = ("PRINT"/"?") space* print_args space*
+    print_at_statement = ("PRINT"/"?") space* "@" space* exp space* "," space* print_args space*
     print_args      = print_arg0*
     print_arg0      = print_arg1 space*
     print_arg1      = print_control 
@@ -295,7 +297,8 @@ class BasicAssignment(AbstractBasicStatement):
         self._exp = exp
 
     def basic09_text(self, indent_level):
-        return f'{self._var.basic09_text(indent_level)} = ' \
+        return f'{self.indent_spaces(indent_level)}' \
+               f'{self._var.basic09_text(indent_level)} = ' \
                f'{self._exp.basic09_text(indent_level)}'
 
 
@@ -494,7 +497,7 @@ class BasicStatement(AbstractBasicStatement):
                self._basic_construct.basic09_text(indent_level)
 
 
-class BasicStatements(AbstractBasicConstruct):
+class BasicStatements(AbstractBasicStatement):
     def __init__(self, statements, multi_line=True):
         self._statements = statements
         self._multi_line = multi_line
@@ -818,8 +821,7 @@ class BasicVisitor(NodeVisitor):
         return node.text
 
     def visit_statement(self, node, visited_children):
-        return BasicStatement(next(child for child in visited_children
-                              if isinstance(child, AbstractBasicStatement)))
+        return visited_children[0]
 
     def visit_statements(self, node, visited_children):
         return BasicStatements([child for child in visited_children
@@ -843,8 +845,16 @@ class BasicVisitor(NodeVisitor):
         return BasicVar(node.full_text[node.start:node.end], True)
 
     def visit_print_statement(self, node, visited_children):
-        _, _, print_args = visited_children
+        _, _, print_args, _ = visited_children
         return BasicPrintStatement(print_args)
+
+    def visit_print_at_statement(self, node, visited_children):
+        _, _, _, _, loc, _, _, _, print_args, _ = visited_children
+        at_statement = BasicRunCall('RUN ecb_at',
+                                    BasicExpressionList([loc]))
+        print_statement = BasicPrintStatement(print_args)
+        return BasicStatements([at_statement, print_statement],
+                               multi_line=False)
 
     def visit_print_args(self, node, visited_children):
         return BasicPrintArgs(visited_children)

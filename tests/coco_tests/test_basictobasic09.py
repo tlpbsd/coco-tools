@@ -20,7 +20,7 @@ class TestBasicToBasic09(unittest.TestCase):
         var = b09.BasicVar('HW')
         exp = b09.BasicLiteral(123)
         target = b09.BasicAssignment(var, exp)
-        assert target.basic09_text(1) == 'HW = 123'
+        assert target.basic09_text(1) == '    HW = 123'
 
     def test_basic_binary_exp(self):
         var = b09.BasicVar('HW')
@@ -350,3 +350,9 @@ class TestBasicToBasic09(unittest.TestCase):
                 f'11{ecb_func}',
                 f'11 {b09_func}',
             )
+
+    def test_print_at(self):
+        self.generic_test_parse(
+            f'11PRINT@32,"HELLO WORLD"',
+            f'11 RUN ecb_at(32) \ PRINT "HELLO WORLD"'
+        )
