@@ -414,3 +414,31 @@ class TestBasicToBasic09(unittest.TestCase):
             '40 NEXT XX \\ NEXT YY\n'
             '50 PRINT "HELLO"'
         )
+
+    def test_functions_to_statements(self):
+        for ecb_func, b09_func in b09.FUNCTIONS_TO_STATEMENTS.items():
+            self.generic_test_parse(
+                f'11X={ecb_func}(1)',
+                f'11 {b09_func}(1, X)',
+            )
+
+    def test_functions_to_statements2(self):
+        for ecb_func, b09_func in b09.FUNCTIONS_TO_STATEMENTS2.items():
+            self.generic_test_parse(
+                f'11X={ecb_func}(1, 2)',
+                f'11 {b09_func}(1, 2, X)',
+            )
+
+    def test_num_str_functions_to_statements(self):
+        for ecb_func, b09_func in b09.NUM_STR_FUNCTIONS_TO_STATEMENTS.items():
+            self.generic_test_parse(
+                f'11X$={ecb_func}(1)',
+                f'11 {b09_func}(1, X$)',
+            )
+
+    def test_str_functions_to_statements(self):
+        for ecb_func, b09_func in b09.STR_FUNCTIONS_TO_STATEMENTS.items():
+            self.generic_test_parse(
+                f'11X$={ecb_func}(1)',
+                f'11 {b09_func}(1, X$)',
+            )

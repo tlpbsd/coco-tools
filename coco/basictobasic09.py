@@ -88,17 +88,33 @@ FUNCTIONS_TO_STATEMENTS = {
     'JOYSTK': 'RUN ecb_joystk',
 }
 
+QUOTED_FUNCTIONS_TO_STATEMENTS_NAMES = [
+    '"' + name + '"' for name in FUNCTIONS_TO_STATEMENTS.keys()
+]
+
 FUNCTIONS_TO_STATEMENTS2 = {
    'POINT': 'RUN ecb_point',
 }
+
+QUOTED_FUNCTIONS_TO_STATEMENTS2_NAMES = [
+    '"' + name + '"' for name in FUNCTIONS_TO_STATEMENTS2.keys()
+]
 
 NUM_STR_FUNCTIONS_TO_STATEMENTS = {
     'HEX$': 'RUN ecb_hex',
 }
 
+QUOTED_NUM_STR_FUNCTIONS_TO_STATEMENTS_NAMES = [
+    '"' + name + '"' for name in NUM_STR_FUNCTIONS_TO_STATEMENTS.keys()
+]
+
 STR_FUNCTIONS_TO_STATEMENTS = {
     'INKEY$': 'RUN ecb_inkey',
 }
+
+QUOTED_STR_FUNCTIONS_TO_STATEMENTS_NAMES = [
+    '"' + name + '"' for name in STR_FUNCTIONS_TO_STATEMENTS.keys()
+]
 
 KEYWORDS = '|'.join(
     chain((
@@ -200,6 +216,8 @@ grammar = Grammar(
                     / var
                     / func_exp
                     / func_str_exp
+                    / func_to_statements
+                    / func_to_statements2
     unop_exp        = unop space* exp
     paren_exp       =  "(" space* exp space* ")" space*
     str_exp         = str_simple_exp space* (("+") space*
@@ -207,6 +225,8 @@ grammar = Grammar(
     str2_func_exp   = ({ ' / '.join(QUOTED_STR2_FUNCTION_NAMES)}) space* "(" space* str_exp space* "," space* exp space* ")" space*
     str3_func_exp   = ({ ' / '.join(QUOTED_STR3_FUNCTION_NAMES)}) space* "(" space* str_exp space* "," space* exp space* "," space* exp space* ")" space*
     num_str_func_exp= ({ ' / '.join(QUOTED_NUM_STR_FUNCTIONS_NAMES)}) space* "(" space* exp space* ")" space*
+    num_str_func_exp_statements = ({ ' / '.join(QUOTED_NUM_STR_FUNCTIONS_TO_STATEMENTS_NAMES)}) space* "(" space* exp space* ")" space*
+    str_func_exp_statements = ({ ' / '.join(QUOTED_STR_FUNCTIONS_TO_STATEMENTS_NAMES)}) space* "(" space* exp space* ")" space*
 
     str_simple_exp  = str_literal
                     / str_array_ref_exp
@@ -214,6 +234,8 @@ grammar = Grammar(
                     / str2_func_exp
                     / str3_func_exp
                     / num_str_func_exp
+                    / num_str_func_exp_statements
+                    / str_func_exp_statements
     comment_text    = ~r"[^:\r\n$]*"
     comment_token   = ~r"(REM|')"
     eof             = ~r"$"
@@ -258,6 +280,8 @@ grammar = Grammar(
     var_list            = var space* var_list_elements
     var_list_elements   = var_list_element*
     var_list_element    = "," space* var space*
+    func_to_statements  = ({ ' / '.join(QUOTED_FUNCTIONS_TO_STATEMENTS_NAMES)}) space* "(" space* exp space* ")" space*
+    func_to_statements2 = ({ ' / '.join(QUOTED_FUNCTIONS_TO_STATEMENTS2_NAMES)}) space* "(" space* exp space* "," space* exp space*")" space*
     """  # noqa
 )
 
@@ -328,7 +352,7 @@ class BasicArrayRef(AbstractBasicExpression):
     def basic09_text(self, indent_level):
         return f'{self._var.basic09_text(indent_level)}' \
                f'{self._indices.basic09_text(indent_level)}'
-    
+
     def visit(self, visitor):
         self._var.visit(visitor)
         for index in self._indices.exp_list:
@@ -341,6 +365,11 @@ class BasicAssignment(AbstractBasicStatement):
         self._exp = exp
 
     def basic09_text(self, indent_level):
+        if isinstance(self._exp, BasicFunctionalExpression):
+            self._exp.set_var(self._var)
+            return f'{self.indent_spaces(indent_level)}' \
+                   f'{self._exp.statement.basic09_text(indent_level)}'
+
         return f'{self.indent_spaces(indent_level)}' \
                f'{self._var.basic09_text(indent_level)} = ' \
                f'{self._exp.basic09_text(indent_level)}'
@@ -417,7 +446,7 @@ class BasicRunCall(AbstractBasicStatement):
         return f'{self.indent_spaces(indent_level)}' \
                f'{self._run_invocation}' \
                f'{self._arguments.basic09_text(indent_level)}'
-    
+
     def visit(self, visitor):
         visitor.visit_statement(self)
         self._arguments.visit(visitor)
@@ -617,7 +646,7 @@ class BasicStatements(AbstractBasicStatement):
         net_indent_level = indent_level if self._multi_line else 0
         return joiner.join(statement.basic09_text(net_indent_level)
                            for statement in self._statements)
-    
+
     def visit(self, visitor):
         visitor.visit_statement(self)
         for statement in self.statements:
@@ -646,7 +675,7 @@ class BasicPrintStatement(AbstractBasicStatement):
     def basic09_text(self, indent_level):
         return self.indent_spaces(indent_level) + \
                f'PRINT {self._print_args.basic09_text(indent_level)}'
-    
+
     def visit(self, visitor):
         visitor.visit_statement(self)
         self._print_args.visit(visitor)
@@ -683,7 +712,7 @@ class BasicPrintArgs(AbstractBasicConstruct):
                 processed_args.append(' ')
 
         return ''.join(processed_args)
-    
+
     def visit(self, visitor):
         for arg in self._args:
             arg.visit(visitor)
@@ -697,7 +726,7 @@ class BasicSound(AbstractBasicStatement):
     def basic09_text(self, indent_level):
         return f'RUN ecb_sound({self._exp1.basic09_text(indent_level)}, ' \
             f'{self._exp2.basic09_text(indent_level)}, 31)'
-    
+
     def visit(self, visitor):
         visitor.visit_statement(self)
         self._exp1.visit(visitor)
@@ -712,7 +741,7 @@ class BasicCls(AbstractBasicStatement):
         return self.indent_spaces(indent_level) \
             + ('RUN ecb_cls(1)' if not self._exp else
                f'RUN ecb_cls({self._exp.basic09_text(indent_level)})')
-    
+
     def visit(self, visitor):
         visitor.visit_statement(self)
         if self._exp:
@@ -736,7 +765,7 @@ class BasicDataStatement(BasicStatement):
     def basic09_text(self, indent_level):
         return f'{self.indent_spaces(indent_level)}DATA ' \
                f'{self._exp_list.basic09_text(indent_level)}'
-    
+
     def visit(self, visitor):
         visitor.visit_statement(self)
 
@@ -747,7 +776,7 @@ class BasicKeywordStatement(BasicStatement):
 
     def basic09_text(self, indent_level):
         return f'{self.indent_spaces(indent_level)}{self._keyword}'
-    
+
     def visit(self, visitor):
         visitor.visit_statement(self)
 
@@ -766,7 +795,7 @@ class BasicForStatement(BasicStatement):
                f'{self._end_exp.basic09_text(indent_level)}' + \
                (f' STEP {self._step_exp.basic09_text(indent_level)}'
                 if self._step_exp else '')
-    
+
     def visit(self, visitor):
         visitor.visit_statement(self)
         visitor.visit_for_statement(self)
@@ -794,6 +823,47 @@ class BasicNextStatement(BasicStatement):
         visitor.visit_next_statement(self)
         for var in self.var_list.exp_list:
             var.visit(visitor)
+
+
+class BasicFunctionalExpression(AbstractBasicExpression):
+    def __init__(self, func, args, is_str_expr=False):
+        super().__init__(is_str_expr=is_str_expr)
+        self._func = func
+        self._args = args
+        self._var = None
+        self._statement = None
+
+    @property
+    def var(self):
+        return self._var
+
+    def set_var(self, var):
+        self._var = var
+        self._statement = BasicRunCall(
+            self._func, BasicExpressionList(self._args.exp_list + [var])
+        )
+
+    @property
+    def statement(self):
+        return self._statement
+
+    def basic09_text(self, indent_level):
+        return self._var.basic09_text(indent_level) if self._var else ''
+
+
+class ForNextVisitor(BasicConstructVisitor):
+    def __init__(self):
+        self._count = 0
+
+    @property
+    def count(self):
+        return self._count
+
+    def visit_for_statement(self, _):
+        self._count = self._count + 1
+
+    def visit_next_statement(self, next_statement):
+        self._count = self._count - len(next_statement.var_list.exp_list)
 
 
 class BasicVisitor(NodeVisitor):
@@ -943,6 +1013,20 @@ class BasicVisitor(NodeVisitor):
         func, _, _, _, exp, _, _, _ = visited_children
         return BasicFunctionCall(NUM_STR_FUNCTIONS[func.text],
                                  BasicExpressionList([exp]))
+
+    def visit_num_str_func_exp_statements(self, node, visited_children):
+        func, _, _, _, exp, _, _, _ = visited_children
+        return BasicFunctionalExpression(
+            NUM_STR_FUNCTIONS_TO_STATEMENTS[func.text],
+            BasicExpressionList([exp])
+        )
+
+    def visit_str_func_exp_statements(self, node, visited_children):
+        func, _, _, _, exp, _, _, _ = visited_children
+        return BasicFunctionalExpression(
+            STR_FUNCTIONS_TO_STATEMENTS[func.text],
+            BasicExpressionList([exp])
+        )
 
     def visit_str_simple_exp(self, node, visited_children):
         return visited_children[0]
@@ -1148,17 +1232,16 @@ class BasicVisitor(NodeVisitor):
         _, _, var, _ = visited_children
         return var
 
+    def visit_func_to_statements(self, node, visited_children):
+        func, _, _, _, exp, _, _, _ = visited_children
+        return BasicFunctionalExpression(
+            FUNCTIONS_TO_STATEMENTS[func.text],
+            BasicExpressionList([exp])
+        )
 
-class ForNextVisitor(BasicConstructVisitor):
-    def __init__(self):
-        self._count = 0
-    
-    @property
-    def count(self):
-        return self._count
-
-    def visit_for_statement(self, _):
-        self._count = self._count + 1
-
-    def visit_next_statement(self, next_statement):
-        self._count = self._count - len(next_statement.var_list.exp_list)
+    def visit_func_to_statements2(self, node, visited_children):
+        func, _, _, _, exp1, _, _, _, exp2, _, _, _ = visited_children
+        return BasicFunctionalExpression(
+            FUNCTIONS_TO_STATEMENTS2[func.text],
+            BasicExpressionList([exp1, exp2])
+        )
