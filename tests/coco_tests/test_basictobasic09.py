@@ -323,7 +323,7 @@ class TestBasicToBasic09(unittest.TestCase):
                 f'11{ecb_func}(1,2    , 3)',
                 f'11 {b09_func}(1, 2, 3)',
             )
-    
+
     def test_goto(self):
         self.generic_test_parse(
             f'11GOTO20',
@@ -334,4 +334,10 @@ class TestBasicToBasic09(unittest.TestCase):
         self.generic_test_parse(
             f'11GOSUB20',
             f'11 GOSUB 20',
+        )
+
+    def test_data(self):
+        self.generic_test_parse(
+            '10 DATA 1,2,3,FOO,BAR\n',
+            '10 DATA 1, 2, 3, "FOO", "BAR"'
         )

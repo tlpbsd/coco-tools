@@ -224,9 +224,15 @@ grammar = Grammar(
     go_statement    = ("GOTO" / "GOSUB") space* linenum space*
     functions       = ~r"{'|'.join(FUNCTIONS.keys())}"
     data_statement  = "DATA" space* data_elements space*
-    data_elements   = data_element data_element0*
+    data_elements   = data_element space* data_elements0
+    data_element    = data_num_element / data_str_element
+    data_elements0  = data_element0*
     data_element0   = "," space* data_element
-    data_element    = data_str_element / num_literal
+    data_num_element = space* data_num_element0 space*
+    data_num_element0 = (num_literal / hex_literal)
+    data_str_element = data_str_element0 / data_str_element1
+    data_str_element0 = space* str_literal space*
+    data_str_element1 = space* ~r'[^"\n]*'
     """  # noqa
 )
 
@@ -311,13 +317,18 @@ class BasicComment(AbstractBasicConstruct):
 
 
 class BasicExpressionList(AbstractBasicConstruct):
-    def __init__(self, exp_list):
+    def __init__(self, exp_list, parens=True):
         self._exp_list = exp_list
+        self._parens = parens
+
+    @property
+    def exp_list(self):
+        return self._exp_list
 
     def basic09_text(self, indent_level):
         exp_list_text = ', '.join(exp.basic09_text(indent_level)
                                   for exp in self._exp_list)
-        return f'({exp_list_text})'
+        return f'({exp_list_text})' if self._parens else f'{exp_list_text}'
 
 
 class BasicRunCall(AbstractBasicStatement):
@@ -341,7 +352,7 @@ class BasicGoto(AbstractBasicStatement):
     def implicit(self):
         return self._implicit
 
-    def basic09_text(self, indent_level):        
+    def basic09_text(self, indent_level):
         if self._is_gosub:
             return f'{self.indent_spaces(indent_level)}GOSUB {self._linenum}'
         return f'{self._linenum}' \
@@ -567,6 +578,15 @@ class BasicFunctionCall(AbstractBasicExpression):
     def basic09_text(self, indent_level):
         return f'{self._func}' \
                f'{self._args.basic09_text(indent_level)}'
+
+
+class BasicDataStatement(BasicStatement):
+    def __init__(self, exp_list):
+        self._exp_list = exp_list
+
+    def basic09_text(self, indent_level):
+        return f'{self.indent_spaces(indent_level)}DATA ' \
+               f'{self._exp_list.basic09_text(indent_level)}'
 
 
 class BasicVisitor(NodeVisitor):
@@ -839,8 +859,45 @@ class BasicVisitor(NodeVisitor):
         func, _, _, _, exp1, _, _, _, exp2, _, _, _, exp3, _, _, _ \
             = visited_children
         return BasicRunCall(STATEMENTS3[func.text],
-                           BasicExpressionList([exp1, exp2, exp3]))
+                            BasicExpressionList([exp1, exp2, exp3]))
 
     def visit_go_statement(self, node, visited_children):
         go, _, linenum, _ = visited_children
         return BasicGoto(linenum, False, is_gosub=go.text == 'GOSUB')
+
+    def visit_data_statement(self, node, visited_children):
+        _, _, exp_list, _ = visited_children
+        return BasicDataStatement(exp_list)
+
+    def visit_data_elements(self, node, visited_children):
+        data_element, _, data_elements = visited_children
+        return BasicExpressionList([data_element] + data_elements.exp_list,
+                                   parens=False)
+
+    def visit_data_element0(self, node, visited_children):
+        _, _, data_element = visited_children
+        return data_element
+
+    def visit_data_elements0(self, node, visited_children):
+        return BasicExpressionList(visited_children, parens=False)
+
+    def visit_data_element(self, node, visited_children):
+        return visited_children[0]
+
+    def visit_data_num_element(self, node, visited_children):
+        _, literal, _ = visited_children
+        return literal
+
+    def visit_data_num_element0(self, node, visited_children):
+        return visited_children[0]
+
+    def visit_data_str_element(self, node, visited_children):
+        return visited_children[0]
+
+    def visit_data_str_element0(self, node, visited_children):
+        _, literal, _ = visited_children
+        return literal
+
+    def visit_data_str_element1(self, node, visited_children):
+        _, literal, _ = visited_children
+        return BasicLiteral(literal.text)
