@@ -61,13 +61,17 @@ TAB, TAN, THEN, TO, VAL
   results in BASIC09 programs with errors.
 * Converting numeric values into a string formats the number with NO spaces
   and one decimal point, even if the value is an integer.
+* `NEXT AA, BB` is translated to
+```
+  NEXT AA
+NEXT BB
+```
 * Some constructs require introducing an intermediary variable including
   BUTTON, INKEY, JOYSTK and POINT.
-10 IF (INKEY$() + "") THEN 10 is converted into a construct that looks like:
+10 IF (INKEY$()="") THEN 10 is converted into a construct that looks like:
 ```
 10 RUN INKEY$(TMP1): IF TMP1 = "" THEN 10
 ```
-
 
 ## Unsupported Color BASIC constructs
 * These constructs are NOT supported by basictobasic09:

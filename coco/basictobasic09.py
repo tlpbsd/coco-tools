@@ -114,6 +114,7 @@ KEYWORDS = '|'.join(
         'PRINT',
         'REM',
         'SOUND',
+        'STEP',
     ), SINGLE_KEYWORD_STATEMENTS.keys(),
        FUNCTIONS.keys(),
        STR2_FUNCTIONS.keys(),
@@ -129,10 +130,10 @@ KEYWORDS = '|'.join(
 
 grammar = Grammar(
     rf"""
-    aaa_prog        = multi_lines maybe_line eof
-    multi_line      = line eol
-    multi_lines     = multi_line*
-    maybe_line      = line?
+    aaa_prog           = multi_line eol* eof
+    multi_line         = line space* multi_line_elements
+    multi_line_elements = multi_line_element*
+    multi_line_element  = eol+ line space*
     array_ref_exp   = var space* exp_list
     arr_assign      = array_ref_exp space* "=" space* exp
     str_array_ref_exp   = str_var space* exp_list
@@ -168,6 +169,9 @@ grammar = Grammar(
                     / statement3
                     / data_statement
                     / single_kw_statement
+                    / for_step_statement
+                    / for_statement
+                    / next_statement
     statement2      =({ ' / '.join(QUOTED_STATEMENTS2_NAMES)}) space* "(" space* exp space* "," space* exp space* ")" space*
     statement3      = ({ ' / '.join(QUOTED_STATEMENTS3_NAMES)}) space* "(" space* exp space* "," space* exp space* "," space* exp space* ")" space*
     statements      = (statement? (comment/((":"/space)+
@@ -216,8 +220,8 @@ grammar = Grammar(
     eol             = ~r"[\n\r]+"
     linenum         = ~r"[0-9]+"
     literal         = num_literal
-    hex_literal     = ~r"&\s*H\s*[0-9A-F][0-9A-F]?[0-9A-F]?[0-9A-F]?[0-9A-F]?[0-9A-F]?"
-    num_literal     = ~r"([\+\-\s]*(\d*\.\d*)(\s*(?!ELSE)E\s*[\+\-]?\s*\d*))|[\+\-\s]*(\d*\.\d*)|[\+\-\s]*(\d+(\s*(?!ELSE)E\s*[\+\-]?\s*\d*))|[\+\-\s]*(\d+)"
+    hex_literal     = ~r"& *H *[0-9A-F][0-9A-F]?[0-9A-F]?[0-9A-F]?[0-9A-F]?[0-9A-F]?"
+    num_literal     = ~r"([\+\- ]*(\d*\.\d*)( *(?!ELSE)E *[\+\-]? *\d*))|[\+\- ]*(\d*\.\d*)|[\+\- ]*(\d+( *(?!ELSE)E *[\+\-]? *\d*))|[\+\- ]*(\d+)"
     space           = ~r" "
     str_literal     = ~r'\"[^"\n]*\"'
     unop            = "+" / "-"
@@ -229,7 +233,7 @@ grammar = Grammar(
     print_arg0      = print_arg1 space*
     print_arg1      = print_control 
                     / print_arg
-    print_arg       = exp 
+    print_arg       = exp
                     / str_exp
     print_control   = ~r"(;|,)"
     sound           = "SOUND" space* exp space* "," space* exp space*
@@ -241,20 +245,26 @@ grammar = Grammar(
     data_element    = data_num_element / data_str_element
     data_elements0  = data_element0*
     data_element0   = "," space* data_element
-    data_num_element = space* data_num_element0 space*
-    data_num_element0 = (num_literal / hex_literal)
-    data_str_element = data_str_element0 / data_str_element1
-    data_str_element0 = space* str_literal space*
-    data_str_element1 = space* data_str_literal
-    data_str_literal  = ~r'[^",\n]*'
+    data_num_element    = space* data_num_element0 space*
+    data_num_element0   = (num_literal / hex_literal)
+    data_str_element    = data_str_element0 / data_str_element1
+    data_str_element0   = space* str_literal space*
+    data_str_element1   = space* data_str_literal
+    data_str_literal    = ~r'[^",\n]*'
     single_kw_statement = ({ ' / '.join(QUOTED_SINGLE_KEYWORD_STATEMENTS)}) space*
+    for_statement       = "FOR" space* var space* "=" space* exp space* "TO" space* exp space*
+    for_step_statement  = "FOR" space* var space* "=" space* exp space* "TO" space* exp space* "STEP" space* exp space*
+    next_statement      = "NEXT" space* var_list space*
+    var_list            = var space* var_list_elements
+    var_list_elements   = var_list_element*
+    var_list_element    = "," space* var space*
     """  # noqa
 )
 
 
 class AbstractBasicConstruct(ABC):
     def indent_spaces(self, indent_level):
-        return '    ' * indent_level
+        return '  ' * indent_level
 
     @abstractmethod
     def basic09_text(self, indent_level):
@@ -483,8 +493,16 @@ class BasicProg(AbstractBasicConstruct):
         self._lines = lines
 
     def basic09_text(self, indent_level):
-        retval = '\n'.join(line.basic09_text(indent_level)
-                           for line in self._lines)
+        lines = []
+        offset = 0
+        for line in self._lines:
+            if isinstance(line, BasicForStatement):
+                offset = offset + 1
+            if isinstance(line, BasicNextStatement):
+                offset = offset - len(line.var_list.exp_list)
+            lines.append(line.basic09_text(indent_level + offset))
+
+        retval = '\n'.join(lines)
         return retval
 
 
@@ -508,7 +526,8 @@ class BasicStatements(AbstractBasicStatement):
     def basic09_text(self, indent_level):
         joiner = ('\n' + self.indent_spaces(indent_level)) \
             if self._multi_line else r' \ '
-        return joiner.join(statement.basic09_text(indent_level)
+        net_indent_level = indent_level if self._multi_line else 0
+        return joiner.join(statement.basic09_text(net_indent_level)
                            for statement in self._statements)
 
 
@@ -613,6 +632,36 @@ class BasicKeywordStatement(BasicStatement):
         return f'{self.indent_spaces(indent_level)}{self._keyword}'
 
 
+class BasicForStatement(BasicStatement):
+    def __init__(self, var, start_exp, end_exp, step_exp=None):
+        self._var = var
+        self._start_exp = start_exp
+        self._end_exp = end_exp
+        self._step_exp = step_exp
+
+    def basic09_text(self, indent_level):
+        return f'{self.indent_spaces(indent_level)}FOR ' \
+               f'{self._var.basic09_text(indent_level)} = ' \
+               f'{self._start_exp.basic09_text(indent_level)} TO ' \
+               f'{self._end_exp.basic09_text(indent_level)}' + \
+               (f' STEP {self._step_exp.basic09_text(indent_level)}'
+                if self._step_exp else '')
+
+
+class BasicNextStatement(BasicStatement):
+    def __init__(self, var_list):
+        self._var_list = var_list
+
+    @property
+    def var_list(self):
+        return self._var_list
+
+    def basic09_text(self, indent_level):
+        vlist = [f'NEXT {var.basic09_text(indent_level)}'
+                 for var in self.var_list.exp_list]
+        return self.indent_spaces(indent_level) + r' \ '.join(vlist)
+
+
 class BasicVisitor(NodeVisitor):
     def generic_visit(self, node, visited_children):
         if node.text.strip() == '':
@@ -647,7 +696,7 @@ class BasicVisitor(NodeVisitor):
         return node
 
     def visit_aaa_prog(self, node, visited_children):
-        bp = BasicProg(chain(visited_children[0], visited_children[1]))
+        bp = BasicProg(visited_children[0])
         return bp
 
     def visit_arr_assign(self, node, visited_children):
@@ -764,17 +813,16 @@ class BasicVisitor(NodeVisitor):
     def visit_str_simple_exp(self, node, visited_children):
         return visited_children[0]
 
-    def visit_maybe_line(self, node, visited_children):
-        return (child for child in visited_children
-                if isinstance(child, BasicLine))
-
     def visit_multi_line(self, node, visited_children):
-        return next(child for child in visited_children
-                    if isinstance(child, BasicLine))
+        line0, _, line1 = visited_children
+        return [line0] + line1 if line1 else [line0]
 
-    def visit_multi_lines(self, node, visited_children):
-        return (child for child in visited_children
-                if isinstance(child, BasicLine))
+    def visit_multi_line_elements(self, node, visited_children):
+        return visited_children
+
+    def visit_multi_line_element(self, node, visited_children):
+        _, line, _ = visited_children
+        return line
 
     def visit_num_literal(self, node, visited_children):
         num_literal = node.full_text[node.start:node.end].replace(' ', '')
@@ -938,4 +986,30 @@ class BasicVisitor(NodeVisitor):
 
     def visit_single_kw_statement(self, node, visited_children):
         keyword, _ = visited_children
-        return BasicKeywordStatement(SINGLE_KEYWORD_STATEMENTS[keyword.text]) 
+        return BasicKeywordStatement(SINGLE_KEYWORD_STATEMENTS[keyword.text])
+
+    def visit_for_statement(self, node, visited_children):
+        _, _, var, _, _, _, exp1, _, _, _, exp2, _ = visited_children
+        return BasicForStatement(var, exp1, exp2)
+
+    def visit_for_step_statement(self, node, visited_children):
+        _, _, var, _, _, _, exp1, _, _, _, exp2, _, _, _, exp3, _ \
+            = visited_children
+        return BasicForStatement(var, exp1, exp2, step_exp=exp3)
+
+    def visit_next_statement(self, node, visited_children):
+        _, _, var_list, _ = visited_children
+        return BasicNextStatement(var_list)
+
+    def visit_var_list(self, node, visited_children):
+        var, _, var_list = visited_children
+        if var_list:
+            return BasicExpressionList([var] + var_list, parens=False)
+        return BasicExpressionList([var], parens=False)
+
+    def visit_var_list_elements(self, node, visited_children):
+        return visited_children
+
+    def visit_var_list_element(self, node, visited_children):
+        _, _, var, _ = visited_children
+        return var

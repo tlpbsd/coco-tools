@@ -20,7 +20,7 @@ class TestBasicToBasic09(unittest.TestCase):
         var = b09.BasicVar('HW')
         exp = b09.BasicLiteral(123)
         target = b09.BasicAssignment(var, exp)
-        assert target.basic09_text(1) == '    HW = 123'
+        assert target.basic09_text(1) == '  HW = 123'
 
     def test_basic_binary_exp(self):
         var = b09.BasicVar('HW')
@@ -35,20 +35,20 @@ class TestBasicToBasic09(unittest.TestCase):
     def test_comment_statement(self):
         comment = b09.BasicComment(' hello world ')
         target = b09.BasicStatement(comment)
-        assert target.basic09_text(2) == '        (* hello world  *)'
+        assert target.basic09_text(2) == '    (* hello world  *)'
 
     def test_comment_statements(self):
         comment = b09.BasicComment(' hello world ')
         statement = b09.BasicStatement(comment)
         target = b09.BasicStatements((statement,))
-        assert target.basic09_text(2) == '        (* hello world  *)'
+        assert target.basic09_text(2) == '    (* hello world  *)'
 
     def test_comment_lines(self):
         comment = b09.BasicComment(' hello world ')
         statement = b09.BasicStatement(comment)
         statements = b09.BasicStatements((statement,))
         target = b09.BasicLine(25, statements)
-        assert target.basic09_text(1) == '25     (* hello world  *)'
+        assert target.basic09_text(1) == '25   (* hello world  *)'
 
     def test_basic_float_literal(self):
         target = b09.BasicLiteral(123.0)
@@ -59,7 +59,7 @@ class TestBasicToBasic09(unittest.TestCase):
         assert target.basic09_text(1) == '123'
         assert target.implicit is True
         target = b09.BasicGoto(1234, False)
-        assert target.basic09_text(1) == '    GOTO 1234'
+        assert target.basic09_text(1) == '  GOTO 1234'
         assert target.implicit is False
 
     def test_if(self):
@@ -67,7 +67,7 @@ class TestBasicToBasic09(unittest.TestCase):
         exp = b09.BasicBinaryExp(strlit, '=', strlit)
         goto = b09.BasicGoto(123, True)
         target = b09.BasicIf(exp, goto)
-        assert target.basic09_text(1) == '    IF "HW" = "HW" THEN 123'
+        assert target.basic09_text(1) == '  IF "HW" = "HW" THEN 123'
 
     def test_basic_int_literal(self):
         target = b09.BasicLiteral(123)
@@ -102,7 +102,7 @@ class TestBasicToBasic09(unittest.TestCase):
 
     def test_parse_array_ref(self):
         self.generic_test_parse(
-            '10 A = B(123 - 1 - (2/2),1,2)',
+            '10 A = B(123 - 1 - (2/2),1,2)\n',
             '10 A = B(123 - 1 - (2 / 2), 1, 2)')
 
     def test_parse_array_assignment(self):
@@ -184,19 +184,19 @@ class TestBasicToBasic09(unittest.TestCase):
     def test_simple_if_statement(self):
         self.generic_test_parse(
             '1 IF A=1 THEN 2\n2 IF A<10 THEN B = B - 2 * 1',
-            '1 IF A = 1 THEN 2\n2 IF A < 10 THEN\n    B = B - 2 * 1\nENDIF')
+            '1 IF A = 1 THEN 2\n2 IF A < 10 THEN\n  B = B - 2 * 1\nENDIF')
 
     def test_binary_if_statement(self):
         self.generic_test_parse(
             '1 IF A=1 AND B=2 THEN 2\n2 IF A<10 THEN B = B - 2 * 1',
             '1 IF A = 1 AND B = 2 THEN 2\n2 IF A < 10 THEN\n'
-            '    B = B - 2 * 1\nENDIF')
+            '  B = B - 2 * 1\nENDIF')
 
     def test_paren_if_statement(self):
         self.generic_test_parse(
             '1 IF (A=1 AND B=2) THEN 2\n2 IF A<10 THEN B = B - 2 * 1',
             '1 IF (A = 1 AND B = 2) THEN 2\n2 IF A < 10 THEN\n'
-            '    B = B - 2 * 1\nENDIF')
+            '  B = B - 2 * 1\nENDIF')
 
     def test_simple_print_statement(self):
         self.generic_test_parse(
@@ -351,8 +351,66 @@ class TestBasicToBasic09(unittest.TestCase):
                 f'11 {b09_func}',
             )
 
+    def test_print(self):
+        self.generic_test_parse(
+            '11PRINT"HELLO WORLD"',
+            '11 PRINT "HELLO WORLD"'
+        )
+
     def test_print_at(self):
         self.generic_test_parse(
-            f'11PRINT@32,"HELLO WORLD"',
-            f'11 RUN ecb_at(32) \ PRINT "HELLO WORLD"'
+            '11PRINT@32,"HELLO WORLD"',
+            '11 RUN ecb_at(32) \\ PRINT "HELLO WORLD"'
+        )
+
+    def test_for(self):
+        self.generic_test_parse(
+            '11FORII=1TO20',
+            '11 FOR II = 1 TO 20'
+        )
+
+    def test_for_step(self):
+        self.generic_test_parse(
+            '11FORII=1TO20STEP30',
+            '11 FOR II = 1 TO 20 STEP 30'
+        )
+
+    def test_next(self):
+        self.generic_test_parse(
+            '10NEXTJJ',
+            '10 NEXT JJ'
+        )
+
+    def test_multiline(self):
+        self.generic_test_parse(
+            '10 PRINT "HELLO"\n'
+            '20 A = 2',
+            '10 PRINT "HELLO"\n'
+            '20 A = 2'
+        )
+
+    def test_multiline2(self):
+        self.generic_test_parse(
+            '10 REM Hello World\n'
+            '20 CLS 5\n'
+            '30 PRINT "HELLO"\n'
+            '40 B = 2',
+            '10 (* Hello World *)\n'
+            '20 RUN ecb_cls(5)\n'
+            '30 PRINT "HELLO"\n'
+            '40 B = 2'
+        )
+
+    def test_for_next(self):
+        self.generic_test_parse(
+            '10 FOR YY=1 TO 20 STEP 1\n'
+            '20 FOR XX=1 TO 20 STEP 1\n'
+            '30 PRINT XX, YY\n'
+            '40 NEXT XX, YY\n'
+            '50 PRINT "HELLO"',
+            '10 FOR YY = 1 TO 20 STEP 1\n'
+            '20   FOR XX = 1 TO 20 STEP 1\n'
+            '30     PRINT XX, YY\n'
+            '40 NEXT XX \\ NEXT YY\n'
+            '50 PRINT "HELLO"'
         )
