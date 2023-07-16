@@ -232,7 +232,8 @@ grammar = Grammar(
     data_num_element0 = (num_literal / hex_literal)
     data_str_element = data_str_element0 / data_str_element1
     data_str_element0 = space* str_literal space*
-    data_str_element1 = space* ~r'[^"\n]*'
+    data_str_element1 = space* data_str_literal
+    data_str_literal  = ~r'[^",\n]*'
     """  # noqa
 )
 
@@ -899,5 +900,8 @@ class BasicVisitor(NodeVisitor):
         return literal
 
     def visit_data_str_element1(self, node, visited_children):
-        _, literal, _ = visited_children
-        return BasicLiteral(literal.text)
+        _, literal = visited_children
+        return literal
+
+    def visit_data_str_literal(self, node, visited_children):
+        return BasicLiteral(node.text)

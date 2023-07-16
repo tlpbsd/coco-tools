@@ -338,6 +338,8 @@ class TestBasicToBasic09(unittest.TestCase):
 
     def test_data(self):
         self.generic_test_parse(
-            '10 DATA 1,2,3,FOO,BAR\n',
-            '10 DATA 1, 2, 3, "FOO", "BAR"'
+            '10 DATA 1,2,3,"",,"FOO","BAR", BAZ  \n'
+            '20 DATA   , ',
+            '10 DATA 1, 2, 3, "", "", "FOO", "BAR", "BAZ  "\n'
+            '20 DATA "", ""'
         )
