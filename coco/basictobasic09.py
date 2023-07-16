@@ -3,6 +3,15 @@ from itertools import chain, islice
 from parsimonious.grammar import Grammar
 from parsimonious.nodes import Node, NodeVisitor
 
+SINGLE_KEYWORD_STATEMENTS = {
+    'RETURN': 'RETURN',
+    'RESTORE': 'RESTORE',
+}
+
+QUOTED_SINGLE_KEYWORD_STATEMENTS = [
+    '"' + name + '"' for name in SINGLE_KEYWORD_STATEMENTS.keys()
+]
+
 FUNCTIONS = {
     'ABS': 'ABS',
     'ASC': 'ASC',
@@ -105,7 +114,8 @@ KEYWORDS = '|'.join(
         'PRINT',
         'REM',
         'SOUND',
-    ), FUNCTIONS.keys(),
+    ), SINGLE_KEYWORD_STATEMENTS.keys(),
+       FUNCTIONS.keys(),
        STR2_FUNCTIONS.keys(),
        STR3_FUNCTIONS.keys(),
        STR_NUM_FUNCTIONS.keys(),
@@ -156,6 +166,7 @@ grammar = Grammar(
                     / statement2
                     / statement3
                     / data_statement
+                    / single_kw_statement
     statement2      =({ ' / '.join(QUOTED_STATEMENTS2_NAMES)}) space* "(" space* exp space* "," space* exp space* ")" space*
     statement3      = ({ ' / '.join(QUOTED_STATEMENTS3_NAMES)}) space* "(" space* exp space* "," space* exp space* "," space* exp space* ")" space*
     statements      = (statement? (comment/((":"/space)+
@@ -234,6 +245,7 @@ grammar = Grammar(
     data_str_element0 = space* str_literal space*
     data_str_element1 = space* data_str_literal
     data_str_literal  = ~r'[^",\n]*'
+    single_kw_statement = ({ ' / '.join(QUOTED_SINGLE_KEYWORD_STATEMENTS)}) space*
     """  # noqa
 )
 
@@ -590,6 +602,14 @@ class BasicDataStatement(BasicStatement):
                f'{self._exp_list.basic09_text(indent_level)}'
 
 
+class BasicKeywordStatement(BasicStatement):
+    def __init__(self, keyword):
+        self._keyword = keyword
+
+    def basic09_text(self, indent_level):
+        return f'{self.indent_spaces(indent_level)}{self._keyword}'
+
+
 class BasicVisitor(NodeVisitor):
     def generic_visit(self, node, visited_children):
         if node.text.strip() == '':
@@ -905,3 +925,7 @@ class BasicVisitor(NodeVisitor):
 
     def visit_data_str_literal(self, node, visited_children):
         return BasicLiteral(node.text)
+
+    def visit_single_kw_statement(self, node, visited_children):
+        keyword, _ = visited_children
+        return BasicKeywordStatement(SINGLE_KEYWORD_STATEMENTS[keyword.text]) 

@@ -343,3 +343,10 @@ class TestBasicToBasic09(unittest.TestCase):
             '10 DATA 1, 2, 3, "", "", "FOO", "BAR", "BAZ  "\n'
             '20 DATA "", ""'
         )
+
+    def test_single_kw_statements(self):
+        for ecb_func, b09_func in b09.SINGLE_KEYWORD_STATEMENTS.items():
+            self.generic_test_parse(
+                f'11{ecb_func}',
+                f'11 {b09_func}',
+            )
