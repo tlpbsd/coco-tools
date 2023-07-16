@@ -443,3 +443,15 @@ class TestBasicToBasic09(unittest.TestCase):
                 f'11X$={ecb_func}(1)',
                 f'11 {b09_func}(1, X$)',
             )
+
+    def test_joystk(self):
+        self.generic_test_parse(
+            f'11 PRINT JOYSTK(1)',
+            f'11 RUN ecb_joystk(1, tmp1) \\ PRINT tmp1'
+        )
+
+    def test_hex(self):
+        self.generic_test_parse(
+            f'11 PRINT HEX$(1)',
+            f'11 RUN ecb_hex(1, tmp1$) \\ PRINT tmp1$'
+        )

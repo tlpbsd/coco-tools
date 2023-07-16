@@ -321,9 +321,11 @@ class AbstractBasicConstruct(ABC):
         """Return the Basic09 text that represents this construct"""
         pass
 
+    @property
     def is_expr(self):
         return False
 
+    @property
     def is_str_expr(self):
         return False
 
@@ -335,8 +337,13 @@ class AbstractBasicExpression(AbstractBasicConstruct):
     def __init__(self, is_str_expr=False):
         self._is_str_expr = is_str_expr
 
+    @property
     def is_expr(self):
         return True
+
+    @property
+    def is_str_expr(self):
+        return self._is_str_expr
 
 
 class AbstractBasicStatement(AbstractBasicConstruct):
@@ -347,12 +354,17 @@ class AbstractBasicStatement(AbstractBasicConstruct):
 
     def get_new_temp(self, is_str_exp):
         if is_str_exp:
-            val = f'tmp{len(self._temps) + 1}'
-            self._temps.add(val)
-        else:
             val = f'tmp{len(self._temps) + 1}$'
             self._str_temps.add(val)
-        return val
+        else:
+            val = f'tmp{len(self._temps) + 1}'
+            self._temps.add(val)
+
+        return BasicVar(val, is_str_expr=is_str_exp)
+
+    def transform_function_to_call(self, exp):
+        exp.set_var(self.get_new_temp(exp.is_str_expr))
+        self.pre_assignment_statements.append(exp.statement)
 
     @property
     def pre_assignment_statements(self):
@@ -361,8 +373,9 @@ class AbstractBasicStatement(AbstractBasicConstruct):
     def basic09_text(self, indent_level):
         pre_assignments = BasicStatements(self._pre_assignment_statements,
                                           multi_line=False)
-        return f'{self.indent_spaces(indent_level)}' \
-               f'{pre_assignments.basic09_text(indent_level)}'
+        return f'{self.indent_spaces(indent_level)}' + \
+               f'{pre_assignments.basic09_text(indent_level)}' + \
+               (r' \ ' if self._pre_assignment_statements else '')
 
 
 class BasicArrayRef(AbstractBasicExpression):
@@ -787,7 +800,8 @@ class BasicCls(AbstractBasicStatement):
 
 
 class BasicFunctionCall(AbstractBasicExpression):
-    def __init__(self, func, args):
+    def __init__(self, func, args, is_str_expr=False):
+        super().__init__(is_str_expr=is_str_expr)
         self._func = func
         self._args = args
 
@@ -913,6 +927,7 @@ class BasicFunctionalExpressionPatcherVisitor(BasicConstructVisitor):
     def visit_exp(self, exp):
         if not isinstance(exp, BasicFunctionalExpression) or exp.var:
             return
+        self._statement.transform_function_to_call(exp)
 
 
 class ForNextVisitor(BasicConstructVisitor):
@@ -1059,37 +1074,42 @@ class BasicVisitor(NodeVisitor):
                 return visited_children[0]
             if isinstance(v2, str) and isinstance(v3, str):
                 return visited_children[0]
-            return BasicBinaryExp(v1, v3.operator, v3.exp, True)
+            return BasicBinaryExp(v1, v3.operator, v3.exp, is_str_expr=True)
         return node
 
     def visit_str2_func_exp(self, node, visited_children):
         func, _, _, _, str_exp, _, _, _, exp, _, _, _ = visited_children
         return BasicFunctionCall(STR2_FUNCTIONS[func.text],
-                                 BasicExpressionList([str_exp, exp]))
+                                 BasicExpressionList([str_exp, exp]),
+                                 is_str_expr=True)
 
     def visit_str3_func_exp(self, node, visited_children):
         func, _, _, _, str_exp, _, _, _, exp1, _, _, _, exp2, _, _, _ \
             = visited_children
         return BasicFunctionCall(STR3_FUNCTIONS[func.text],
-                                 BasicExpressionList([str_exp, exp1, exp2]))
+                                 BasicExpressionList([str_exp, exp1, exp2]),
+                                 is_str_expr=True)
 
     def visit_num_str_func_exp(self, node, visited_children):
         func, _, _, _, exp, _, _, _ = visited_children
         return BasicFunctionCall(NUM_STR_FUNCTIONS[func.text],
-                                 BasicExpressionList([exp]))
+                                 BasicExpressionList([exp]),
+                                 is_str_expr=True)
 
     def visit_num_str_func_exp_statements(self, node, visited_children):
         func, _, _, _, exp, _, _, _ = visited_children
         return BasicFunctionalExpression(
             NUM_STR_FUNCTIONS_TO_STATEMENTS[func.text],
-            BasicExpressionList([exp])
+            BasicExpressionList([exp]),
+            is_str_expr=True
         )
 
     def visit_str_func_exp_statements(self, node, visited_children):
         func, _, _, _, exp, _, _, _ = visited_children
         return BasicFunctionalExpression(
             STR_FUNCTIONS_TO_STATEMENTS[func.text],
-            BasicExpressionList([exp])
+            BasicExpressionList([exp]),
+            is_str_expr=True
         )
 
     def visit_str_simple_exp(self, node, visited_children):
@@ -1158,7 +1178,8 @@ class BasicVisitor(NodeVisitor):
                                if isinstance(child, AbstractBasicConstruct)])
 
     def visit_str_literal(self, node, visited_children):
-        return BasicLiteral(str(node.full_text[node.start+1:node.end-1]), True)
+        return BasicLiteral(str(node.full_text[node.start+1:node.end-1]),
+                            is_str_expr=True)
 
     def visit_num_sum_exp(self, node, visited_children):
         return self.visit_num_prod_exp(node, visited_children)
