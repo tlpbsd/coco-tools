@@ -97,6 +97,7 @@ class TestBasicToBasic09(unittest.TestCase):
         tree = b09.grammar.parse(progin)
         bv = b09.BasicVisitor()
         basic_prog = bv.visit(tree)
+        basic_prog.visit(b09.BasicFunctionalExpressionPatcherVisitor())
         b09_prog = basic_prog.basic09_text(0)
         assert b09_prog == progout
 

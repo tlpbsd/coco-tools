@@ -340,7 +340,29 @@ class AbstractBasicExpression(AbstractBasicConstruct):
 
 
 class AbstractBasicStatement(AbstractBasicConstruct):
-    pass
+    def __init__(self):
+        self._pre_assignment_statements = []
+        self._temps = set()
+        self._str_temps = set()
+
+    def get_new_temp(self, is_str_exp):
+        if is_str_exp:
+            val = f'tmp{len(self._temps) + 1}'
+            self._temps.add(val)
+        else:
+            val = f'tmp{len(self._temps) + 1}$'
+            self._str_temps.add(val)
+        return val
+
+    @property
+    def pre_assignment_statements(self):
+        return self._pre_assignment_statements
+
+    def basic09_text(self, indent_level):
+        pre_assignments = BasicStatements(self._pre_assignment_statements,
+                                          multi_line=False)
+        return f'{self.indent_spaces(indent_level)}' \
+               f'{pre_assignments.basic09_text(indent_level)}'
 
 
 class BasicArrayRef(AbstractBasicExpression):
@@ -361,16 +383,24 @@ class BasicArrayRef(AbstractBasicExpression):
 
 class BasicAssignment(AbstractBasicStatement):
     def __init__(self, var, exp):
+        super().__init__()
         self._var = var
         self._exp = exp
 
+    @property
+    def var(self):
+        return self._var
+
+    @property
+    def exp(self):
+        return self._exp
+
     def basic09_text(self, indent_level):
         if isinstance(self._exp, BasicFunctionalExpression):
-            self._exp.set_var(self._var)
-            return f'{self.indent_spaces(indent_level)}' \
+            return f'{super().basic09_text(indent_level)}' \
                    f'{self._exp.statement.basic09_text(indent_level)}'
 
-        return f'{self.indent_spaces(indent_level)}' \
+        return f'{super().basic09_text(indent_level)}' \
                f'{self._var.basic09_text(indent_level)} = ' \
                f'{self._exp.basic09_text(indent_level)}'
 
@@ -439,11 +469,12 @@ class BasicExpressionList(AbstractBasicConstruct):
 
 class BasicRunCall(AbstractBasicStatement):
     def __init__(self, run_invocation, arguments):
+        super().__init__()
         self._run_invocation = run_invocation
         self._arguments = arguments
 
     def basic09_text(self, indent_level):
-        return f'{self.indent_spaces(indent_level)}' \
+        return f'{super().basic09_text(indent_level)}' \
                f'{self._run_invocation}' \
                f'{self._arguments.basic09_text(indent_level)}'
 
@@ -454,6 +485,7 @@ class BasicRunCall(AbstractBasicStatement):
 
 class BasicGoto(AbstractBasicStatement):
     def __init__(self, linenum, implicit, is_gosub=False):
+        super().__init__()
         self._linenum = linenum
         self._implicit = implicit
         self._is_gosub = is_gosub
@@ -464,10 +496,10 @@ class BasicGoto(AbstractBasicStatement):
 
     def basic09_text(self, indent_level):
         if self._is_gosub:
-            return f'{self.indent_spaces(indent_level)}GOSUB {self._linenum}'
+            return f'{super().basic09_text(indent_level)}GOSUB {self._linenum}'
         return f'{self._linenum}' \
             if self._implicit \
-            else f'{self.indent_spaces(indent_level)}GOTO {self._linenum}'
+            else f'{super().basic09_text(indent_level)}GOTO {self._linenum}'
 
     def visit(self, visitor):
         visitor.visit_statement(self)
@@ -476,17 +508,18 @@ class BasicGoto(AbstractBasicStatement):
 
 class BasicIf(AbstractBasicStatement):
     def __init__(self, exp, statements):
+        super().__init__()
         self._exp = exp
         self._statements = statements
 
     def basic09_text(self, indent_level):
         if (isinstance(self._statements, BasicGoto) and
                 self._statements.implicit):
-            return f'{self.indent_spaces(indent_level)}' \
+            return f'{super().basic09_text(indent_level)}' \
                    f'IF {self._exp.basic09_text(indent_level)} ' \
                    f'THEN {self._statements.basic09_text(0)}'
         else:
-            return f'{self.indent_spaces(indent_level)}' \
+            return f'{super().basic09_text(indent_level)}' \
                    f'IF {self._exp.basic09_text(indent_level)} THEN\n' \
                    f'{self._statements.basic09_text(indent_level + 1)}\n' \
                    f'ENDIF'
@@ -621,10 +654,11 @@ class BasicProg(AbstractBasicConstruct):
 
 class BasicStatement(AbstractBasicStatement):
     def __init__(self, basic_construct):
+        super().__init__()
         self._basic_construct = basic_construct
 
     def basic09_text(self, indent_level):
-        return self.indent_spaces(indent_level) + \
+        return super().basic09_text(indent_level) + \
                self._basic_construct.basic09_text(indent_level)
 
     def visit(self, visitor):
@@ -633,6 +667,7 @@ class BasicStatement(AbstractBasicStatement):
 
 class BasicStatements(AbstractBasicStatement):
     def __init__(self, statements, multi_line=True):
+        super().__init__()
         self._statements = statements
         self._multi_line = multi_line
 
@@ -648,7 +683,6 @@ class BasicStatements(AbstractBasicStatement):
                            for statement in self._statements)
 
     def visit(self, visitor):
-        visitor.visit_statement(self)
         for statement in self.statements:
             statement.visit(visitor)
 
@@ -670,10 +704,11 @@ class BasicVar(AbstractBasicExpression):
 
 class BasicPrintStatement(AbstractBasicStatement):
     def __init__(self, print_args):
+        super().__init__()
         self._print_args = print_args
 
     def basic09_text(self, indent_level):
-        return self.indent_spaces(indent_level) + \
+        return super().basic09_text(indent_level) + \
                f'PRINT {self._print_args.basic09_text(indent_level)}'
 
     def visit(self, visitor):
@@ -720,11 +755,13 @@ class BasicPrintArgs(AbstractBasicConstruct):
 
 class BasicSound(AbstractBasicStatement):
     def __init__(self, exp1, exp2):
+        super().__init__()
         self._exp1 = exp1
         self._exp2 = exp2
 
     def basic09_text(self, indent_level):
-        return f'RUN ecb_sound({self._exp1.basic09_text(indent_level)}, ' \
+        return f'{super().basic09_text(indent_level)}' \
+            f'RUN ecb_sound({self._exp1.basic09_text(indent_level)}, ' \
             f'{self._exp2.basic09_text(indent_level)}, 31)'
 
     def visit(self, visitor):
@@ -735,10 +772,11 @@ class BasicSound(AbstractBasicStatement):
 
 class BasicCls(AbstractBasicStatement):
     def __init__(self, exp=None):
+        super().__init__()
         self._exp = exp
 
     def basic09_text(self, indent_level):
-        return self.indent_spaces(indent_level) \
+        return super().basic09_text(indent_level) \
             + ('RUN ecb_cls(1)' if not self._exp else
                f'RUN ecb_cls({self._exp.basic09_text(indent_level)})')
 
@@ -758,38 +796,41 @@ class BasicFunctionCall(AbstractBasicExpression):
                f'{self._args.basic09_text(indent_level)}'
 
 
-class BasicDataStatement(BasicStatement):
+class BasicDataStatement(AbstractBasicStatement):
     def __init__(self, exp_list):
+        super().__init__()
         self._exp_list = exp_list
 
     def basic09_text(self, indent_level):
-        return f'{self.indent_spaces(indent_level)}DATA ' \
+        return f'{super().basic09_text(indent_level)}DATA ' \
                f'{self._exp_list.basic09_text(indent_level)}'
 
     def visit(self, visitor):
         visitor.visit_statement(self)
 
 
-class BasicKeywordStatement(BasicStatement):
+class BasicKeywordStatement(AbstractBasicStatement):
     def __init__(self, keyword):
+        super().__init__()
         self._keyword = keyword
 
     def basic09_text(self, indent_level):
-        return f'{self.indent_spaces(indent_level)}{self._keyword}'
+        return f'{super().basic09_text(indent_level)}{self._keyword}'
 
     def visit(self, visitor):
         visitor.visit_statement(self)
 
 
-class BasicForStatement(BasicStatement):
+class BasicForStatement(AbstractBasicStatement):
     def __init__(self, var, start_exp, end_exp, step_exp=None):
+        super().__init__()
         self._var = var
         self._start_exp = start_exp
         self._end_exp = end_exp
         self._step_exp = step_exp
 
     def basic09_text(self, indent_level):
-        return f'{self.indent_spaces(indent_level - 1)}FOR ' \
+        return f'{super().basic09_text(indent_level - 1)}FOR ' \
                f'{self._var.basic09_text(indent_level)} = ' \
                f'{self._start_exp.basic09_text(indent_level)} TO ' \
                f'{self._end_exp.basic09_text(indent_level)}' + \
@@ -805,8 +846,9 @@ class BasicForStatement(BasicStatement):
             self._step_exp.visit(visitor)
 
 
-class BasicNextStatement(BasicStatement):
+class BasicNextStatement(AbstractBasicStatement):
     def __init__(self, var_list):
+        super().__init__()
         self._var_list = var_list
 
     @property
@@ -816,7 +858,7 @@ class BasicNextStatement(BasicStatement):
     def basic09_text(self, indent_level):
         vlist = [f'NEXT {var.basic09_text(indent_level)}'
                  for var in self.var_list.exp_list]
-        return self.indent_spaces(indent_level) + r' \ '.join(vlist)
+        return super().basic09_text(indent_level) + r' \ '.join(vlist)
 
     def visit(self, visitor):
         visitor.visit_statement(self)
@@ -849,6 +891,28 @@ class BasicFunctionalExpression(AbstractBasicExpression):
 
     def basic09_text(self, indent_level):
         return self._var.basic09_text(indent_level) if self._var else ''
+
+    def visit(self, visitor):
+        if self._var:
+            self._statement.visit(visitor)
+            self._var.visit(visitor)
+        else:
+            visitor.visit_exp(self)
+
+
+class BasicFunctionalExpressionPatcherVisitor(BasicConstructVisitor):
+    def __init__(self):
+        self._statement = None
+
+    def visit_statement(self, statement):
+        self._statement = statement
+        if isinstance(statement, BasicAssignment) and \
+           isinstance(statement.exp, BasicFunctionalExpression):
+            statement.exp.set_var(statement.var)
+
+    def visit_exp(self, exp):
+        if not isinstance(exp, BasicFunctionalExpression) or exp.var:
+            return
 
 
 class ForNextVisitor(BasicConstructVisitor):
