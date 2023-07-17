@@ -119,6 +119,7 @@ QUOTED_STR_FUNCTIONS_TO_STATEMENTS_NAMES = [
 KEYWORDS = '|'.join(
     chain((
         'AND',
+        'DIM',
         'CLS',
         'ELSE',
         'FOR',
@@ -188,6 +189,9 @@ grammar = Grammar(
                     / for_step_statement
                     / for_statement
                     / next_statement
+                    / dim3_statement
+                    / dim2_statement
+                    / dim1_statement
     statement2      =({ ' / '.join(QUOTED_STATEMENTS2_NAMES)}) space* "(" space* exp space* "," space* exp space* ")" space*
     statement3      = ({ ' / '.join(QUOTED_STATEMENTS3_NAMES)}) space* "(" space* exp space* "," space* exp space* "," space* exp space* ")" space*
     statements      = (statement? (comment/((":"/space)+
@@ -282,6 +286,9 @@ grammar = Grammar(
     var_list_element    = "," space* var space*
     func_to_statements  = ({ ' / '.join(QUOTED_FUNCTIONS_TO_STATEMENTS_NAMES)}) space* "(" space* exp space* ")" space*
     func_to_statements2 = ({ ' / '.join(QUOTED_FUNCTIONS_TO_STATEMENTS2_NAMES)}) space* "(" space* exp space* "," space* exp space*")" space*
+    dim1_statement      = "DIM" space* (str_var / var) space* "(" space* data_num_element0 space* ")" space*
+    dim2_statement      = "DIM" space* (str_var / var) space* "(" space* data_num_element0 space* "," space* data_num_element0 space* ")" space*
+    dim3_statement      = "DIM" space* (str_var / var) space* "(" space* data_num_element0 space* "," space* data_num_element0 space* "," space* data_num_element0 space* ")" space*
     """  # noqa
 )
 
@@ -300,6 +307,9 @@ class BasicConstructVisitor():
         pass
 
     def visit_var(self, var):
+        pass
+
+    def visit_array_ref(self, var):
         pass
 
     def visit_go_statement(self, go_statement):
@@ -381,15 +391,23 @@ class AbstractBasicStatement(AbstractBasicConstruct):
 class BasicArrayRef(AbstractBasicExpression):
     def __init__(self, var, indices, is_str_expr=False):
         super().__init__(is_str_expr=is_str_expr)
-        self._var = var
+        self._var = BasicVar(f'arr_{var.name()}', is_str_expr=is_str_expr)
         self._indices = indices
+
+    @property
+    def var(self):
+        return self._var
+
+    @property
+    def indices(self):
+        return self._indices
 
     def basic09_text(self, indent_level):
         return f'{self._var.basic09_text(indent_level)}' \
                f'{self._indices.basic09_text(indent_level)}'
 
     def visit(self, visitor):
-        self._var.visit(visitor)
+        visitor.visit_array_ref(self)
         for index in self._indices.exp_list:
             index.visit(visitor)
 
@@ -507,6 +525,10 @@ class BasicGoto(AbstractBasicStatement):
     def implicit(self):
         return self._implicit
 
+    @property
+    def linenum(self):
+        return self._linenum
+
     def basic09_text(self, indent_level):
         if self._is_gosub:
             return f'{super().basic09_text(indent_level)}GOSUB {self._linenum}'
@@ -547,10 +569,24 @@ class BasicLine(AbstractBasicConstruct):
     def __init__(self, num, statements):
         self._num = num
         self._statements = statements
+        self._is_referenced = True
+
+    @property
+    def num(self):
+        return self._num
+
+    @property
+    def is_referenced(self):
+        return self._is_referenced
+
+    def set_is_referenced(self, val):
+        self._is_referenced = val
 
     def basic09_text(self, indent_level):
-        return f'{str(self._num)} ' \
-               f'{self._statements.basic09_text(indent_level)}'
+        if self._is_referenced and self._num is not None:
+            return f'{self._num} ' \
+                   f'{self._statements.basic09_text(indent_level)}'
+        return f'{self._statements.basic09_text(indent_level)}'
 
     def visit(self, visitor):
         visitor.visit_line(self)
@@ -648,11 +684,15 @@ class BasicBooleanParenExp(BasicParenExp):
 class BasicProg(AbstractBasicConstruct):
     def __init__(self, lines):
         self._lines = lines
+        self._prefix_lines = []
+
+    def set_prefix_lines(self, prefix_lines):
+        self._prefix_lines = prefix_lines
 
     def basic09_text(self, indent_level):
         lines = []
         nest_counter = ForNextVisitor()
-        for line in self._lines:
+        for line in chain(self._prefix_lines, self._lines):
             line.visit(nest_counter)
             lines.append(line.basic09_text(nest_counter.count))
 
@@ -687,6 +727,9 @@ class BasicStatements(AbstractBasicStatement):
     @property
     def statements(self):
         return self._statements
+
+    def set_statements(self, statements):
+        self._statements = statements
 
     def basic09_text(self, indent_level):
         joiner = ('\n' + self.indent_spaces(indent_level)) \
@@ -914,6 +957,59 @@ class BasicFunctionalExpression(AbstractBasicExpression):
             visitor.visit_exp(self)
 
 
+class BasicDimStatement(AbstractBasicStatement):
+    def __init__(self, var, sizes):
+        super().__init__()
+        self._array_ref = BasicArrayRef(
+            var, sizes, is_str_expr=var.is_str_expr
+        )
+
+    def basic09_text(self, indent_level):
+        for_statements = (
+            BasicForStatement(
+                BasicVar(f'tmp{ii + 1}'),
+                BasicLiteral(1),
+                index
+            )
+            for ii, index in enumerate(self._array_ref.indices.exp_list)
+        )
+        next_statements = (
+            BasicNextStatement(BasicExpressionList([BasicVar(f'tmp{ii}')]))
+            for ii in range(len(self._array_ref.indices.exp_list), 0, -1)
+        )
+        init_val = BasicLiteral(
+            '' if self._array_ref.is_str_expr else 0,
+            is_str_expr=self._array_ref.is_str_expr
+        )
+        var = BasicVar(self._array_ref._var.name()[4:],
+                       self._array_ref._var.is_str_expr)
+
+        assignment = \
+            BasicAssignment(
+                BasicArrayRef(
+                    var,
+                    BasicExpressionList(
+                        (
+                            BasicVar(f'tmp{ii}')
+                            for ii in range(
+                                1, len(self._array_ref.indices.exp_list) + 1
+                            )
+                        )
+                    )
+                ),
+                init_val
+            )
+
+        init = BasicStatements(
+            chain(for_statements, (assignment, ), next_statements),
+            multi_line=False
+        )
+
+        return f'{super().basic09_text(indent_level)}' \
+               f'DIM {self._array_ref.basic09_text(indent_level)} \\ ' \
+               f'{init.basic09_text(0)}'
+
+
 class BasicFunctionalExpressionPatcherVisitor(BasicConstructVisitor):
     def __init__(self):
         self._statement = None
@@ -943,6 +1039,51 @@ class ForNextVisitor(BasicConstructVisitor):
 
     def visit_next_statement(self, next_statement):
         self._count = self._count - len(next_statement.var_list.exp_list)
+
+
+class LineReferenceVisitor(BasicConstructVisitor):
+    def __init__(self):
+        self._references = set()
+
+    @property
+    def references(self):
+        return self._references
+
+    def visit_go_statement(self, go_statement):
+        self.references.add(go_statement.linenum)
+
+
+class LineNumberFilterVisitor(BasicConstructVisitor):
+    def __init__(self, references):
+        self._references = references
+
+    def visit_line(self, line):
+        line.set_is_referenced(line.num in self._references)
+
+
+class VarInitializerVisitor(BasicConstructVisitor):
+    def __init__(self):
+        self._vars = set()
+
+    @property
+    def assignment_lines(self):
+        return [
+            BasicLine(
+                None,
+                BasicStatements([
+                    BasicAssignment(
+                        BasicVar(var, is_str_expr=(var[-1] == '$')),
+                        BasicLiteral(
+                            '' if (var[-1] == '$') else 0,
+                            is_str_expr=(var[-1] == '$')
+                        )
+                    )
+                    for var in sorted(self._vars)
+                ])
+            )]
+
+    def visit_var(self, var):
+        self._vars.add(var.name())
 
 
 class BasicVisitor(NodeVisitor):
@@ -1330,3 +1471,45 @@ class BasicVisitor(NodeVisitor):
             FUNCTIONS_TO_STATEMENTS2[func.text],
             BasicExpressionList([exp1, exp2])
         )
+
+    def visit_dim1_statement(self, node, visited_children):
+        _, _, var, _, _, _, size, _, _, _ = visited_children
+        return BasicDimStatement(var, BasicExpressionList([size]))
+
+    def visit_dim2_statement(self, node, visited_children):
+        _, _, var, _, _, _, size0, _, _, _, size1, _, _, _ = visited_children
+        return BasicDimStatement(var, BasicExpressionList([size0, size1]))
+
+    def visit_dim3_statement(self, node, visited_children):
+        _, _, var, _, _, _, size0, _, _, _, size1, _, _, _, size2, \
+            _, _, _ = visited_children
+        return BasicDimStatement(var,
+                                 BasicExpressionList([size0, size1, size2]))
+
+
+def convert(progin,
+            filter_unused_linenum=False,
+            initialize_vars=False):
+    tree = grammar.parse(progin)
+    bv = BasicVisitor()
+    basic_prog = bv.visit(tree)
+
+    # transform functions to proc calls
+    basic_prog.visit(BasicFunctionalExpressionPatcherVisitor())
+
+    # initialize variables
+    if initialize_vars:
+        var_initializer = VarInitializerVisitor()
+        basic_prog.visit(var_initializer)
+        basic_prog.set_prefix_lines(var_initializer.assignment_lines)
+
+    # remove unused line numbers
+    if filter_unused_linenum:
+        line_ref_visitor = LineReferenceVisitor()
+        basic_prog.visit(line_ref_visitor)
+        line_num_filter = LineNumberFilterVisitor(
+            line_ref_visitor.references
+        )
+        basic_prog.visit(line_num_filter)
+
+    return basic_prog.basic09_text(0)

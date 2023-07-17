@@ -93,33 +93,35 @@ class TestBasicToBasic09(unittest.TestCase):
         target = b09.BasicOperator('*')
         assert target.basic09_text(2) == '*'
 
-    def generic_test_parse(self, progin, progout):
-        tree = b09.grammar.parse(progin)
-        bv = b09.BasicVisitor()
-        basic_prog = bv.visit(tree)
-        basic_prog.visit(b09.BasicFunctionalExpressionPatcherVisitor())
-        b09_prog = basic_prog.basic09_text(0)
+    def generic_test_parse(self, progin, progout,
+                           filter_unused_linenum=False,
+                           initialize_vars=False):
+        b09_prog = b09.convert(
+            progin,
+            filter_unused_linenum=filter_unused_linenum,
+            initialize_vars=initialize_vars
+        )
         assert b09_prog == progout
 
     def test_parse_array_ref(self):
         self.generic_test_parse(
             '10 A = B(123 - 1 - (2/2),1,2)\n',
-            '10 A = B(123 - 1 - (2 / 2), 1, 2)')
+            '10 A = arr_B(123 - 1 - (2 / 2), 1, 2)')
 
     def test_parse_array_assignment(self):
         self.generic_test_parse(
             '10 A (123 - 1 - (2/2),1,2)=123+64',
-            '10 A(123 - 1 - (2 / 2), 1, 2) = 123 + 64')
+            '10 arr_A(123 - 1 - (2 / 2), 1, 2) = 123 + 64')
 
     def test_parse_str_array_ref(self):
         self.generic_test_parse(
             '10 A$ = B$(123 - 1 - (2/2),1,2)',
-            '10 A$ = B$(123 - 1 - (2 / 2), 1, 2)')
+            '10 A$ = arr_B$(123 - 1 - (2 / 2), 1, 2)')
 
     def test_parse_str_array_assignment(self):
         self.generic_test_parse(
             '10 A$ (123 - 1 - (2/2),1,2)="123"+"64"',
-            '10 A$(123 - 1 - (2 / 2), 1, 2) = "123" + "64"')
+            '10 arr_A$(123 - 1 - (2 / 2), 1, 2) = "123" + "64"')
 
     def test_parse_comment_program(self):
         self.generic_test_parse(
@@ -446,12 +448,102 @@ class TestBasicToBasic09(unittest.TestCase):
 
     def test_joystk(self):
         self.generic_test_parse(
-            f'11 PRINT JOYSTK(1)',
-            f'11 RUN ecb_joystk(1, tmp1) \\ PRINT tmp1'
+            '11 PRINT JOYSTK(1)',
+            '11 RUN ecb_joystk(1, tmp1) \\ PRINT tmp1'
         )
 
     def test_hex(self):
         self.generic_test_parse(
-            f'11 PRINT HEX$(1)',
-            f'11 RUN ecb_hex(1, tmp1$) \\ PRINT tmp1$'
+            '11 PRINT HEX$(1)',
+            '11 RUN ecb_hex(1, tmp1$) \\ PRINT tmp1$'
+        )
+
+    def test_dim1(self):
+        self.generic_test_parse(
+            '11 DIMA(12)',
+            '11 DIM arr_A(12) \\ '
+            'FOR tmp1 = 1 TO 12 \\ '
+            'arr_A(tmp1) = 0 \\ '
+            'NEXT tmp1'
+        )
+
+    def test_dim2(self):
+        self.generic_test_parse(
+            '11 DIMA(12,&H123)',
+            '11 DIM arr_A(12, $123) \\ '
+            'FOR tmp1 = 1 TO 12 \\ '
+            'FOR tmp2 = 1 TO $123 \\ '
+            'arr_A(tmp1, tmp2) = 0 \\ '
+            'NEXT tmp2 \\ '
+            'NEXT tmp1'
+        )
+
+    def test_dim3(self):
+        self.generic_test_parse(
+            '11 DIMA(12,&H123,55)',
+            '11 DIM arr_A(12, $123, 55) \\ '
+            'FOR tmp1 = 1 TO 12 \\ '
+            'FOR tmp2 = 1 TO $123 \\ '
+            'FOR tmp3 = 1 TO 55 \\ '
+            'arr_A(tmp1, tmp2, tmp3) = 0 \\ '
+            'NEXT tmp3 \\ '
+            'NEXT tmp2 \\ '
+            'NEXT tmp1'
+        )
+
+    def test_str_dim1(self):
+        self.generic_test_parse(
+            '11 DIMA$(12)',
+            '11 DIM arr_A$(12) \\ '
+            'FOR tmp1 = 1 TO 12 \\ '
+            'arr_A$(tmp1) = "" \\ '
+            'NEXT tmp1'
+        )
+
+    def test_str_dim2(self):
+        self.generic_test_parse(
+            '11 DIMA$(12,&H123)',
+            '11 DIM arr_A$(12, $123) \\ '
+            'FOR tmp1 = 1 TO 12 \\ '
+            'FOR tmp2 = 1 TO $123 \\ '
+            'arr_A$(tmp1, tmp2) = "" \\ '
+            'NEXT tmp2 \\ '
+            'NEXT tmp1'
+        )
+
+    def test_str_dim3(self):
+        self.generic_test_parse(
+            '11 DIMA$(12,&H123,55)',
+            '11 DIM arr_A$(12, $123, 55) \\ '
+            'FOR tmp1 = 1 TO 12 \\ '
+            'FOR tmp2 = 1 TO $123 \\ '
+            'FOR tmp3 = 1 TO 55 \\ '
+            'arr_A$(tmp1, tmp2, tmp3) = "" \\ '
+            'NEXT tmp3 \\ '
+            'NEXT tmp2 \\ '
+            'NEXT tmp1'
+        )
+
+    def test_line_filter(self):
+        self.generic_test_parse(
+            '10 GOTO 10\n'
+            '20 GOSUB 100\n'
+            '30 GOTO 10\n'
+            '100 REM\n',
+            '10 GOTO 10\n'
+            'GOSUB 100\n'
+            'GOTO 10\n'
+            '100 (* *)',
+            filter_unused_linenum=True
+        )
+
+    def test_initializes_vars(self):
+        self.generic_test_parse(
+            '10 PRINT A+B, A$',
+            'A = 0\n'
+            'A$ = ""\n'
+            'B = 0\n'
+            '10 PRINT A + B, A$',
+            filter_unused_linenum=False,
+            initialize_vars=True
         )

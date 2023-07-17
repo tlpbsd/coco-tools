@@ -41,6 +41,9 @@ TAB, TAN, THEN, TO, VAL
   "&H1234".
 * By default variables are not DIMensioned and assumed to be STRING or REAL.
   They are initialized to "" or 0 at the beginning of the output program.
+* Arrays are limited to no more than 3 dimensions. The size of each dimension
+  must be specified as a numeric literal.
+* When translated array names are prefixed with arr_.
 * Numeric literal expressions are assumed to be INTEGERs unless that have
   a decimal point or exponent or cannot be represented by an INTEGER. So
   PRINT 3 / 2 will print 1.5 in Color BASIC but the converted BASIC09 program
