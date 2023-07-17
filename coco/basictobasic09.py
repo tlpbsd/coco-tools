@@ -85,7 +85,6 @@ QUOTED_STATEMENTS3_NAMES = [
 
 FUNCTIONS_TO_STATEMENTS = {
     'BUTTON': 'RUN ecb_button',
-    'JOYSTK': 'RUN ecb_joystk',
 }
 
 QUOTED_FUNCTIONS_TO_STATEMENTS_NAMES = [
@@ -126,6 +125,7 @@ KEYWORDS = '|'.join(
         'GOSUB',
         'GOTO',
         'IF',
+        'JOYSTK',
         'NOT',
         'OR',
         'PRINT',
@@ -222,6 +222,7 @@ grammar = Grammar(
                     / func_str_exp
                     / func_to_statements
                     / func_to_statements2
+                    / joystk_to_statement
     unop_exp        = unop space* exp
     paren_exp       =  "(" space* exp space* ")" space*
     str_exp         = str_simple_exp space* (("+") space*
@@ -286,6 +287,7 @@ grammar = Grammar(
     var_list_element    = "," space* var space*
     func_to_statements  = ({ ' / '.join(QUOTED_FUNCTIONS_TO_STATEMENTS_NAMES)}) space* "(" space* exp space* ")" space*
     func_to_statements2 = ({ ' / '.join(QUOTED_FUNCTIONS_TO_STATEMENTS2_NAMES)}) space* "(" space* exp space* "," space* exp space*")" space*
+    joystk_to_statement = "JOYSTK" space* "(" space* exp space* ")" space*
     dim1_statement      = "DIM" space* (str_var / var) space* "(" space* data_num_element0 space* ")" space*
     dim2_statement      = "DIM" space* (str_var / var) space* "(" space* data_num_element0 space* "," space* data_num_element0 space* ")" space*
     dim3_statement      = "DIM" space* (str_var / var) space* "(" space* data_num_element0 space* "," space* data_num_element0 space* "," space* data_num_element0 space* ")" space*
@@ -319,6 +321,9 @@ class BasicConstructVisitor():
         pass
 
     def visit_next_statement(self, for_statement):
+        pass
+
+    def visit_joystk(self, joystk_exp):
         pass
 
 
@@ -686,8 +691,8 @@ class BasicProg(AbstractBasicConstruct):
         self._lines = lines
         self._prefix_lines = []
 
-    def set_prefix_lines(self, prefix_lines):
-        self._prefix_lines = prefix_lines
+    def extend_prefix_lines(self, prefix_lines):
+        self._prefix_lines.extend(prefix_lines)
 
     def basic09_text(self, indent_level):
         lines = []
@@ -713,6 +718,19 @@ class BasicStatement(AbstractBasicStatement):
     def basic09_text(self, indent_level):
         return super().basic09_text(indent_level) + \
                self._basic_construct.basic09_text(indent_level)
+
+    def visit(self, visitor):
+        visitor.visit_statement(self)
+
+
+class Basic09CodeStatement(AbstractBasicStatement):
+    def __init__(self, basic09_code):
+        super().__init__()
+        self._basic09_code = basic09_code
+
+    def basic09_text(self, indent_level):
+        return super().basic09_text(indent_level) + \
+               self._basic09_code
 
     def visit(self, visitor):
         visitor.visit_statement(self)
@@ -957,6 +975,23 @@ class BasicFunctionalExpression(AbstractBasicExpression):
             visitor.visit_exp(self)
 
 
+class BasicJoystkExpression(AbstractBasicExpression):
+    def __init__(self, func, args, is_str_expr=False):
+        super().__init__(
+            "RUN ecb_joystk",
+            args + [
+                BasicVar('joy0x'),
+                BasicVar('joy0y'),
+                BasicVar('joy1x'),
+                BasicVar('joy1y'),
+            ],
+            is_str_expr=is_str_expr)
+
+    def visit(self, visitor):
+        super().visit(visitor)
+        visitor.visit_joystk(self)
+
+
 class BasicDimStatement(AbstractBasicStatement):
     def __init__(self, var, sizes):
         super().__init__()
@@ -1084,6 +1119,21 @@ class VarInitializerVisitor(BasicConstructVisitor):
 
     def visit_var(self, var):
         self._vars.add(var.name())
+
+
+class JoystickVisitor(BasicConstructVisitor):
+    def __init__(self):
+        self._uses_joystk = False
+
+    @property
+    def joystk_var_statements(self):
+        return [
+            Basic09CodeStatement('dim joy0x, joy0y, joy1x, joy0y: integer'),
+        ] if self._uses_joystk else [
+        ]
+
+    def visit_joystk(self, joystk_exp):
+        self._uses_joystk = True
 
 
 class BasicVisitor(NodeVisitor):
@@ -1472,6 +1522,12 @@ class BasicVisitor(NodeVisitor):
             BasicExpressionList([exp1, exp2])
         )
 
+    def visit_joystk_to_statement(self, node, visited_children):
+        _, _, _, _, exp, _, _, _ = visited_children
+        return BasicJoystkExpression(
+            BasicExpressionList([exp1])
+        )
+
     def visit_dim1_statement(self, node, visited_children):
         _, _, var, _, _, _, size, _, _, _ = visited_children
         return BasicDimStatement(var, BasicExpressionList([size]))
@@ -1501,7 +1557,7 @@ def convert(progin,
     if initialize_vars:
         var_initializer = VarInitializerVisitor()
         basic_prog.visit(var_initializer)
-        basic_prog.set_prefix_lines(var_initializer.assignment_lines)
+        basic_prog.extend_prefix_lines(var_initializer.assignment_lines)
 
     # remove unused line numbers
     if filter_unused_linenum:
