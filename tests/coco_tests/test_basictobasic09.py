@@ -449,6 +449,7 @@ class TestBasicToBasic09(unittest.TestCase):
     def test_joystk(self):
         self.generic_test_parse(
             '11 PRINT JOYSTK(1)',
+            'dim joy0x, joy0y, joy1x, joy0y: integer\n'
             '11 RUN ecb_joystk(1, tmp1) \\ PRINT tmp1'
         )
 

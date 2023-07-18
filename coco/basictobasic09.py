@@ -975,17 +975,10 @@ class BasicFunctionalExpression(AbstractBasicExpression):
             visitor.visit_exp(self)
 
 
-class BasicJoystkExpression(AbstractBasicExpression):
-    def __init__(self, func, args, is_str_expr=False):
-        super().__init__(
-            "RUN ecb_joystk",
-            args + [
-                BasicVar('joy0x'),
-                BasicVar('joy0y'),
-                BasicVar('joy1x'),
-                BasicVar('joy1y'),
-            ],
-            is_str_expr=is_str_expr)
+class BasicJoystkExpression(BasicFunctionalExpression):
+    def __init__(self, args):
+        super().__init__('RUN ecb_joystk', args)
+        self._args = args
 
     def visit(self, visitor):
         super().visit(visitor)
@@ -1525,7 +1518,7 @@ class BasicVisitor(NodeVisitor):
     def visit_joystk_to_statement(self, node, visited_children):
         _, _, _, _, exp, _, _, _ = visited_children
         return BasicJoystkExpression(
-            BasicExpressionList([exp1])
+            BasicExpressionList([exp])
         )
 
     def visit_dim1_statement(self, node, visited_children):
@@ -1552,6 +1545,11 @@ def convert(progin,
 
     # transform functions to proc calls
     basic_prog.visit(BasicFunctionalExpressionPatcherVisitor())
+
+    # Update joystk stuff
+    joystk_initializer = JoystickVisitor()
+    basic_prog.visit(joystk_initializer)
+    basic_prog.extend_prefix_lines(joystk_initializer.joystk_var_statements)
 
     # initialize variables
     if initialize_vars:
