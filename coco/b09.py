@@ -576,7 +576,6 @@ class BasicOnGoStatement(AbstractBasicStatement):
         visitor.visit_go_statement(self)
 
 
-
 class BasicIf(AbstractBasicStatement):
     def __init__(self, exp, statements):
         super().__init__()
@@ -1143,7 +1142,7 @@ class VarInitializerVisitor(BasicConstructVisitor):
                     )
                     for var in sorted(self._vars)
                 ])
-            )]
+            )] if self._vars else []
 
     def visit_var(self, var):
         self._vars.add(var.name())
@@ -1621,3 +1620,18 @@ def convert(progin,
         basic_prog.visit(line_num_filter)
 
     return basic_prog.basic09_text(0)
+
+
+def convert_file(
+        input_program_file,
+        output_program_file,
+        filter_unused_linenum=False,
+        initialize_vars=False):
+
+    progin = input_program_file.read()
+    progout = convert(
+        progin,
+        filter_unused_linenum=filter_unused_linenum,
+        initialize_vars=initialize_vars,
+    )
+    output_program_file.write(progout)

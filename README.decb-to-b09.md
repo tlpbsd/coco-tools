@@ -1,4 +1,4 @@
-# basictobasic09
+# decb-to-b09
 
 This utility converts Microsoft Color BASIC programs into Microware BASIC09
 Programs that work on OS-9 Level 2. This conversion process has many benefits:
@@ -60,9 +60,9 @@ TAB, TAN, THEN, TO, VAL
   largely treats them identically to numeric binary operations.
   Specifically, BASIC09 has keywords for boolean operations (AND, OR, NOT)
   that are distinct from the numeric operations (LAND, LOR, LNOT).
-  basictobasic09 will use the former in IF statements and the latter for other
+  decb-to-b09 will use the former in IF statements and the latter for other
   statements. There are some constructs that mix boolean and numeric
-  operations such as `A = (1 < 2) + 1` that basitobasic09 allows but
+  operations such as `A = (1 < 2) + 1` that decb-to-b09 allows but
   results in BASIC09 programs with errors.
 * Converting numeric values into strings formats the number with NO spaces
   and one decimal point, even if the value is an integer.
@@ -79,7 +79,7 @@ NEXT BB
 ```
 
 ## Unsupported Color BASIC constructs
-* These constructs are NOT supported by basictobasic09:
+* These constructs are NOT supported by decb-to-b09:
 AUDIO, CLEAR, CLOAD, CONT, CSAVE, EOF, EVAL, EXEC, LIST, LLIST, LOAD, MEM,
 MOTOR, NEW, PEEK, POKE, RUN, SKIPF, USR
 * It is NOT possible to GOTO, GOSUB, ON GOTO or ON GOSUB to a variable.

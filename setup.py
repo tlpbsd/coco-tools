@@ -61,6 +61,7 @@ setuptools.setup(
 
     entry_points={
         'console_scripts': [
+            'decb-to-b09=coco.decb_to_b09:main',
             'cm3toppm=coco.cm3toppm:main',
             'hrstoppm=coco.hrstoppm:main',
             'maxtoppm=coco.maxtoppm:main',

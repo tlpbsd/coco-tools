@@ -1,10 +1,10 @@
 import unittest
 import pkg_resources
 
-import coco.basictobasic09 as b09
+from coco import b09
 
 
-class TestBasicToBasic09(unittest.TestCase):
+class TestB09(unittest.TestCase):
     def get_resource(name):
         resource_path = pkg_resources.resource_filename(
             __name__, f'fixtures/{name}'
