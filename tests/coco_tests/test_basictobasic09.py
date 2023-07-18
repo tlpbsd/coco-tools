@@ -548,3 +548,12 @@ class TestBasicToBasic09(unittest.TestCase):
             filter_unused_linenum=False,
             initialize_vars=True
         )
+
+    def test_on_goto(self):
+        self.generic_test_parse(
+            '10 ON NN GOTO 11, 22, 33, 44\n'
+            '20 ON MM GOSUB 100\n',
+            'ON NN GOTO 11, 22, 33, 44\n'
+            'ON MM GOSUB 100',
+            filter_unused_linenum=True,
+        )

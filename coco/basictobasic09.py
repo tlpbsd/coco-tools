@@ -182,6 +182,7 @@ grammar = Grammar(
                     / sound
                     / cls
                     / go_statement
+                    / on_n_go_statement
                     / statement2
                     / statement3
                     / data_statement
@@ -266,12 +267,16 @@ grammar = Grammar(
     sound           = "SOUND" space* exp space* "," space* exp space*
     cls             = "CLS" space* exp? space*
     go_statement    = ("GOTO" / "GOSUB") space* linenum space*
-    functions       = ~r"{'|'.join(FUNCTIONS.keys())}"
-    data_statement  = "DATA" space* data_elements space*
-    data_elements   = data_element space* data_elements0
-    data_element    = data_num_element / data_str_element
-    data_elements0  = data_element0*
-    data_element0   = "," space* data_element
+    on_n_go_statement   = "ON" space* var space* ("GOTO" / "GOSUB") space* linenum_list space*
+    linenum_list        = linenum space* linenum_list0
+    linenum_list0       = linenum_list_elem*
+    linenum_list_elem   = "," space* linenum space*
+    functions           = ~r"{'|'.join(FUNCTIONS.keys())}"
+    data_statement      = "DATA" space* data_elements space*
+    data_elements       = data_element space* data_elements0
+    data_element        = data_num_element / data_str_element
+    data_elements0      = data_element0*
+    data_element0       = "," space* data_element
     data_num_element    = space* data_num_element0 space*
     data_num_element0   = (num_literal / hex_literal)
     data_str_element    = data_str_element0 / data_str_element1
@@ -544,6 +549,32 @@ class BasicGoto(AbstractBasicStatement):
     def visit(self, visitor):
         visitor.visit_statement(self)
         visitor.visit_go_statement(self)
+
+
+class BasicOnGoStatement(AbstractBasicStatement):
+    def __init__(self, var, linenums, is_gosub=False):
+        super().__init__()
+        self._var = var
+        self._linenums = linenums
+        self._is_gosub = is_gosub
+
+    @property
+    def linenums(self):
+        return self._linenums
+
+    def basic09_text(self, indent_level):
+        if self._is_gosub:
+            return f'{super().basic09_text(indent_level)}' \
+                   f'ON {self._var.basic09_text(indent_level)} GOSUB ' + \
+                   ', '.join((str(linenum) for linenum in self.linenums))
+        return f'{super().basic09_text(indent_level)}' \
+               f'ON {self._var.basic09_text(indent_level)} GOTO ' + \
+               ', '.join((str(linenum) for linenum in self.linenums))
+
+    def visit(self, visitor):
+        visitor.visit_statement(self)
+        visitor.visit_go_statement(self)
+
 
 
 class BasicIf(AbstractBasicStatement):
@@ -1078,7 +1109,11 @@ class LineReferenceVisitor(BasicConstructVisitor):
         return self._references
 
     def visit_go_statement(self, go_statement):
-        self.references.add(go_statement.linenum)
+        if isinstance(go_statement, BasicOnGoStatement):
+            for linenum in go_statement.linenums:
+                self.references.add(linenum)
+        else:
+            self.references.add(go_statement.linenum)
 
 
 class LineNumberFilterVisitor(BasicConstructVisitor):
@@ -1430,6 +1465,25 @@ class BasicVisitor(NodeVisitor):
     def visit_go_statement(self, node, visited_children):
         go, _, linenum, _ = visited_children
         return BasicGoto(linenum, False, is_gosub=go.text == 'GOSUB')
+
+    def visit_go_statement(self, node, visited_children):
+        go, _, linenum, _ = visited_children
+        return BasicGoto(linenum, False, is_gosub=go.text == 'GOSUB')
+
+    def visit_on_n_go_statement(self, node, visited_children):
+        _, _, var, _, go, _, lines, _ = visited_children
+        return BasicOnGoStatement(var, lines, is_gosub=(go.text == 'GOSUB'))
+
+    def visit_linenum_list(self, node, visited_children):
+        linenum, _, linenums = visited_children
+        return [linenum] + linenums
+
+    def visit_linenum_list0(self, node, visited_children):
+        return visited_children
+
+    def visit_linenum_list_elem(self, node, visited_children):
+        _, _, linenum, space = visited_children
+        return linenum
 
     def visit_data_statement(self, node, visited_children):
         _, _, exp_list, _ = visited_children
