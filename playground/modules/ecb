@@ -8,25 +8,25 @@ procedure ecb_button
     param retval: integer
     dim joystk, fire: integer
 
-    if button < 2 then joystk = 0 else joystk = 1
+    if button < 2 then joystk = 0 else joystk = 1 \ endif
     run GFX("Joystk", button, fire, x, y)
-    if land(button, 1) == 0 retval = land(fire, 1)
-    if land(button, 1) == 1 retval = land(fire, 2) / 2
+    if land(button, 1) = 0 then retval = land(fire, 1) \ endif
+    if land(button, 1) = 1 then retval = land(fire, 2) / 2  \ endif
 
 
 procedure ecb_joystk
     param joystk, joy0x, joy0y, joy1x, joy1y, retval: integer
     dim fire: integer
 
-    if joystk == 0:
+    if joystk = 0 then
         run GFX("Joystk", 0, fire, joy0x, joy0y)
         run GFX("Joystk", 1, fire, joy1x, joy1y)
-    end if
+    endif
 
-    if joystk == 0 then retval = joy0x
-    if joystk == 1 then retval = joy0y
-    if joystk == 2 then retval = joy1x
-    if joystk == 3 then retval = joy1y
+    if joystk = 0 then retval = joy0x \ endif
+    if joystk = 1 then retval = joy0y \ endif
+    if joystk = 2 then retval = joy1x \ endif
+    if joystk = 3 then retval = joy1y \ endif
 
 
 procedure ecb_cls
@@ -57,23 +57,23 @@ procedure ecb_cls
     endif
 
 
-procedure ecb_hex(val, str)
-    param val: real
+procedure ecb_hex(v, str)
+    param v: real
     param str: string
     dim ival: integer
     dim tmp: string
 
-    if (val < 0 or val > 65536)
+    if v < 0 or v >= 65536 then
         error 52
-    end if
+    endif
 
-    ival = val
-    _ecb_hex_digit(land($f, val / 0x1000), str)
-    _ecb_hex_digit(land($f, val / 0x100), tmp)
+    ival = v
+    run _ecb_hex_digit(land($f, v / $1000), str)
+    run _ecb_hex_digit(land($f, v / $100), tmp)
     str = str + tmp
-    _ecb_hex_digit(land($f, val / 0x10), tmp)
+    run _ecb_hex_digit(land($f, v / $10), tmp)
     str = str + tmp
-    _ecb_hex_digit(land($f, val), tmp)
+    run _ecb_hex_digit(land($f, v), tmp)
     str = str + tmp
 
 
@@ -177,12 +177,12 @@ procedure ecb_text_address
 
 
 procedure _ecb_hex_digit
-    param val: integer
-    param str: string
-    if val < 10 then
-        str = chr$(val + '0')
+    param v: integer
+    param s: string
+    if v < 10 then
+        s = chr$(v + asc("0"))
     else
-        str = chr$(val + 'A')
+        s = chr$(v + asc("A"))
     endif
 
 
@@ -198,15 +198,3 @@ procedure _ecb_get_point_info
     address = address + (y / 2) * 32 + (x / 2)
     mask = 2 ** ((2 * (1 - land(y, 1))) + (1 - land(x, 1)))
     c0 = peek(address)
-
-
-procedure foo
-    dim c: integer
-    run ecb_cls(0)
-    run ecb_set(0, 0, 0)
-    run ecb_set(63, 0, 1)
-    run ecb_set(0, 31, 5)
-    run ecb_set(63, 31, 8)
-    run ecb_point(63, 31, c)
-    print c
-    
