@@ -1,7 +1,11 @@
+import re
 from abc import ABC, abstractmethod
 from itertools import chain, islice
 from parsimonious.grammar import Grammar
 from parsimonious.nodes import Node, NodeVisitor
+
+
+PROCNAME_REGEX = re.compile(r'[a-zA-Z0-9_-]+')
 
 SINGLE_KEYWORD_STATEMENTS = {
     'RETURN': 'RETURN',
@@ -720,12 +724,18 @@ class BasicProg(AbstractBasicConstruct):
     def __init__(self, lines):
         self._lines = lines
         self._prefix_lines = []
+        self._procname = ''
+
+    def set_procname(self, procname):
+        self._procname = procname
 
     def extend_prefix_lines(self, prefix_lines):
         self._prefix_lines.extend(prefix_lines)
 
     def basic09_text(self, indent_level):
         lines = []
+        if self._procname:
+            lines.append(f'procedure {self._procname}')
         nest_counter = ForNextVisitor()
         for line in chain(self._prefix_lines, self._lines):
             line.visit(nest_counter)
@@ -1590,11 +1600,15 @@ class BasicVisitor(NodeVisitor):
 
 
 def convert(progin,
+            procname='',
             filter_unused_linenum=False,
             initialize_vars=False):
     tree = grammar.parse(progin)
     bv = BasicVisitor()
     basic_prog = bv.visit(tree)
+
+    procname = procname if PROCNAME_REGEX.match(procname) else 'program'
+    basic_prog.set_procname(procname)
 
     # transform functions to proc calls
     basic_prog.visit(BasicFunctionalExpressionPatcherVisitor())
@@ -1625,12 +1639,14 @@ def convert(progin,
 def convert_file(
         input_program_file,
         output_program_file,
+        procname='',
         filter_unused_linenum=False,
         initialize_vars=False):
 
     progin = input_program_file.read()
     progout = convert(
         progin,
+        procname=procname,
         filter_unused_linenum=filter_unused_linenum,
         initialize_vars=initialize_vars,
     )

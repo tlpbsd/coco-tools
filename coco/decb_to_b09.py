@@ -5,6 +5,7 @@
 # reads decb text files and converts to BASIC09 text files
 
 import argparse
+import os
 import sys
 
 from coco import __version__
@@ -55,9 +56,12 @@ def start(argv):
     )
 
     args = parser.parse_args(argv)
+    procname = os.path.splitext(
+        os.path.basename(args.input_decb_text_program_file.name))[0]
 
     b09.convert_file(args.input_decb_text_program_file,
                      args.output_b09_text_program_file,
+                     procname=procname,
                      filter_unused_linenum=args.filter_unused_linenum,
                      initialize_vars=not args.dont_initialize_vars)
     args.input_decb_text_program_file.close()
