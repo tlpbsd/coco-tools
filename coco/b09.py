@@ -111,6 +111,7 @@ KEYWORDS = '|'.join(
         'AND',
         'DIM',
         'CLS',
+        'CLEAR'
         'ELSE',
         'FOR',
         'GOSUB',
@@ -184,6 +185,7 @@ grammar = Grammar(
                     / dim3_statement
                     / dim2_statement
                     / dim1_statement
+                    / clear_statement
     statement2      =({ ' / '.join(QUOTED_STATEMENTS2_NAMES)}) space* "(" space* exp space* "," space* exp space* ")" space*
     statement3      = ({ ' / '.join(QUOTED_STATEMENTS3_NAMES)}) space* "(" space* exp space* "," space* exp space* "," space* exp space* ")" space*
     statements      = (statement? (comment/((":"/space)+
@@ -194,9 +196,11 @@ grammar = Grammar(
                     / num_exp
     bool_exp        = "NOT"? space* bool_val_exp space* (("AND" / "OR") space* bool_val_exp space*)*
     bool_val_exp    = bool_paren_exp
+                    / bool_str_exp
                     / bool_bin_exp
     bool_paren_exp  = "(" space* bool_exp space* ")"
     bool_bin_exp    = num_sum_exp space* ("<=" / ">=" / "<>" / "<" / ">" / "=>" / "=<" / "=") space* num_sum_exp space*
+    bool_str_exp    = str_exp space* ("<>" / "=") space* str_exp space*
     num_exp         = num_gtle_exp space* (("AND" / "OR") space* num_gtle_exp space*)*
     num_gtle_exp    = num_sum_exp space* (("<=" / ">=" / "<>" / "<" / ">" / "=>" / "=<" / "=") space* num_sum_exp space*)*
     num_sum_exp     = num_prod_exp space* (("+" / "-") space*
@@ -217,13 +221,13 @@ grammar = Grammar(
                     / joystk_to_statement
     unop_exp        = unop space* exp
     paren_exp       =  "(" space* exp space* ")" space*
-    str_exp         = str_simple_exp space* (("+") space*
+    str_exp         = str_simple_exp space* ("+" space*
                                              str_simple_exp space*)* 
     str2_func_exp   = ({ ' / '.join(QUOTED_STR2_FUNCTION_NAMES)}) space* "(" space* str_exp space* "," space* exp space* ")" space*
     str3_func_exp   = ({ ' / '.join(QUOTED_STR3_FUNCTION_NAMES)}) space* "(" space* str_exp space* "," space* exp space* "," space* exp space* ")" space*
     num_str_func_exp= ({ ' / '.join(QUOTED_NUM_STR_FUNCTIONS_NAMES)}) space* "(" space* exp space* ")" space*
     num_str_func_exp_statements = ({ ' / '.join(QUOTED_NUM_STR_FUNCTIONS_TO_STATEMENTS_NAMES)}) space* "(" space* exp space* ")" space*
-    str_func_exp_statements = ({ ' / '.join(QUOTED_STR_FUNCTIONS_TO_STATEMENTS_NAMES)}) space* "(" space* exp space* ")" space*
+    str_func_exp_statements = ({ ' / '.join(QUOTED_STR_FUNCTIONS_TO_STATEMENTS_NAMES)}) space*
 
     str_simple_exp  = str_literal
                     / str_array_ref_exp
@@ -250,7 +254,7 @@ grammar = Grammar(
     print_at_statement = ("PRINT"/"?") space* "@" space* exp space* "," space* print_args space*
     print_args      = print_arg0*
     print_arg0      = print_arg1 space*
-    print_arg1      = print_control 
+    print_arg1      = print_control
                     / print_arg
     print_arg       = exp
                     / str_exp
@@ -287,6 +291,7 @@ grammar = Grammar(
     dim1_statement      = "DIM" space* (str_var / var) space* "(" space* data_num_element0 space* ")" space*
     dim2_statement      = "DIM" space* (str_var / var) space* "(" space* data_num_element0 space* "," space* data_num_element0 space* ")" space*
     dim3_statement      = "DIM" space* (str_var / var) space* "(" space* data_num_element0 space* "," space* data_num_element0 space* "," space* data_num_element0 space* ")" space*
+    clear_statement     = "CLEAR" space* exp? space*
     """  # noqa
 )
 
@@ -843,6 +848,10 @@ class BasicPrintArgs(AbstractBasicConstruct):
                 ((ii <= 0) or
                     isinstance(self.args[ii - 1], BasicPrintControl)):
                 processed_args.append('""')
+            if not is_control and \
+                ((ii > 0) and
+                 not isinstance(self.args[ii - 1], BasicPrintControl)):
+                processed_args.append('; ')
 
             processed_args.append(arg.basic09_text(indent_level))
             if (ii < len(self.args) - 1) and is_control:
@@ -1264,6 +1273,9 @@ class BasicVisitor(NodeVisitor):
         exp1, _, op, _, exp2, _ = visited_children
         return BasicBooleanBinaryExp(exp1, op.operator, exp2)
 
+    def visit_bool_str_exp(self, node, visited_children):
+        return self.visit_bool_bin_exp(node, visited_children)
+
     def visit_num_gtle_exp(self, node, visited_children):
         return self.visit_num_prod_exp(node, visited_children)
 
@@ -1331,10 +1343,10 @@ class BasicVisitor(NodeVisitor):
         )
 
     def visit_str_func_exp_statements(self, node, visited_children):
-        func, _, _, _, exp, _, _, _ = visited_children
+        func, _, = visited_children
         return BasicFunctionalExpression(
             STR_FUNCTIONS_TO_STATEMENTS[func.text],
-            BasicExpressionList([exp]),
+            BasicExpressionList([]),
             is_str_expr=True
         )
 
@@ -1606,6 +1618,9 @@ class BasicVisitor(NodeVisitor):
             BasicExpressionList([size0, size1, size2])
         )
 
+    def visit_clear_statement(self, node, visited_children):
+        return BasicComment(f' {node.text.strip() }')
+
 
 def convert(progin,
             procname='',
@@ -1671,4 +1686,5 @@ def convert_file(input_program_file,
         initialize_vars=initialize_vars,
         output_dependencies=output_dependencies,
     )
+    progout = progout.replace('\n', '\r')
     output_program_file.write(progout)

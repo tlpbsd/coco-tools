@@ -175,6 +175,11 @@ class TestB09(unittest.TestCase):
             '10 A$ = "A" + "Z"\n20B$=A$+B$',
             '10 A$ = "A" + "Z"\n20 B$ = A$ + B$')
 
+    def test_parse_str_expression2(self):
+        self.generic_test_parse(
+            '10 IF A$<>"" THEN 10',
+            '10 IF A$ <> "" THEN 10')
+
     def test_parse_multi_expression(self):
         self.generic_test_parse(
             '10 A = 64 + 32*10 / AB -1',
@@ -234,6 +239,12 @@ class TestB09(unittest.TestCase):
         self.generic_test_parse(
             '11 PRINT A$ + B$',
             '11 PRINT A$ + B$'
+        )
+
+    def test_simple_print_statement4(self):
+        self.generic_test_parse(
+            '11 PRINT"TIME"T/10;',
+            '11 PRINT "TIME"; T / 10;'
         )
 
     def test_print_multi(self):
@@ -459,8 +470,8 @@ class TestB09(unittest.TestCase):
     def test_str_functions_to_statements(self):
         for ecb_func, b09_func in b09.STR_FUNCTIONS_TO_STATEMENTS.items():
             self.generic_test_parse(
-                f'11X$={ecb_func}(1)',
-                f'11 {b09_func}(1, X$)',
+                f'11X$={ecb_func}',
+                f'11 {b09_func}(X$)',
             )
 
     def test_joystk(self):
@@ -553,6 +564,12 @@ class TestB09(unittest.TestCase):
             'GOTO 10\n'
             '100 (* *)',
             filter_unused_linenum=True
+        )
+
+    def test_clear_statement(self):
+        self.generic_test_parse(
+            '10 CLEAR\n20CLEAR 200',
+            '10 (* CLEAR *)\n20 (* CLEAR 200 *)'
         )
 
     def test_initializes_vars(self):
