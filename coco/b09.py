@@ -4,6 +4,7 @@ from itertools import chain, islice
 from parsimonious.grammar import Grammar
 from parsimonious.nodes import Node, NodeVisitor
 
+from .procbank import ProcedureBank
 
 PROCNAME_REGEX = re.compile(r'[a-zA-Z0-9_-]+')
 
@@ -13,7 +14,7 @@ SINGLE_KEYWORD_STATEMENTS = {
 }
 
 QUOTED_SINGLE_KEYWORD_STATEMENTS = [
-    '"' + name + '"' for name in SINGLE_KEYWORD_STATEMENTS.keys()
+    f'"{name}"' for name in SINGLE_KEYWORD_STATEMENTS
 ]
 
 FUNCTIONS = {
@@ -33,74 +34,60 @@ FUNCTIONS = {
     'TAN': 'TAN',
 }
 
-QUOTED_FUNCTION_NAMES = [
-    '"' + name + '"' for name in FUNCTIONS.keys()
-]
+QUOTED_FUNCTION_NAMES = [f'"{name}"' for name in FUNCTIONS]
 
 STR2_FUNCTIONS = {
     'LEFT$': 'LEFT$',
     'RIGHT$': 'RIGHT$',
 }
 
-QUOTED_STR2_FUNCTION_NAMES = [
-    '"' + name + '"' for name in STR2_FUNCTIONS.keys()
-]
+QUOTED_STR2_FUNCTION_NAMES = [f'"{name}"' for name in STR2_FUNCTIONS]
 
 STR3_FUNCTIONS = {
     'MID$': 'MID$',
 }
 
-QUOTED_STR3_FUNCTION_NAMES = [
-    '"' + name + '"' for name in STR3_FUNCTIONS.keys()
-]
+QUOTED_STR3_FUNCTION_NAMES = [f'"{name}"' for name in STR3_FUNCTIONS]
 
 STR_NUM_FUNCTIONS = {
     'VAL': 'VAL',
 }
 
-QUOTED_STR_NUM_FUNCTIONS_NAMES = [
-    '"' + name + '"' for name in STR_NUM_FUNCTIONS.keys()
-]
+QUOTED_STR_NUM_FUNCTIONS_NAMES = [f'"{name}"' for name in STR_NUM_FUNCTIONS]
 
 NUM_STR_FUNCTIONS = {
     'CHR$': 'CHR$',
     'TAB': 'TAB',
 }
 
-QUOTED_NUM_STR_FUNCTIONS_NAMES = [
-    '"' + name + '"' for name in NUM_STR_FUNCTIONS.keys()
-]
+QUOTED_NUM_STR_FUNCTIONS_NAMES = [f'"{name}"' for name in NUM_STR_FUNCTIONS]
 
 STATEMENTS2 = {
     'RESET': 'RUN ecb_reset',
 }
 
-QUOTED_STATEMENTS2_NAMES = [
-    '"' + name + '"' for name in STATEMENTS2.keys()
-]
+QUOTED_STATEMENTS2_NAMES = [f'"{name}"' for name in STATEMENTS2]
 
 STATEMENTS3 = {
     'SET': 'RUN ecb_set',
 }
 
-QUOTED_STATEMENTS3_NAMES = [
-    '"' + name + '"' for name in STATEMENTS3.keys()
-]
+QUOTED_STATEMENTS3_NAMES = [f'"{name}"' for name in STATEMENTS3]
 
 FUNCTIONS_TO_STATEMENTS = {
     'BUTTON': 'RUN ecb_button',
 }
 
 QUOTED_FUNCTIONS_TO_STATEMENTS_NAMES = [
-    '"' + name + '"' for name in FUNCTIONS_TO_STATEMENTS.keys()
+    f'"{name}"' for name in FUNCTIONS_TO_STATEMENTS
 ]
 
 FUNCTIONS_TO_STATEMENTS2 = {
-   'POINT': 'RUN ecb_point',
+    'POINT': 'RUN ecb_point',
 }
 
 QUOTED_FUNCTIONS_TO_STATEMENTS2_NAMES = [
-    '"' + name + '"' for name in FUNCTIONS_TO_STATEMENTS2.keys()
+    f'"{name}"' for name in FUNCTIONS_TO_STATEMENTS2
 ]
 
 NUM_STR_FUNCTIONS_TO_STATEMENTS = {
@@ -108,7 +95,7 @@ NUM_STR_FUNCTIONS_TO_STATEMENTS = {
 }
 
 QUOTED_NUM_STR_FUNCTIONS_TO_STATEMENTS_NAMES = [
-    '"' + name + '"' for name in NUM_STR_FUNCTIONS_TO_STATEMENTS.keys()
+    f'"{name}"' for name in NUM_STR_FUNCTIONS_TO_STATEMENTS
 ]
 
 STR_FUNCTIONS_TO_STATEMENTS = {
@@ -116,7 +103,7 @@ STR_FUNCTIONS_TO_STATEMENTS = {
 }
 
 QUOTED_STR_FUNCTIONS_TO_STATEMENTS_NAMES = [
-    '"' + name + '"' for name in STR_FUNCTIONS_TO_STATEMENTS.keys()
+    f'"{name}"' for name in STR_FUNCTIONS_TO_STATEMENTS
 ]
 
 KEYWORDS = '|'.join(
@@ -137,17 +124,17 @@ KEYWORDS = '|'.join(
         'SOUND',
         'STEP',
     ), SINGLE_KEYWORD_STATEMENTS.keys(),
-       FUNCTIONS.keys(),
-       STR2_FUNCTIONS.keys(),
-       STR3_FUNCTIONS.keys(),
-       STR_NUM_FUNCTIONS.keys(),
-       NUM_STR_FUNCTIONS.keys(),
-       STATEMENTS2.keys(),
-       STATEMENTS3.keys(),
-       FUNCTIONS_TO_STATEMENTS.keys(),
-       FUNCTIONS_TO_STATEMENTS2.keys(),
-       NUM_STR_FUNCTIONS_TO_STATEMENTS.keys(),
-       STR_FUNCTIONS_TO_STATEMENTS.keys()))
+        FUNCTIONS.keys(),
+        STR2_FUNCTIONS.keys(),
+        STR3_FUNCTIONS.keys(),
+        STR_NUM_FUNCTIONS.keys(),
+        NUM_STR_FUNCTIONS.keys(),
+        STATEMENTS2.keys(),
+        STATEMENTS3.keys(),
+        FUNCTIONS_TO_STATEMENTS.keys(),
+        FUNCTIONS_TO_STATEMENTS2.keys(),
+        NUM_STR_FUNCTIONS_TO_STATEMENTS.keys(),
+        STR_FUNCTIONS_TO_STATEMENTS.keys()))
 
 grammar = Grammar(
     rf"""
@@ -395,11 +382,13 @@ class AbstractBasicStatement(AbstractBasicConstruct):
         return self._pre_assignment_statements
 
     def basic09_text(self, indent_level):
-        pre_assignments = BasicStatements(self._pre_assignment_statements,
-                                          multi_line=False)
+        pre_assignments = BasicStatements(
+            self._pre_assignment_statements,
+            multi_line=False
+        )
         return f'{self.indent_spaces(indent_level)}' + \
-               f'{pre_assignments.basic09_text(indent_level)}' + \
-               (r' \ ' if self._pre_assignment_statements else '')
+            f'{pre_assignments.basic09_text(indent_level)}' + \
+            (r' \ ' if self._pre_assignment_statements else '')
 
 
 class BasicArrayRef(AbstractBasicExpression):
@@ -418,7 +407,7 @@ class BasicArrayRef(AbstractBasicExpression):
 
     def basic09_text(self, indent_level):
         return f'{self._var.basic09_text(indent_level)}' \
-               f'{self._indices.basic09_text(indent_level)}'
+            f'{self._indices.basic09_text(indent_level)}'
 
     def visit(self, visitor):
         visitor.visit_array_ref(self)
@@ -443,11 +432,11 @@ class BasicAssignment(AbstractBasicStatement):
     def basic09_text(self, indent_level):
         if isinstance(self._exp, BasicFunctionalExpression):
             return f'{super().basic09_text(indent_level)}' \
-                   f'{self._exp.statement.basic09_text(indent_level)}'
+                f'{self._exp.statement.basic09_text(indent_level)}'
 
         return f'{super().basic09_text(indent_level)}' \
-               f'{self._var.basic09_text(indent_level)} = ' \
-               f'{self._exp.basic09_text(indent_level)}'
+            f'{self._var.basic09_text(indent_level)} = ' \
+            f'{self._exp.basic09_text(indent_level)}'
 
     def visit(self, visitor):
         visitor.visit_statement(self)
@@ -465,7 +454,7 @@ class BasicBinaryExp(AbstractBasicExpression):
     def basic09_text(self, indent_level):
         if self._op in {'AND', 'OR'}:
             return f'L{self._op}({self._exp1.basic09_text(indent_level)}, '\
-                   f'{self._exp2.basic09_text(indent_level)})'
+                f'{self._exp2.basic09_text(indent_level)})'
         else:
             return (f'{self._exp1.basic09_text(indent_level)} {self._op} '
                     f'{self._exp2.basic09_text(indent_level)}')
@@ -503,8 +492,8 @@ class BasicExpressionList(AbstractBasicConstruct):
         return self._exp_list
 
     def basic09_text(self, indent_level):
-        exp_list_text = ', '.join(exp.basic09_text(indent_level)
-                                  for exp in self._exp_list)
+        exp_list_text = ', '.join(
+            exp.basic09_text(indent_level) for exp in self._exp_list)
         return f'({exp_list_text})' if self._parens else f'{exp_list_text}'
 
     def visit(self, visitor):
@@ -520,8 +509,8 @@ class BasicRunCall(AbstractBasicStatement):
 
     def basic09_text(self, indent_level):
         return f'{super().basic09_text(indent_level)}' \
-               f'{self._run_invocation}' \
-               f'{self._arguments.basic09_text(indent_level)}'
+            f'{self._run_invocation}' \
+            f'{self._arguments.basic09_text(indent_level)}'
 
     def visit(self, visitor):
         visitor.visit_statement(self)
@@ -569,11 +558,11 @@ class BasicOnGoStatement(AbstractBasicStatement):
     def basic09_text(self, indent_level):
         if self._is_gosub:
             return f'{super().basic09_text(indent_level)}' \
-                   f'ON {self._var.basic09_text(indent_level)} GOSUB ' + \
-                   ', '.join((str(linenum) for linenum in self.linenums))
+                f'ON {self._var.basic09_text(indent_level)} GOSUB ' + \
+                ', '.join((str(linenum) for linenum in self.linenums))
         return f'{super().basic09_text(indent_level)}' \
-               f'ON {self._var.basic09_text(indent_level)} GOTO ' + \
-               ', '.join((str(linenum) for linenum in self.linenums))
+            f'ON {self._var.basic09_text(indent_level)} GOTO ' + \
+            ', '.join((str(linenum) for linenum in self.linenums))
 
     def visit(self, visitor):
         visitor.visit_statement(self)
@@ -590,13 +579,13 @@ class BasicIf(AbstractBasicStatement):
         if (isinstance(self._statements, BasicGoto) and
                 self._statements.implicit):
             return f'{super().basic09_text(indent_level)}' \
-                   f'IF {self._exp.basic09_text(indent_level)} ' \
-                   f'THEN {self._statements.basic09_text(0)}'
+                f'IF {self._exp.basic09_text(indent_level)} ' \
+                f'THEN {self._statements.basic09_text(0)}'
         else:
             return f'{super().basic09_text(indent_level)}' \
-                   f'IF {self._exp.basic09_text(indent_level)} THEN\n' \
-                   f'{self._statements.basic09_text(indent_level + 1)}\n' \
-                   f'ENDIF'
+                f'IF {self._exp.basic09_text(indent_level)} THEN\n' \
+                f'{self._statements.basic09_text(indent_level + 1)}\n' \
+                f'ENDIF'
 
     def visit(self, visitor):
         visitor.visit_statement(self)
@@ -624,7 +613,7 @@ class BasicLine(AbstractBasicConstruct):
     def basic09_text(self, indent_level):
         if self._is_referenced and self._num is not None:
             return f'{self._num} ' \
-                   f'{self._statements.basic09_text(indent_level)}'
+                f'{self._statements.basic09_text(indent_level)}'
         return f'{self._statements.basic09_text(indent_level)}'
 
     def visit(self, visitor):
@@ -741,8 +730,7 @@ class BasicProg(AbstractBasicConstruct):
             line.visit(nest_counter)
             lines.append(line.basic09_text(nest_counter.count))
 
-        retval = '\n'.join(lines)
-        return retval
+        return '\n'.join(lines)
 
     def visit(self, visitor):
         visitor.visit_program(self)
@@ -757,7 +745,7 @@ class BasicStatement(AbstractBasicStatement):
 
     def basic09_text(self, indent_level):
         return super().basic09_text(indent_level) + \
-               self._basic_construct.basic09_text(indent_level)
+            self._basic_construct.basic09_text(indent_level)
 
     def visit(self, visitor):
         visitor.visit_statement(self)
@@ -770,7 +758,7 @@ class Basic09CodeStatement(AbstractBasicStatement):
 
     def basic09_text(self, indent_level):
         return super().basic09_text(indent_level) + \
-               self._basic09_code
+            self._basic09_code
 
     def visit(self, visitor):
         visitor.visit_statement(self)
@@ -823,7 +811,7 @@ class BasicPrintStatement(AbstractBasicStatement):
 
     def basic09_text(self, indent_level):
         return super().basic09_text(indent_level) + \
-               f'PRINT {self._print_args.basic09_text(indent_level)}'
+            f'PRINT {self._print_args.basic09_text(indent_level)}'
 
     def visit(self, visitor):
         visitor.visit_statement(self)
@@ -853,7 +841,7 @@ class BasicPrintArgs(AbstractBasicConstruct):
             is_control = isinstance(arg, BasicPrintControl)
             if is_control and \
                 ((ii <= 0) or
-                 isinstance(self.args[ii - 1], BasicPrintControl)):
+                    isinstance(self.args[ii - 1], BasicPrintControl)):
                 processed_args.append('""')
 
             processed_args.append(arg.basic09_text(indent_level))
@@ -891,8 +879,8 @@ class BasicCls(AbstractBasicStatement):
 
     def basic09_text(self, indent_level):
         return super().basic09_text(indent_level) \
-            + ('RUN ecb_cls(1)' if not self._exp else
-               f'RUN ecb_cls({self._exp.basic09_text(indent_level)})')
+            + (f'RUN ecb_cls({self._exp.basic09_text(indent_level)})'
+               if self._exp else 'RUN ecb_cls(1)')
 
     def visit(self, visitor):
         visitor.visit_statement(self)
@@ -908,7 +896,7 @@ class BasicFunctionCall(AbstractBasicExpression):
 
     def basic09_text(self, indent_level):
         return f'{self._func}' \
-               f'{self._args.basic09_text(indent_level)}'
+            f'{self._args.basic09_text(indent_level)}'
 
 
 class BasicDataStatement(AbstractBasicStatement):
@@ -918,7 +906,7 @@ class BasicDataStatement(AbstractBasicStatement):
 
     def basic09_text(self, indent_level):
         return f'{super().basic09_text(indent_level)}DATA ' \
-               f'{self._exp_list.basic09_text(indent_level)}'
+            f'{self._exp_list.basic09_text(indent_level)}'
 
     def visit(self, visitor):
         visitor.visit_statement(self)
@@ -946,10 +934,10 @@ class BasicForStatement(AbstractBasicStatement):
 
     def basic09_text(self, indent_level):
         return f'{super().basic09_text(indent_level - 1)}FOR ' \
-               f'{self._var.basic09_text(indent_level)} = ' \
-               f'{self._start_exp.basic09_text(indent_level)} TO ' \
-               f'{self._end_exp.basic09_text(indent_level)}' + \
-               (f' STEP {self._step_exp.basic09_text(indent_level)}'
+            f'{self._var.basic09_text(indent_level)} = ' \
+            f'{self._start_exp.basic09_text(indent_level)} TO ' \
+            f'{self._end_exp.basic09_text(indent_level)}' + \
+            (f' STEP {self._step_exp.basic09_text(indent_level)}'
                 if self._step_exp else '')
 
     def visit(self, visitor):
@@ -971,8 +959,10 @@ class BasicNextStatement(AbstractBasicStatement):
         return self._var_list
 
     def basic09_text(self, indent_level):
-        vlist = [f'NEXT {var.basic09_text(indent_level)}'
-                 for var in self.var_list.exp_list]
+        vlist = [
+            f'NEXT {var.basic09_text(indent_level)}'
+            for var in self.var_list.exp_list
+        ]
         return super().basic09_text(indent_level) + r' \ '.join(vlist)
 
     def visit(self, visitor):
@@ -1049,8 +1039,10 @@ class BasicDimStatement(AbstractBasicStatement):
             '' if self._array_ref.is_str_expr else 0,
             is_str_expr=self._array_ref.is_str_expr
         )
-        var = BasicVar(self._array_ref._var.name()[4:],
-                       self._array_ref._var.is_str_expr)
+        var = BasicVar(
+            self._array_ref._var.name()[4:],
+            self._array_ref._var.is_str_expr
+        )
 
         assignment = \
             BasicAssignment(
@@ -1074,8 +1066,8 @@ class BasicDimStatement(AbstractBasicStatement):
         )
 
         return f'{super().basic09_text(indent_level)}' \
-               f'DIM {self._array_ref.basic09_text(indent_level)} \\ ' \
-               f'{init.basic09_text(0)}'
+            f'DIM {self._array_ref.basic09_text(indent_level)} \\ ' \
+            f'{init.basic09_text(0)}'
 
 
 class BasicFunctionalExpressionPatcherVisitor(BasicConstructVisitor):
@@ -1178,14 +1170,14 @@ class BasicVisitor(NodeVisitor):
         if node.text.strip() == '':
             return ''
 
-        if node.text in {'*', '/', '+', '-', '*', '&', '<', '>', '<>', '=',
+        if node.text in {'*', '/', '+', '-', '&', '<', '>', '<>', '=',
                          '<=', '=<', '>=', '=>', 'AND', 'OR', 'NOT'}:
             return BasicOperator(node.text)
 
-        if len(visited_children) == 4:
-            if isinstance(visited_children[0], BasicOperator):
-                operator, _, exp, _ = visited_children
-                return BasicOpExp(operator.operator, exp)
+        if len(visited_children) == 4 and \
+           isinstance(visited_children[0], BasicOperator):
+            operator, _, exp, _ = visited_children
+            return BasicOpExp(operator.operator, exp)
         if len(visited_children) == 1:
             if isinstance(visited_children[0], AbstractBasicConstruct):
                 return visited_children[0]
@@ -1197,9 +1189,9 @@ class BasicVisitor(NodeVisitor):
             if isinstance(visited_children[0], BasicOpExp) and \
                isinstance(visited_children[1], BasicOpExp):
                 exp1, exp2 = visited_children
-                return BasicOpExp(exp1.operator,
-                                  BasicBinaryExp(exp1.exp,
-                                                 exp2.operator, exp2.exp))
+                return BasicOpExp(
+                            exp1.operator,
+                            BasicBinaryExp(exp1.exp, exp2.operator, exp2.exp))
             if isinstance(visited_children[0], Node) and \
                visited_children[0].text == ':':
                 return visited_children[1]
@@ -1207,8 +1199,7 @@ class BasicVisitor(NodeVisitor):
         return node
 
     def visit_aaa_prog(self, node, visited_children):
-        bp = BasicProg(visited_children[0])
-        return bp
+        return BasicProg(visited_children[0])
 
     def visit_arr_assign(self, node, visited_children):
         array_ref_exp, _, _, _, val_exp = visited_children
@@ -1277,9 +1268,12 @@ class BasicVisitor(NodeVisitor):
         return self.visit_num_prod_exp(node, visited_children)
 
     def visit_line(self, node, visited_children):
-        return BasicLine(visited_children[0],
-                         next(child for child in visited_children
-                              if isinstance(child, BasicStatements)))
+        return BasicLine(
+            visited_children[0],
+            next(
+                child for child in visited_children
+                if isinstance(child, BasicStatements))
+            )
 
     def visit_linenum(self, node, visited_children):
         return int(node.full_text[node.start:node.end])
@@ -1300,29 +1294,33 @@ class BasicVisitor(NodeVisitor):
             v1, v2, v3 = visited_children
             if isinstance(v2, str) and isinstance(v3, str):
                 return visited_children[0]
-            if isinstance(v2, str) and isinstance(v3, str):
-                return visited_children[0]
             return BasicBinaryExp(v1, v3.operator, v3.exp, is_str_expr=True)
         return node
 
     def visit_str2_func_exp(self, node, visited_children):
         func, _, _, _, str_exp, _, _, _, exp, _, _, _ = visited_children
-        return BasicFunctionCall(STR2_FUNCTIONS[func.text],
-                                 BasicExpressionList([str_exp, exp]),
-                                 is_str_expr=True)
+        return BasicFunctionCall(
+            STR2_FUNCTIONS[func.text],
+            BasicExpressionList([str_exp, exp]),
+            is_str_expr=True
+        )
 
     def visit_str3_func_exp(self, node, visited_children):
         func, _, _, _, str_exp, _, _, _, exp1, _, _, _, exp2, _, _, _ \
             = visited_children
-        return BasicFunctionCall(STR3_FUNCTIONS[func.text],
-                                 BasicExpressionList([str_exp, exp1, exp2]),
-                                 is_str_expr=True)
+        return BasicFunctionCall(
+            STR3_FUNCTIONS[func.text],
+            BasicExpressionList([str_exp, exp1, exp2]),
+            is_str_expr=True
+        )
 
     def visit_num_str_func_exp(self, node, visited_children):
         func, _, _, _, exp, _, _, _ = visited_children
-        return BasicFunctionCall(NUM_STR_FUNCTIONS[func.text],
-                                 BasicExpressionList([exp]),
-                                 is_str_expr=True)
+        return BasicFunctionCall(
+            NUM_STR_FUNCTIONS[func.text],
+            BasicExpressionList([exp]),
+            is_str_expr=True
+        )
 
     def visit_num_str_func_exp_statements(self, node, visited_children):
         func, _, _, _, exp, _, _, _ = visited_children
@@ -1381,13 +1379,17 @@ class BasicVisitor(NodeVisitor):
 
     def visit_func_exp(self, node, visited_children):
         func, _, _, _, exp, _, _, _ = visited_children
-        return BasicFunctionCall(FUNCTIONS[func.text],
-                                 BasicExpressionList([exp]))
+        return BasicFunctionCall(
+            FUNCTIONS[func.text],
+            BasicExpressionList([exp])
+        )
 
     def visit_func_str_exp(self, node, visited_children):
         func, _, _, _, exp, _, _, _ = visited_children
-        return BasicFunctionCall(STR_NUM_FUNCTIONS[func.text],
-                                 BasicExpressionList([exp]))
+        return BasicFunctionCall(
+            STR_NUM_FUNCTIONS[func.text],
+            BasicExpressionList([exp])
+        )
 
     def visit_num_assign(self, node, visited_children):
         return BasicAssignment(visited_children[0], visited_children[4])
@@ -1403,7 +1405,7 @@ class BasicVisitor(NodeVisitor):
 
     def visit_statements(self, node, visited_children):
         return BasicStatements([child for child in visited_children
-                               if isinstance(child, AbstractBasicConstruct)])
+                                if isinstance(child, AbstractBasicConstruct)])
 
     def visit_str_literal(self, node, visited_children):
         return BasicLiteral(str(node.full_text[node.start+1:node.end-1]),
@@ -1432,8 +1434,10 @@ class BasicVisitor(NodeVisitor):
         at_statement = BasicRunCall('RUN ecb_at',
                                     BasicExpressionList([loc]))
         print_statement = BasicPrintStatement(print_args)
-        return BasicStatements([at_statement, print_statement],
-                               multi_line=False)
+        return BasicStatements(
+            [at_statement, print_statement],
+            multi_line=False
+        )
 
     def visit_print_args(self, node, visited_children):
         return BasicPrintArgs(visited_children)
@@ -1471,11 +1475,11 @@ class BasicVisitor(NodeVisitor):
         return BasicRunCall(STATEMENTS3[func.text],
                             BasicExpressionList([exp1, exp2, exp3]))
 
-    def visit_go_statement(self, node, visited_children):
+    def visit_go_statement(self, _, visited_children):
         go, _, linenum, _ = visited_children
         return BasicGoto(linenum, False, is_gosub=go.text == 'GOSUB')
 
-    def visit_go_statement(self, node, visited_children):
+    def visit_go_statement(self, _, visited_children):
         go, _, linenum, _ = visited_children
         return BasicGoto(linenum, False, is_gosub=go.text == 'GOSUB')
 
@@ -1500,8 +1504,10 @@ class BasicVisitor(NodeVisitor):
 
     def visit_data_elements(self, node, visited_children):
         data_element, _, data_elements = visited_children
-        return BasicExpressionList([data_element] + data_elements.exp_list,
-                                   parens=False)
+        return BasicExpressionList(
+            [data_element] + data_elements.exp_list,
+            parens=False
+        )
 
     def visit_data_element0(self, node, visited_children):
         _, _, data_element = visited_children
@@ -1523,7 +1529,7 @@ class BasicVisitor(NodeVisitor):
     def visit_data_str_element(self, node, visited_children):
         return visited_children[0]
 
-    def visit_data_str_element0(self, node, visited_children):
+    def visit_data_str_element0(self, _, visited_children):
         _, literal, _ = visited_children
         return literal
 
@@ -1595,19 +1601,27 @@ class BasicVisitor(NodeVisitor):
     def visit_dim3_statement(self, node, visited_children):
         _, _, var, _, _, _, size0, _, _, _, size1, _, _, _, size2, \
             _, _, _ = visited_children
-        return BasicDimStatement(var,
-                                 BasicExpressionList([size0, size1, size2]))
+        return BasicDimStatement(
+            var,
+            BasicExpressionList([size0, size1, size2])
+        )
 
 
 def convert(progin,
             procname='',
             filter_unused_linenum=False,
-            initialize_vars=False):
+            initialize_vars=False,
+            skip_procedure_headers=False,
+            output_dependencies=False):
     tree = grammar.parse(progin)
     bv = BasicVisitor()
     basic_prog = bv.visit(tree)
 
-    procname = procname if PROCNAME_REGEX.match(procname) else 'program'
+    if skip_procedure_headers := skip_procedure_headers or \
+       not output_dependencies:
+        procname = ''
+    else:
+        procname = procname if PROCNAME_REGEX.match(procname) else 'program'
     basic_prog.set_procname(procname)
 
     # transform functions to proc calls
@@ -1633,21 +1647,28 @@ def convert(progin,
         )
         basic_prog.visit(line_num_filter)
 
-    return basic_prog.basic09_text(0)
+    program = basic_prog.basic09_text(0)
+    if output_dependencies and procname:
+        procedure_bank = ProcedureBank()
+        procedure_bank.add_from_resource('ecb.bas')
+        procedure_bank.add_from_str(program)
+        program = procedure_bank.get_procedure_and_dependencies(procname)
+
+    return program
 
 
-def convert_file(
-        input_program_file,
-        output_program_file,
-        procname='',
-        filter_unused_linenum=False,
-        initialize_vars=False):
-
+def convert_file(input_program_file,
+                 output_program_file,
+                 procname='',
+                 filter_unused_linenum=False,
+                 initialize_vars=False,
+                 output_dependencies=False):
     progin = input_program_file.read()
     progout = convert(
         progin,
         procname=procname,
         filter_unused_linenum=filter_unused_linenum,
         initialize_vars=initialize_vars,
+        output_dependencies=output_dependencies,
     )
     output_program_file.write(progout)

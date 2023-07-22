@@ -5,16 +5,31 @@ from coco import b09
 
 
 class TestB09(unittest.TestCase):
-    def get_resource(name):
-        resource_path = pkg_resources.resource_filename(
-            __name__, f'fixtures/{name}'
-        )
-        with open(resource_path, 'r') as resource_file:
-            return resource_file.read()
+    def test_convert_with_dependencies(self):
+        program = b09.convert('10 CLS B', procname='do_cls',
+                              initialize_vars=True,
+                              filter_unused_linenum=True,
+                              skip_procedure_headers=False,
+                              output_dependencies=True)
+        assert program.endswith('procedure do_cls\nB = 0\nRUN ecb_cls(B)')
+        assert program.startswith('procedure ecb_cls\n')
 
-    simple_prog = get_resource('simple.bas')
-    simple2_prog = get_resource('simple2.bas')
-    simple3_prog = get_resource('simple3.bas')
+    def test_convert_no_header_with_dependencies(self):
+        program = b09.convert('10 CLS B', procname='do_cls',
+                              initialize_vars=True,
+                              filter_unused_linenum=True,
+                              skip_procedure_headers=True,
+                              output_dependencies=True)
+        assert program == 'B = 0\nRUN ecb_cls(B)'
+
+    def test_convert_header_no_name_with_dependencies(self):
+        program = b09.convert('10 CLS B',
+                              initialize_vars=True,
+                              filter_unused_linenum=True,
+                              skip_procedure_headers=False,
+                              output_dependencies=True)
+        assert program.endswith('procedure program\nB = 0\nRUN ecb_cls(B)')
+        assert program.startswith('procedure ecb_cls\n')
 
     def test_basic_assignment(self):
         var = b09.BasicVar('HW')
@@ -93,13 +108,15 @@ class TestB09(unittest.TestCase):
         target = b09.BasicOperator('*')
         assert target.basic09_text(2) == '*'
 
-    def generic_test_parse(self, progin, progout,
-                           filter_unused_linenum=False,
-                           initialize_vars=False):
+    def generic_test_parse(
+            self, progin, progout,
+            filter_unused_linenum=False,
+            initialize_vars=False):
         b09_prog = b09.convert(
             progin,
             filter_unused_linenum=filter_unused_linenum,
-            initialize_vars=initialize_vars
+            initialize_vars=initialize_vars,
+            skip_procedure_headers=True
         )
         assert b09_prog == progout
 

@@ -54,6 +54,11 @@ def start(argv):
         action='store_true',
         help='Don\'t pre-initialize all variables',
     )
+    parser.add_argument(
+        '-D', '--dont-output-dependencies',
+        action='store_true',
+        help='Don\'t output required dependencies',
+    )
 
     args = parser.parse_args(argv)
     procname = os.path.splitext(
@@ -63,7 +68,8 @@ def start(argv):
                      args.output_b09_text_program_file,
                      procname=procname,
                      filter_unused_linenum=args.filter_unused_linenum,
-                     initialize_vars=not args.dont_initialize_vars)
+                     initialize_vars=not args.dont_initialize_vars,
+                     output_dependencies=not args.dont_output_dependencies)
     args.input_decb_text_program_file.close()
     args.output_b09_text_program_file.close()
 
