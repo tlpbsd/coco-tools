@@ -19,7 +19,7 @@ class TestProcedureBank(unittest.TestCase):
 
     def test_loads_procedures_from_resource(self):
         target = ProcedureBank()
-        target.add_from_resource('ecb.bas')
+        target.add_from_resource('ecb.b09')
         assert {'ecb_point', '_ecb_get_point_info',
                 'ecb_text_address'}.issubset(
             target._get_procedure_and_dependency_names('ecb_point')
@@ -27,7 +27,7 @@ class TestProcedureBank(unittest.TestCase):
 
     def test_can_load_from_resource_and_str(self):
         target = ProcedureBank()
-        target.add_from_resource('ecb.bas')
+        target.add_from_resource('ecb.b09')
         procedure = 'PROCEDURE foo\nRUN ecb_cls(5)'
         target.add_from_str(procedure)
         assert {'foo', 'ecb_cls', 'ecb_text_address'}.issubset(
