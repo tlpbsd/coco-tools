@@ -6,7 +6,7 @@ procedure ecb_at
 procedure ecb_button
     param button: real
     param retval: real
-    dim joystk, fire: integer
+    dim joystk, fire, x, y: integer
 
     if button < 2 then joystk = 0 else joystk = 1 \ endif
     run GFX("Joystk", button, fire, x, y)
@@ -200,3 +200,24 @@ procedure _ecb_get_point_info
     address = address + (y / 2) * 32 + (x / 2)
     mask = 2 ** ((2 * (1 - land(y, 1))) + (1 - land(x, 1)))
     c0 = peek(fix(address))
+
+
+procedure ecb_int
+    param v, retval: real
+    if v >= 0 then
+        retval = int(v)
+    else
+        retval = int(v - 0.999999999)
+    endif
+
+
+procedure _ecb_cursor_color
+    param v: integer
+    dim tmp_buffer(2): byte
+    tmp_buffer(1) = $05
+    tmp_buffer(2) = v + $20
+    put #1, tmp_buffer
+
+
+procedure _ecb_start
+    run _ecb_cursor_color(0)

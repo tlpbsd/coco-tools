@@ -23,7 +23,6 @@ FUNCTIONS = {
     'ATN': 'ATN',
     'COS': 'COS',
     'EXP': 'EXP',
-    'INT': 'INT',
     'LEN': 'LEN',
     'LOG': 'LOG',
     'PEEK': 'PEEK',
@@ -77,6 +76,7 @@ QUOTED_STATEMENTS3_NAMES = [f'"{name}"' for name in STATEMENTS3]
 
 FUNCTIONS_TO_STATEMENTS = {
     'BUTTON': 'RUN ecb_button',
+    'INT': 'RUN ecb_int',
 }
 
 QUOTED_FUNCTIONS_TO_STATEMENTS_NAMES = [
