@@ -12,7 +12,7 @@ class TestB09(unittest.TestCase):
                               skip_procedure_headers=False,
                               output_dependencies=True)
         assert program.endswith('procedure do_cls\nB = 0.0\nRUN ecb_cls(B)')
-        assert program.startswith('procedure ecb_cls\n')
+        assert program.startswith('procedure _ecb_text_address\n')
 
     def test_convert_no_header_with_dependencies(self):
         program = b09.convert('10 CLS B', procname='do_cls',
@@ -29,7 +29,7 @@ class TestB09(unittest.TestCase):
                               skip_procedure_headers=False,
                               output_dependencies=True)
         assert program.endswith('procedure program\nB = 0.0\nRUN ecb_cls(B)')
-        assert program.startswith('procedure ecb_cls\n')
+        assert program.startswith('procedure _ecb_text_address\n')
 
     def test_basic_assignment(self):
         var = b09.BasicVar('HW')
