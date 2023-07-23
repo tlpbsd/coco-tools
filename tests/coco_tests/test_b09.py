@@ -294,6 +294,12 @@ class TestB09(unittest.TestCase):
             '11 RUN ecb_sound(100.0, A + B, 31.0)'
         )
 
+    def test_poke(self):
+        self.generic_test_parse(
+            '11 POKE65497,A+B',
+            '11 POKE 65497.0, A + B'
+        )
+
     def test_cls(self):
         self.generic_test_parse(
             '11 CLS A+B\n12 CLS',

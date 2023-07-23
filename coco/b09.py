@@ -173,6 +173,7 @@ grammar = Grammar(
                     / arr_assign
                     / str_arr_assign
                     / sound
+                    / poke_statement
                     / cls
                     / go_statement
                     / on_n_go_statement
@@ -262,6 +263,7 @@ grammar = Grammar(
                     / str_exp
     print_control   = ~r"(;|,)"
     sound           = "SOUND" space* exp space* "," space* exp space*
+    poke_statement  = "POKE" space* exp space* "," space* exp space*
     cls             = "CLS" space* exp? space*
     go_statement    = ("GOTO" / "GOSUB") space* linenum space*
     on_n_go_statement   = "ON" space* var space* ("GOTO" / "GOSUB") space* linenum_list space*
@@ -291,6 +293,11 @@ grammar = Grammar(
     func_to_statements2 = ({ ' / '.join(QUOTED_FUNCTIONS_TO_STATEMENTS2_NAMES)}) space* "(" space* exp space* "," space* exp space*")" space*
     joystk_to_statement = "JOYSTK" space* "(" space* exp space* ")" space*
     dim_element0        = (int_literal / hex_literal)
+    dim_var             = (str_var / var / dim_array_var)
+    dim_array_var       = dim_array_var1 / dim_array_var2 / dim_array_var3
+    dim_array_var1      = (str_var / var) space* "(" space* dim_element0 space* ")" space*
+    dim_array_var2      = (str_var / var) space* "(" space* dim_element0 space* "," space* dim_element0 space* ")" space*
+    dim_array_var3      = (str_var / var) space* "(" space* dim_element0 space* "," space* dim_element0 space* "," space* dim_element0 space* ")" space*
     dim1_statement      = "DIM" space* (str_var / var) space* "(" space* dim_element0 space* ")" space*
     dim2_statement      = "DIM" space* (str_var / var) space* "(" space* dim_element0 space* "," space* dim_element0 space* ")" space*
     dim3_statement      = "DIM" space* (str_var / var) space* "(" space* dim_element0 space* "," space* dim_element0 space* "," space* dim_element0 space* ")" space*
@@ -867,21 +874,30 @@ class BasicPrintArgs(AbstractBasicConstruct):
             arg.visit(visitor)
 
 
-class BasicSound(AbstractBasicStatement):
+class Basic2ParamStatement(AbstractBasicStatement):
     def __init__(self, exp1, exp2):
         super().__init__()
         self._exp1 = exp1
         self._exp2 = exp2
 
+    def visit(self, visitor):
+        visitor.visit_statement(self)
+        self._exp1.visit(visitor)
+        self._exp2.visit(visitor)
+
+
+class BasicSound(Basic2ParamStatement):
     def basic09_text(self, indent_level):
         return f'{super().basic09_text(indent_level)}' \
             f'RUN ecb_sound({self._exp1.basic09_text(indent_level)}, ' \
             f'{self._exp2.basic09_text(indent_level)}, 31.0)'
 
-    def visit(self, visitor):
-        visitor.visit_statement(self)
-        self._exp1.visit(visitor)
-        self._exp2.visit(visitor)
+
+class BasicPoke(Basic2ParamStatement):
+    def basic09_text(self, indent_level):
+        return f'{super().basic09_text(indent_level)}' \
+            f'POKE {self._exp1.basic09_text(indent_level)}, ' \
+            f'{self._exp2.basic09_text(indent_level)}'
 
 
 class BasicCls(AbstractBasicStatement):
@@ -1476,6 +1492,10 @@ class BasicVisitor(NodeVisitor):
     def visit_sound(self, node, visited_children):
         _, _, exp1, _, _, _, exp2, _ = visited_children
         return BasicSound(exp1, exp2)
+
+    def visit_poke_statement(self, node, visited_children):
+        _, _, exp1, _, _, _, exp2, _ = visited_children
+        return BasicPoke(exp1, exp2)
 
     def visit_cls(self, node, visited_children):
         _, _, exp, _ = visited_children

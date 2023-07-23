@@ -68,6 +68,9 @@ TAB, TAN, THEN, TO, VAL
   NEXT AA
 NEXT BB
 ```
+* PEEK and POKE are supported ... but with great power comes great
+  responsibility.
+
 * Some constructs require introducing an intermediary variable including
   BUTTON, INKEY, JOYSTK and POINT.
 10 IF (INKEY$()="") THEN 10 is converted into a construct that looks like:
@@ -78,7 +81,7 @@ NEXT BB
 ## Unsupported Color BASIC constructs
 * These constructs are NOT supported by decb-to-b09:
 AUDIO, CLEAR, CLOAD, CONT, CSAVE, EOF, EVAL, EXEC, LIST, LLIST, LOAD, MEM,
-MOTOR, NEW, PEEK, POKE, RUN, SKIPF, USR
+MOTOR, NEW, RUN, SKIPF, USR
 * It is NOT possible to GOTO, GOSUB, ON GOTO or ON GOSUB to a variable.
 * NEXT statements MUST have the iteration variable specified.
 * NEXT statements must be nested and not interleaved. For example, this is legal:
@@ -97,10 +100,15 @@ NEXT JJ
 ```
 
 ## Weird, unsupported Color BASIC constructs
-* Numeric literals must NOT have whitespace. For example, this is illegal: `12 34`
+* Numeric literals must NOT have whitespace. For example, this is illegal:
+  `12 34`
 
 ## Known broken conversions
 * Passing a hex literal value to something that results in a procedure call
   generate incorrect code.
-* DIM of multiple values in a single statement does not work.
-* It is not possible to READ from a DATA statement into an array reference.
+* `DIM` of multiple values in a single statement does not work.
+* `DIM` of scalar values does not work.
+* `READ` is not implemented.
+* Conversion of REAL values via `STR$` or `PRINT` lack leading and trailing
+  whitespace
+* Statements like this do not generate working code: `A = 3 < 4`
