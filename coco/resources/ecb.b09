@@ -1,6 +1,6 @@
 procedure ecb_at
     param location: real
-    run ecb_locate(land(location, 31), mod(location, 32))
+    run ecb_locate(float(land(location, 31)), location / 32.0)
 
 
 procedure ecb_button
