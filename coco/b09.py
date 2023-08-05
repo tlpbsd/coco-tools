@@ -184,9 +184,7 @@ grammar = Grammar(
                     / for_step_statement
                     / for_statement
                     / next_statement
-                    / dim3_statement
-                    / dim2_statement
-                    / dim1_statement
+                    / dim_statement
                     / clear_statement
     statement2      =({ ' / '.join(QUOTED_STATEMENTS2_NAMES)}) space* "(" space* exp space* "," space* exp space* ")" space*
     statement3      = ({ ' / '.join(QUOTED_STATEMENTS3_NAMES)}) space* "(" space* exp space* "," space* exp space* "," space* exp space* ")" space*
@@ -293,14 +291,15 @@ grammar = Grammar(
     func_to_statements2 = ({ ' / '.join(QUOTED_FUNCTIONS_TO_STATEMENTS2_NAMES)}) space* "(" space* exp space* "," space* exp space*")" space*
     joystk_to_statement = "JOYSTK" space* "(" space* exp space* ")" space*
     dim_element0        = (int_literal / hex_literal)
-    dim_var             = (str_var / var / dim_array_var)
-    dim_array_var       = dim_array_var1 / dim_array_var2 / dim_array_var3
+    dim_var             = (dim_array_var / str_var / var)
+    dim_array_var       = dim_array_var3 / dim_array_var2 / dim_array_var1
     dim_array_var1      = (str_var / var) space* "(" space* dim_element0 space* ")" space*
     dim_array_var2      = (str_var / var) space* "(" space* dim_element0 space* "," space* dim_element0 space* ")" space*
     dim_array_var3      = (str_var / var) space* "(" space* dim_element0 space* "," space* dim_element0 space* "," space* dim_element0 space* ")" space*
-    dim1_statement      = "DIM" space* (str_var / var) space* "(" space* dim_element0 space* ")" space*
-    dim2_statement      = "DIM" space* (str_var / var) space* "(" space* dim_element0 space* "," space* dim_element0 space* ")" space*
-    dim3_statement      = "DIM" space* (str_var / var) space* "(" space* dim_element0 space* "," space* dim_element0 space* "," space* dim_element0 space* ")" space*
+    dim_array_var_list  = dim_var space* dim_array_var_list_elements
+    dim_array_var_list_elements = dim_array_var_list_element*
+    dim_array_var_list_element = "," space* dim_var space*
+    dim_statement       = "DIM" space* dim_array_var_list
     clear_statement     = "CLEAR" space* exp? space*
     """  # noqa
 )
@@ -1044,32 +1043,30 @@ class BasicJoystkExpression(BasicFunctionalExpression):
 
 
 class BasicDimStatement(AbstractBasicStatement):
-    def __init__(self, var, sizes):
+    def __init__(self, dim_vars):
         super().__init__()
-        self._array_ref = BasicArrayRef(
-            var, sizes, is_str_expr=var.is_str_expr
-        )
+        self._dim_vars = dim_vars
 
-    def basic09_text(self, indent_level):
+    def init_text_for_var(self, dim_var):
         for_statements = (
             BasicForStatement(
                 BasicVar(f'tmp_{ii + 1}'),
                 BasicLiteral(1),
                 index
             )
-            for ii, index in enumerate(self._array_ref.indices.exp_list)
+            for ii, index in enumerate(dim_var.indices.exp_list)
         )
         next_statements = (
             BasicNextStatement(BasicExpressionList([BasicVar(f'tmp_{ii}')]))
-            for ii in range(len(self._array_ref.indices.exp_list), 0, -1)
+            for ii in range(len(dim_var.indices.exp_list), 0, -1)
         )
         init_val = BasicLiteral(
-            '' if self._array_ref.is_str_expr else 0,
-            is_str_expr=self._array_ref.is_str_expr
+            '' if dim_var.is_str_expr else 0,
+            is_str_expr=dim_var.is_str_expr
         )
         var = BasicVar(
-            self._array_ref._var.name()[4:],
-            self._array_ref._var.is_str_expr
+            dim_var._var.name()[4:],
+            dim_var._var.is_str_expr
         )
 
         assignment = \
@@ -1080,7 +1077,7 @@ class BasicDimStatement(AbstractBasicStatement):
                         (
                             BasicVar(f'tmp_{ii}')
                             for ii in range(
-                                1, len(self._array_ref.indices.exp_list) + 1
+                                1, len(dim_var.indices.exp_list) + 1
                             )
                         )
                     )
@@ -1088,15 +1085,23 @@ class BasicDimStatement(AbstractBasicStatement):
                 init_val
             )
 
-        init = BasicStatements(
+        return BasicStatements(
             chain(for_statements, (assignment, ), next_statements),
             multi_line=False
-        )
+        ).basic09_text(0)
+
+    def basic09_text(self, indent_level):
+        dim_var_text = ', '.join((
+            dim_var.basic09_text(indent_level) for dim_var in self._dim_vars
+        ))
+        init_text = ' \\ '.join((
+            self.init_text_for_var(dim_var) for dim_var in self._dim_vars
+            if isinstance(dim_var, BasicArrayRef)
+        ))
+        init_text = ' \\ ' + init_text if init_text else ''
 
         return f'{super().basic09_text(indent_level)}' \
-            f'DIM {self._array_ref.basic09_text(indent_level)} \\ ' \
-            f'{init.basic09_text(0)}'
-
+            f'DIM {dim_var_text}' + init_text
 
 class BasicFunctionalExpressionPatcherVisitor(BasicConstructVisitor):
     def __init__(self):
@@ -1550,6 +1555,35 @@ class BasicVisitor(NodeVisitor):
     def visit_dim_element0(self, node, visited_children):
         return visited_children[0]
 
+    def visit_dim_var(self, node, visited_children):
+        return visited_children[0]
+
+    def visit_dim_array_var1(self, node, visited_children):
+        var, _, _, _, size1, _, _, _ = visited_children
+        return BasicArrayRef(var, BasicExpressionList([size1]),
+                             is_str_expr=var.is_str_expr)
+
+    def visit_dim_array_var2(self, node, visited_children):
+        var, _, _, _, size1, _, _, _, size2, _, _, _ = visited_children
+        return BasicArrayRef(var, BasicExpressionList([size1, size2]),
+                             is_str_expr=var.is_str_expr)
+
+    def visit_dim_array_var3(self, node, visited_children):
+        var, _, _, _, size1, _, _, _, size2, _, _, _, size3, _, _, _= visited_children
+        return BasicArrayRef(var, BasicExpressionList([size1, size2, size3]),
+                             is_str_expr=var.is_str_expr)
+
+    def visit_dim_array_var_list(self, node, visited_children):
+        dim_var, _, dim_vars = visited_children
+        return [dim_var] + dim_vars
+
+    def visit_dim_array_var_list_elements(self, node, visited_children):
+        return visited_children
+
+    def visit_dim_array_var_list_element(self, node, visited_children):
+        _, _, dim_var, _ = visited_children
+        return dim_var
+
     def visit_data_element0(self, node, visited_children):
         _, _, data_element = visited_children
         return data_element
@@ -1631,21 +1665,9 @@ class BasicVisitor(NodeVisitor):
             BasicExpressionList([exp])
         )
 
-    def visit_dim1_statement(self, node, visited_children):
-        _, _, var, _, _, _, size, _, _, _ = visited_children
-        return BasicDimStatement(var, BasicExpressionList([size]))
-
-    def visit_dim2_statement(self, node, visited_children):
-        _, _, var, _, _, _, size0, _, _, _, size1, _, _, _ = visited_children
-        return BasicDimStatement(var, BasicExpressionList([size0, size1]))
-
-    def visit_dim3_statement(self, node, visited_children):
-        _, _, var, _, _, _, size0, _, _, _, size1, _, _, _, size2, \
-            _, _, _ = visited_children
-        return BasicDimStatement(
-            var,
-            BasicExpressionList([size0, size1, size2])
-        )
+    def visit_dim_statement(self, node, visited_children):
+        _, _, dim_var_list = visited_children
+        return BasicDimStatement(dim_var_list)
 
     def visit_clear_statement(self, node, visited_children):
         return BasicComment(f' {node.text.strip() }')

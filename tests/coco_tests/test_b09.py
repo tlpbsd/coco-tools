@@ -500,10 +500,16 @@ class TestB09(unittest.TestCase):
 
     def test_dim1(self):
         self.generic_test_parse(
-            '11 DIMA(12)',
-            '11 DIM arr_A(12) \\ '
+            '11 DIMA(12),B(3),CC(20)',
+            '11 DIM arr_A(12), arr_B(3), arr_CC(20) \\ '
             'FOR tmp_1 = 1 TO 12 \\ '
             'arr_A(tmp_1) = 0 \\ '
+            'NEXT tmp_1 \\ '
+            'FOR tmp_1 = 1 TO 3 \\ '
+            'arr_B(tmp_1) = 0 \\ '
+            'NEXT tmp_1 \\ '
+            'FOR tmp_1 = 1 TO 20 \\ '
+            'arr_CC(tmp_1) = 0 \\ '
             'NEXT tmp_1'
         )
 
@@ -562,6 +568,12 @@ class TestB09(unittest.TestCase):
             'NEXT tmp_3 \\ '
             'NEXT tmp_2 \\ '
             'NEXT tmp_1'
+        )
+
+    def test_dim_misc(self):
+        self.generic_test_parse(
+            '11 DIMA$,B',
+            '11 DIM A$, B'
         )
 
     def test_line_filter(self):
