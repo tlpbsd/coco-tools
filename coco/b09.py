@@ -281,7 +281,7 @@ grammar = Grammar(
     data_str_element    = data_str_element0 / data_str_element1
     data_str_element0   = space* str_literal space*
     data_str_element1   = space* data_str_literal
-    data_str_literal    = ~r'[^",\n]*'
+    data_str_literal    = ~r'[^",:\n]*'
     single_kw_statement = ({ ' / '.join(QUOTED_SINGLE_KEYWORD_STATEMENTS)}) space*
     for_statement       = "FOR" space* var space* "=" space* exp space* "TO" space* exp space*
     for_step_statement  = "FOR" space* var space* "=" space* exp space* "TO" space* exp space* "STEP" space* exp space*
@@ -306,7 +306,7 @@ grammar = Grammar(
     read_statement      = "READ" space* rhs space* rhs_list_elements
     rhs_list_elements   = rhs_list_element*
     rhs_list_element    = "," space* rhs space*
-    rhs                 = array_ref_exp / str_var / var
+    rhs                 = array_ref_exp / str_array_ref_exp / str_var / var
     """  # noqa
 )
 

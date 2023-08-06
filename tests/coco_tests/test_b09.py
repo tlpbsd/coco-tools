@@ -617,5 +617,11 @@ class TestB09(unittest.TestCase):
 
     def test_simple_read(self):
         self.generic_test_parse(
-            '10 READA$,B,D(II,JJ)',
-            '10 READ A$, B, arr_D(II, JJ)')
+            '10 READA$,B,D(II,JJ),E$(XX)',
+            '10 READ A$, B, arr_D(II, JJ), arr_E$(XX)')
+
+    def test_mars_data(self):
+        self.generic_test_parse(
+            '120 DATAA CONTROL ROOM,AN ENGINE ROOM,A BARREN FIELD,A MOAT',
+            '120 DATA "A CONTROL ROOM", "AN ENGINE ROOM", '
+            '"A BARREN FIELD", "A MOAT"')
