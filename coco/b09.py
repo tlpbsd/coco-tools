@@ -9,6 +9,7 @@ from .procbank import ProcedureBank
 PROCNAME_REGEX = re.compile(r'[a-zA-Z0-9_-]+')
 
 SINGLE_KEYWORD_STATEMENTS = {
+    'END': 'END',
     'RETURN': 'RETURN',
     'RESTORE': 'RESTORE',
 }
@@ -118,6 +119,7 @@ KEYWORDS = '|'.join(
         'GOSUB',
         'GOTO',
         'IF',
+        'INPUT',
         'JOYSTK',
         'NOT',
         'OR',
@@ -188,6 +190,7 @@ grammar = Grammar(
                     / dim_statement
                     / clear_statement
                     / read_statement
+                    / input_statement
     statement2      =({ ' / '.join(QUOTED_STATEMENTS2_NAMES)}) space* "(" space* exp space* "," space* exp space* ")" space*
     statement3      = ({ ' / '.join(QUOTED_STATEMENTS3_NAMES)}) space* "(" space* exp space* "," space* exp space* "," space* exp space* ")" space*
     statements      = (statement? (comment/((":"/space)+
@@ -266,7 +269,7 @@ grammar = Grammar(
     poke_statement  = "POKE" space* exp space* "," space* exp space*
     cls             = "CLS" space* exp? space*
     go_statement    = ("GOTO" / "GOSUB") space* linenum space*
-    on_n_go_statement   = "ON" space* var space* ("GOTO" / "GOSUB") space* linenum_list space*
+    on_n_go_statement   = "ON" space* exp space* ("GOTO" / "GOSUB") space* linenum_list space*
     linenum_list        = linenum space* linenum_list0
     linenum_list0       = linenum_list_elem*
     linenum_list_elem   = "," space* linenum space*
@@ -307,6 +310,8 @@ grammar = Grammar(
     rhs_list_elements   = rhs_list_element*
     rhs_list_element    = "," space* rhs space*
     rhs                 = array_ref_exp / str_array_ref_exp / str_var / var
+    input_statement     = "INPUT" space* input_str_literal? space* rhs space* rhs_list_elements
+    input_str_literal   = str_literal space* ';' space*
     """  # noqa
 )
 
@@ -565,9 +570,9 @@ class BasicGoto(AbstractBasicStatement):
 
 
 class BasicOnGoStatement(AbstractBasicStatement):
-    def __init__(self, var, linenums, is_gosub=False):
+    def __init__(self, exp, linenums, is_gosub=False):
         super().__init__()
-        self._var = var
+        self._exp = exp
         self._linenums = linenums
         self._is_gosub = is_gosub
 
@@ -578,15 +583,16 @@ class BasicOnGoStatement(AbstractBasicStatement):
     def basic09_text(self, indent_level):
         if self._is_gosub:
             return f'{super().basic09_text(indent_level)}' \
-                f'ON {self._var.basic09_text(indent_level)} GOSUB ' + \
+                f'ON {self._exp.basic09_text(indent_level)} GOSUB ' + \
                 ', '.join((str(linenum) for linenum in self.linenums))
         return f'{super().basic09_text(indent_level)}' \
-            f'ON {self._var.basic09_text(indent_level)} GOTO ' + \
+            f'ON {self._exp.basic09_text(indent_level)} GOTO ' + \
             ', '.join((str(linenum) for linenum in self.linenums))
 
     def visit(self, visitor):
         visitor.visit_statement(self)
         visitor.visit_go_statement(self)
+        self._exp.visit(visitor)
 
 
 class BasicIf(AbstractBasicStatement):
@@ -1121,6 +1127,20 @@ class BasicReadStatement(BasicStatement):
                           for rhs in self._rhs_list))
 
 
+class BasicInputStatement(BasicStatement):
+    def __init__(self, message, rhs_list):
+        self._message = message
+        self._rhs_list = rhs_list
+
+    def basic09_text(self, indent_level):
+        prefix = self.indent_spaces(indent_level) + \
+                 'INPUT ' + self._message.basic09_text(indent_level) + ', ' \
+                 if self._message else 'INPUT '
+        return prefix + ', '.join((
+            rhs.basic09_text(indent_level) for rhs in self._rhs_list
+        ))
+
+
 class BasicFunctionalExpressionPatcherVisitor(BasicConstructVisitor):
     def __init__(self):
         self._statement = None
@@ -1543,8 +1563,8 @@ class BasicVisitor(NodeVisitor):
         return BasicGoto(linenum, False, is_gosub=go.text == 'GOSUB')
 
     def visit_on_n_go_statement(self, node, visited_children):
-        _, _, var, _, go, _, lines, _ = visited_children
-        return BasicOnGoStatement(var, lines, is_gosub=(go.text == 'GOSUB'))
+        _, _, exp, _, go, _, lines, _ = visited_children
+        return BasicOnGoStatement(exp, lines, is_gosub=(go.text == 'GOSUB'))
 
     def visit_linenum_list(self, node, visited_children):
         linenum, _, linenums = visited_children
@@ -1702,6 +1722,14 @@ class BasicVisitor(NodeVisitor):
 
     def visit_rhs(self, node, visited_children):
         return visited_children[0]
+
+    def visit_input_statement(self, node, visited_children):
+        _, _, str_literal, _, rhs, _, rhs_list = visited_children
+        return BasicInputStatement(str_literal, [rhs] + rhs_list)
+
+    def visit_input_str_literal(self, node, visited_children):
+        str_literal, _, _, _ = visited_children
+        return str_literal
 
 
 def convert(progin,

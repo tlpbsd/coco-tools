@@ -625,3 +625,13 @@ class TestB09(unittest.TestCase):
             '120 DATAA CONTROL ROOM,AN ENGINE ROOM,A BARREN FIELD,A MOAT',
             '120 DATA "A CONTROL ROOM", "AN ENGINE ROOM", '
             '"A BARREN FIELD", "A MOAT"')
+
+    def test_input(self):
+        self.generic_test_parse(
+            '10 INPUT "HELLO WORLD";A$,B(1,2,3),C,D$(3)',
+            '10 INPUT "HELLO WORLD", A$, arr_B(1.0, 2.0, 3.0), C, arr_D$(3.0)')
+
+    def test_input_no_message(self):
+        self.generic_test_parse(
+            '10 INPUT A$,B(1,2,3)',
+            '10 INPUT A$, arr_B(1.0, 2.0, 3.0)')
