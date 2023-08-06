@@ -112,7 +112,7 @@ KEYWORDS = '|'.join(
         'AND',
         'DIM',
         'CLS',
-        'CLEAR'
+        'CLEAR',
         'ELSE',
         'FOR',
         'GOSUB',
@@ -122,6 +122,7 @@ KEYWORDS = '|'.join(
         'NOT',
         'OR',
         'PRINT',
+        'READ',
         'REM',
         'SOUND',
         'STEP',
@@ -186,6 +187,7 @@ grammar = Grammar(
                     / next_statement
                     / dim_statement
                     / clear_statement
+                    / read_statement
     statement2      =({ ' / '.join(QUOTED_STATEMENTS2_NAMES)}) space* "(" space* exp space* "," space* exp space* ")" space*
     statement3      = ({ ' / '.join(QUOTED_STATEMENTS3_NAMES)}) space* "(" space* exp space* "," space* exp space* "," space* exp space* ")" space*
     statements      = (statement? (comment/((":"/space)+
@@ -301,6 +303,10 @@ grammar = Grammar(
     dim_array_var_list_element = "," space* dim_var space*
     dim_statement       = "DIM" space* dim_array_var_list
     clear_statement     = "CLEAR" space* exp? space*
+    read_statement      = "READ" space* rhs space* rhs_list_elements
+    rhs_list_elements   = rhs_list_element*
+    rhs_list_element    = "," space* rhs space*
+    rhs                 = array_ref_exp / str_var / var
     """  # noqa
 )
 
@@ -1103,6 +1109,18 @@ class BasicDimStatement(AbstractBasicStatement):
         return f'{super().basic09_text(indent_level)}' \
             f'DIM {dim_var_text}' + init_text
 
+
+class BasicReadStatement(BasicStatement):
+    def __init__(self, rhs_list):
+        self._rhs_list = rhs_list
+
+    def basic09_text(self, indent_level):
+        return self.indent_spaces(indent_level) + \
+               'READ ' + \
+               ', '.join((rhs.basic09_text(indent_level)
+                          for rhs in self._rhs_list))
+
+
 class BasicFunctionalExpressionPatcherVisitor(BasicConstructVisitor):
     def __init__(self):
         self._statement = None
@@ -1454,9 +1472,7 @@ class BasicVisitor(NodeVisitor):
         return self.visit_num_prod_exp(node, visited_children)
 
     def visit_val_exp(self, node, visited_children):
-        if len(visited_children) < 2:
-            return visited_children[0]
-        return node
+        return visited_children[0] if len(visited_children) < 2 else node
 
     def visit_var(self, node, visited_children):
         return BasicVar(node.full_text[node.start:node.end])
@@ -1569,7 +1585,8 @@ class BasicVisitor(NodeVisitor):
                              is_str_expr=var.is_str_expr)
 
     def visit_dim_array_var3(self, node, visited_children):
-        var, _, _, _, size1, _, _, _, size2, _, _, _, size3, _, _, _= visited_children
+        var, _, _, _, size1, _, _, _, size2, \
+          _, _, _, size3, _, _, _ = visited_children
         return BasicArrayRef(var, BasicExpressionList([size1, size2, size3]),
                              is_str_expr=var.is_str_expr)
 
@@ -1671,6 +1688,20 @@ class BasicVisitor(NodeVisitor):
 
     def visit_clear_statement(self, node, visited_children):
         return BasicComment(f' {node.text.strip() }')
+
+    def visit_read_statement(self, node, visited_children):
+        _, _, rhs, _, rhs_list = visited_children
+        return BasicReadStatement([rhs] + rhs_list)
+
+    def visit_rhs_list_elements(self, node, visited_children):
+        return visited_children
+
+    def visit_rhs_list_element(self, node, visited_children):
+        _, _, rhs, _ = visited_children
+        return rhs
+
+    def visit_rhs(self, node, visited_children):
+        return visited_children[0]
 
 
 def convert(progin,

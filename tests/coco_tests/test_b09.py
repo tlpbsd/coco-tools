@@ -614,3 +614,8 @@ class TestB09(unittest.TestCase):
             'ON MM GOSUB 100',
             filter_unused_linenum=True,
         )
+
+    def test_simple_read(self):
+        self.generic_test_parse(
+            '10 READA$,B,D(II,JJ)',
+            '10 READ A$, B, arr_D(II, JJ)')
