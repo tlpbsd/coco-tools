@@ -664,6 +664,10 @@ class BasicLiteral(AbstractBasicExpression):
         super().__init__(is_str_expr=is_str_expr)
         self._literal = literal
 
+    @property
+    def literal(self):
+        return self._literal
+
     def basic09_text(self, indent_level):
         return (f'"{self._literal}"' if type(self._literal) is str
                 else f'{self._literal}')
@@ -1132,6 +1136,10 @@ class BasicReadStatement(BasicStatement):
     def __init__(self, rhs_list):
         self._rhs_list = rhs_list
 
+    @property
+    def rhs_list(self):
+        return self._rhs_list
+
     def basic09_text(self, indent_level):
         return self.indent_spaces(indent_level) + \
                'READ ' + \
@@ -1246,6 +1254,21 @@ class JoystickVisitor(BasicConstructVisitor):
 
     def visit_joystk(self, joystk_exp):
         self._uses_joystk = True
+
+
+class BasicEmptyDataElementVisitor(BasicConstructVisitor):
+    def __init__(self):
+        self._has_empty_data_elements = False
+
+    @property
+    def has_empty_data_elements(self):
+        return self._has_empty_data_elements
+
+    def visit_statement(self, statement):
+        if isinstance(statement, BasicReadStatement):
+            for rhs in statement.rhs_list:
+                self.has_empty_data_elements = \
+                  self._has_empty_data_elements or rhs.literal == ''
 
 
 class BasicVisitor(NodeVisitor):

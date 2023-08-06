@@ -113,6 +113,16 @@ procedure ecb_point
     endif
 
 
+procedure ecb_read_filter
+    param inval: string
+    param outval: real
+    if inval = "" then
+        outval = 0.0
+    else
+        outval = val(inval)
+    endif
+
+
 procedure ecb_reset
     param x, y: real
     dim address, c0, c1: integer
