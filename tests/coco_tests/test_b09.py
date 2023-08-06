@@ -635,3 +635,23 @@ class TestB09(unittest.TestCase):
         self.generic_test_parse(
             '10 INPUT A$,B(1,2,3)',
             '10 INPUT A$, arr_B(1.0, 2.0, 3.0)')
+
+    def test_mars_if(self):
+        self.generic_test_parse(
+            '480 IFL(4)<>11ORL(6)<>11ORL(32)<>11'
+            'ORL(30)<>11ORGR=0THEN500',
+            '480 IF arr_L(4.0) <> 11.0 '
+            'OR arr_L(6.0) <> 11.0 '
+            'OR arr_L(32.0) <> 11.0 '
+            'OR arr_L(30.0) <> 11.0 OR GR = 0.0 THEN 500')
+
+    def test_multi_and_or(self):
+        self.generic_test_parse(
+            '480 Z=A ANDBOR C AND D OR C',
+            '480 Z = LAND(A, LOR(B, LAND(C, LOR(D, C))))'
+            'OR L(30) <> 11 OR GR=0 THEN GOTO 500')
+
+    def test_multi_arithmetic(self):
+        self.generic_test_parse(
+            '480 Z=A+B*C-D/C',
+            '480 Z = A + B * C - D / C')

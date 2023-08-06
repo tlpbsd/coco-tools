@@ -199,7 +199,13 @@ grammar = Grammar(
     exp             = "NOT"? space* num_exp space*
     if_exp          = bool_exp
                     / num_exp
-    bool_exp        = "NOT"? space* bool_val_exp space* (("AND" / "OR") space* bool_val_exp space*)*
+    bool_exp              = "NOT"? space* bool_or_exp
+    bool_or_exp           = bool_and_exp space* bool_or_exp_elements
+    bool_or_exp_elements  = bool_or_exp_element*
+    bool_or_exp_element   = "OR" space* bool_and_exp space*
+    bool_and_exp          = bool_val_exp space* bool_and_exp_elements
+    bool_and_exp_elements = bool_and_exp_element*
+    bool_and_exp_element  = "AND" space* bool_val_exp space*
     bool_val_exp    = bool_paren_exp
                     / bool_str_exp
                     / bool_bin_exp
@@ -1319,11 +1325,46 @@ class BasicVisitor(NodeVisitor):
         return visited_children[0]
 
     def visit_bool_exp(self, node, visited_children):
-        not_keyword, _, exp1, _, exp2 = visited_children
-        exp = exp1 if exp2 == '' \
-            else BasicBooleanBinaryExp(exp1, exp2.operator, exp2.exp)
-        return exp if not isinstance(not_keyword, BasicOperator) \
-            else BasicBooleanOpExp(not_keyword.operator, exp)
+        """
+            bool_exp              = "NOT"? space* bool_or_exp
+            bool_or_exp           = bool_and_exp space* bool_or_exp_elements
+            bool_or_exp_elements  = bool_or_exp_element*
+            bool_or_exp_element   = "OR" space* bool_and_exp space*
+            bool_and_exp          = bool_val_exp space* bool_and_exp_elements
+            bool_and_exp_elements = bool_or_exp_element*
+            bool_and_exp_element  = "AND" space* bool_and_exp space*
+        """
+        not_keyword, _, exp = visited_children
+        return BasicBooleanOpExp(not_keyword.operator, exp) \
+            if isinstance(not_keyword, BasicOperator) else exp
+
+    def visit_bool_or_exp(self, node, visited_children):
+        exp1, _, exp_ops = visited_children
+        if len(exp_ops) == 0:
+            return exp1
+        last_exp = exp1
+        for exp_op in exp_ops:
+            last_exp = BasicBooleanBinaryExp(
+                last_exp, exp_op.operator, exp_op.exp
+            )
+        return last_exp
+
+    def visit_bool_or_exp_elements(self, _, visited_children):
+        return visited_children
+
+    def visit_bool_or_exp_element(self, _, visited_children):
+        _, _, exp, _ = visited_children
+        return BasicOpExp('OR', exp)
+
+    def visit_bool_and_exp(self, node, visited_children):
+        return self.visit_bool_or_exp(node, visited_children)
+
+    def visit_bool_and_exp_elements(self, _, visited_children):
+        return visited_children
+
+    def visit_bool_and_exp_element(self, _, visited_children):
+        _, _, exp, _ = visited_children
+        return BasicOpExp('AND', exp)
 
     def visit_bool_val_exp(self, node, visited_children):
         return visited_children[0]
