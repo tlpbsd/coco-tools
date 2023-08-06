@@ -8,10 +8,10 @@ procedure ecb_button
     param retval: real
     dim joystk, fire, x, y: integer
 
-    if button < 2 then joystk = 0 else joystk = 1 \ endif
+    if button < 2 then \ joystk = 0 \ else \ joystk = 1 \ endif
     run GFX("Joystk", button, fire, x, y)
-    if land(button, 1) = 0 then retval = land(fire, 1) \ endif
-    if land(button, 1) = 1 then retval = land(fire, 2) / 2  \ endif
+    if land(button, 1) = 0 then \ retval = land(fire, 1) \ endif
+    if land(button, 1) = 1 then \ retval = land(fire, 2) / 2  \ endif
 
 
 procedure ecb_joystk

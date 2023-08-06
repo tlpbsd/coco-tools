@@ -11,7 +11,7 @@ class TestB09(unittest.TestCase):
                               filter_unused_linenum=True,
                               skip_procedure_headers=False,
                               output_dependencies=True)
-        assert program.endswith('procedure do_cls\nB = 0.0\nRUN ecb_cls(B)')
+        assert program.endswith('procedure do_cls\nB = 0.0\nRUN ecb_cls(B)\n')
         assert program.startswith('procedure _ecb_text_address\n')
 
     def test_convert_no_header_with_dependencies(self):
@@ -20,7 +20,7 @@ class TestB09(unittest.TestCase):
                               filter_unused_linenum=True,
                               skip_procedure_headers=True,
                               output_dependencies=True)
-        assert program == 'B = 0.0\nRUN ecb_cls(B)'
+        assert program == 'B = 0.0\nRUN ecb_cls(B)\n'
 
     def test_convert_header_no_name_with_dependencies(self):
         program = b09.convert('10 CLS B',
@@ -28,7 +28,7 @@ class TestB09(unittest.TestCase):
                               filter_unused_linenum=True,
                               skip_procedure_headers=False,
                               output_dependencies=True)
-        assert program.endswith('procedure program\nB = 0.0\nRUN ecb_cls(B)')
+        assert program.endswith('procedure program\nB = 0.0\nRUN ecb_cls(B)\n')
         assert program.startswith('procedure _ecb_text_address\n')
 
     def test_basic_assignment(self):
@@ -122,7 +122,7 @@ class TestB09(unittest.TestCase):
             initialize_vars=initialize_vars,
             skip_procedure_headers=True
         )
-        assert b09_prog == progout
+        assert b09_prog == progout + '\n'
 
     def test_parse_array_ref(self):
         self.generic_test_parse(
@@ -303,7 +303,7 @@ class TestB09(unittest.TestCase):
     def test_cls(self):
         self.generic_test_parse(
             '11 CLS A+B\n12 CLS',
-            '11 RUN ecb_cls(A + B)\n12 RUN ecb_cls(1)'
+            '11 RUN ecb_cls(A + B)\n12 RUN ecb_cls(1.0)'
         )
 
     def test_funcs(self):
@@ -647,11 +647,15 @@ class TestB09(unittest.TestCase):
 
     def test_multi_and_or(self):
         self.generic_test_parse(
-            '480 Z=A ANDBOR C AND D OR C',
-            '480 Z = LAND(A, LOR(B, LAND(C, LOR(D, C))))'
-            'OR L(30) <> 11 OR GR=0 THEN GOTO 500')
+            '480 Z=A ANDB ORC ANDD ORC',
+            '480 Z = LOR(LOR(LAND(A, B), LAND(C, D)), C)')
 
     def test_multi_arithmetic(self):
         self.generic_test_parse(
             '480 Z=A+B*C-D/C',
             '480 Z = A + B * C - D / C')
+
+    def test_num_if(self):
+        self.generic_test_parse(
+            '480 IFA THEN100',
+            '480 IF A <> 0.0 THEN 100')

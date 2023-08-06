@@ -128,6 +128,7 @@ KEYWORDS = '|'.join(
         'REM',
         'SOUND',
         'STEP',
+        'THEN',
     ), SINGLE_KEYWORD_STATEMENTS.keys(),
         FUNCTIONS.keys(),
         STR2_FUNCTIONS.keys(),
@@ -212,7 +213,12 @@ grammar = Grammar(
     bool_paren_exp  = "(" space* bool_exp space* ")"
     bool_bin_exp    = num_sum_exp space* ("<=" / ">=" / "<>" / "<" / ">" / "=>" / "=<" / "=") space* num_sum_exp space*
     bool_str_exp    = str_exp space* ("<>" / "=") space* str_exp space*
-    num_exp         = num_gtle_exp space* (("AND" / "OR") space* num_gtle_exp space*)*
+    num_exp              = num_and_exp space* num_exp_elements
+    num_exp_elements     = num_exp_element*
+    num_exp_element      = "OR" space* num_and_exp space*
+    num_and_exp          = num_gtle_exp space* num_and_exp_elements
+    num_and_exp_elements = num_and_exp_element*
+    num_and_exp_element  = "AND" space* num_gtle_exp space*
     num_gtle_exp    = num_sum_exp space* (("<=" / ">=" / "<>" / "<" / ">" / "=>" / "=<" / "=") space* num_sum_exp space*)*
     num_sum_exp     = num_prod_exp space* (("+" / "-") space*
                                            num_prod_exp space*)*
@@ -925,7 +931,7 @@ class BasicCls(AbstractBasicStatement):
     def basic09_text(self, indent_level):
         return super().basic09_text(indent_level) \
             + (f'RUN ecb_cls({self._exp.basic09_text(indent_level)})'
-               if self._exp else 'RUN ecb_cls(1)')
+               if self._exp else 'RUN ecb_cls(1.0)')
 
     def visit(self, visitor):
         visitor.visit_statement(self)
@@ -1319,21 +1325,16 @@ class BasicVisitor(NodeVisitor):
 
     def visit_if_stmnt(self, node, visited_children):
         _, _, exp, _, _, _, statements = visited_children
+        is_bool = isinstance(exp, (BasicBooleanBinaryExp, BasicBooleanOpExp,
+                                   BasicBooleanParenExp))
+        exp = exp if is_bool else \
+            BasicBooleanBinaryExp(exp, '<>', BasicLiteral(0.0))
         return BasicIf(exp, statements)
 
     def visit_if_exp(self, node, visited_children):
         return visited_children[0]
 
     def visit_bool_exp(self, node, visited_children):
-        """
-            bool_exp              = "NOT"? space* bool_or_exp
-            bool_or_exp           = bool_and_exp space* bool_or_exp_elements
-            bool_or_exp_elements  = bool_or_exp_element*
-            bool_or_exp_element   = "OR" space* bool_and_exp space*
-            bool_and_exp          = bool_val_exp space* bool_and_exp_elements
-            bool_and_exp_elements = bool_or_exp_element*
-            bool_and_exp_element  = "AND" space* bool_and_exp space*
-        """
         not_keyword, _, exp = visited_children
         return BasicBooleanOpExp(not_keyword.operator, exp) \
             if isinstance(not_keyword, BasicOperator) else exp
@@ -1354,7 +1355,7 @@ class BasicVisitor(NodeVisitor):
 
     def visit_bool_or_exp_element(self, _, visited_children):
         _, _, exp, _ = visited_children
-        return BasicOpExp('OR', exp)
+        return BasicBooleanOpExp('OR', exp)
 
     def visit_bool_and_exp(self, node, visited_children):
         return self.visit_bool_or_exp(node, visited_children)
@@ -1364,7 +1365,7 @@ class BasicVisitor(NodeVisitor):
 
     def visit_bool_and_exp_element(self, _, visited_children):
         _, _, exp, _ = visited_children
-        return BasicOpExp('AND', exp)
+        return BasicBooleanOpExp('AND', exp)
 
     def visit_bool_val_exp(self, node, visited_children):
         return visited_children[0]
@@ -1402,7 +1403,32 @@ class BasicVisitor(NodeVisitor):
         return visited_children[0]
 
     def visit_num_exp(self, node, visited_children):
-        return self.visit_num_prod_exp(node, visited_children)
+        exp1, _, exp_ops = visited_children
+        if len(exp_ops) == 0:
+            return exp1
+        last_exp = exp1
+        for exp_op in exp_ops:
+            last_exp = BasicBinaryExp(
+                last_exp, exp_op.operator, exp_op.exp
+            )
+        return last_exp
+
+    def visit_num_exp_elements(self, node, visited_children):
+        return visited_children
+
+    def visit_num_exp_element(self, node, visited_children):
+        _, _, exp, _ = visited_children
+        return BasicOpExp('OR', exp)
+
+    def visit_num_and_exp(self, node, visited_children):
+        return self.visit_num_exp(node, visited_children)
+
+    def visit_num_and_exp_elements(self, node, visited_children):
+        return visited_children
+
+    def visit_num_and_exp_element(self, node, visited_children):
+        _, _, exp, _ = visited_children
+        return BasicOpExp('AND', exp)
 
     def visit_str_exp(self, node, visited_children):
         if len(visited_children) < 4:
@@ -1820,7 +1846,7 @@ def convert(progin,
         procedure_bank.add_from_str(program)
         program = procedure_bank.get_procedure_and_dependencies(procname)
 
-    return program
+    return program + '\n'
 
 
 def convert_file(input_program_file,
