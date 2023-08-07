@@ -1927,6 +1927,8 @@ class BasicVisitor(NodeVisitor):
 
     def visit_input_statement(self, node, visited_children):
         _, _, str_literal, _, rhs, _, rhs_list = visited_children
+        if isinstance(str_literal, BasicLiteral):
+            str_literal.literal = f'{str_literal.literal}? '
         return BasicInputStatement(str_literal, [rhs] + rhs_list)
 
     def visit_input_str_literal(self, node, visited_children):
