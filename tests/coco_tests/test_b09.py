@@ -629,7 +629,8 @@ class TestB09(unittest.TestCase):
     def test_input(self):
         self.generic_test_parse(
             '10 INPUT "HELLO WORLD";A$,B(1,2,3),C,D$(3)',
-            '10 INPUT "HELLO WORLD? ", A$, arr_B(1.0, 2.0, 3.0), C, arr_D$(3.0)')
+            '10 INPUT "HELLO WORLD? ", A$, arr_B(1.0, 2.0, 3.0), C, '
+            'arr_D$(3.0)')
 
     def test_input_no_message(self):
         self.generic_test_parse(
@@ -681,4 +682,14 @@ class TestB09(unittest.TestCase):
             '0 CLS:GOTO 0\n',
             '0 RUN ecb_cls(1.0)\n'
             'GOTO 0'
+        )
+
+    def test_handles_empty_next(self):
+        self.generic_test_parse(
+            '10 FORX=1TO10\n'
+            '20 FORY=1TO10\n'
+            '30 NEXT\n',
+            '10 FOR X = 1.0 TO 10.0\n'
+            '20   FOR Y = 1.0 TO 10.0\n'
+            '30   NEXT Y'
         )

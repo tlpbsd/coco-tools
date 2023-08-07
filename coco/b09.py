@@ -300,7 +300,9 @@ grammar = Grammar(
     single_kw_statement = ({ ' / '.join(QUOTED_SINGLE_KEYWORD_STATEMENTS)}) space*
     for_statement       = "FOR" space* var space* "=" space* exp space* "TO" space* exp space*
     for_step_statement  = "FOR" space* var space* "=" space* exp space* "TO" space* exp space* "STEP" space* exp space*
-    next_statement      = "NEXT" space* var_list space*
+    next_statement      = next_var_statement / next_empty_statement
+    next_var_statement  = "NEXT" space* var_list space*
+    next_empty_statement= "NEXT" space*
     var_list            = var space* var_list_elements
     var_list_elements   = var_list_element*
     var_list_element    = "," space* var space*
@@ -371,7 +373,7 @@ class BasicConstructVisitor():
         """
         pass
 
-    def visit_next_statement(self, for_statement):
+    def visit_next_statement(self, next_statement):
         """
         Invoked when a NEXT statement is encountered.
         """
@@ -1046,6 +1048,10 @@ class BasicForStatement(AbstractBasicStatement):
         self._end_exp = end_exp
         self._step_exp = step_exp
 
+    @property
+    def var(self):
+        return self._var
+
     def basic09_text(self, indent_level):
         return f'{super().basic09_text(indent_level - 1)}FOR ' \
             f'{self._var.basic09_text(indent_level)} = ' \
@@ -1381,6 +1387,18 @@ class BasicReadStatementPatcherVisitor(BasicConstructVisitor):
             [statement] + filter_statements,
             multi_line=False
         )
+
+
+class BasicNextPatcherVisitor(BasicConstructVisitor):
+    def __init__(self):
+        self._last_for_var = None
+
+    def visit_for_statement(self, for_statement):
+        self._last_for_var = for_statement.var
+
+    def visit_next_statement(self, next_statement):
+        if self._last_for_var and len(next_statement.var_list.exp_list) == 0:
+            next_statement.var_list.exp_list.append(self._last_for_var)
 
 
 class BasicVisitor(NodeVisitor):
@@ -1868,8 +1886,15 @@ class BasicVisitor(NodeVisitor):
         return BasicForStatement(var, exp1, exp2, step_exp=exp3)
 
     def visit_next_statement(self, node, visited_children):
+        return visited_children[0]
+
+    def visit_next_var_statement(self, node, visited_children):
         _, _, var_list, _ = visited_children
         return BasicNextStatement(var_list)
+
+    def visit_next_empty_statement(self, node, visited_children):
+        _, _ = visited_children
+        return BasicNextStatement(BasicExpressionList([]))
 
     def visit_var_list(self, node, visited_children):
         var, _, var_list = visited_children
@@ -1980,6 +2005,9 @@ def convert(progin,
         if filter_unused_linenum \
         else LineZeroFilterVisitor(line_ref_visitor.references)
     basic_prog.visit(line_num_filter)
+
+    # try to patch up empty next statements
+    basic_prog.visit(BasicNextPatcherVisitor())
 
     # output the program
     program = basic_prog.basic09_text(0)
