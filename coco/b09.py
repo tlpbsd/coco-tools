@@ -817,6 +817,9 @@ class BasicProg(AbstractBasicConstruct):
     def extend_prefix_lines(self, prefix_lines):
         self._prefix_lines.extend(prefix_lines)
 
+    def insert_line_at_beginning(self, line):
+        self._lines.insert(0, line)
+
     def basic09_text(self, indent_level):
         lines = []
         if self._procname:
@@ -1966,10 +1969,18 @@ def convert(progin,
             filter_unused_linenum=False,
             initialize_vars=False,
             skip_procedure_headers=False,
-            output_dependencies=False):
+            output_dependencies=False,
+            add_standard_prefix=False):
     tree = grammar.parse(progin)
     bv = BasicVisitor()
     basic_prog = bv.visit(tree)
+
+    if add_standard_prefix:
+        basic_prog.insert_line_at_beginning(
+            BasicLine(None,
+                      BasicRunCall('RUN _ecb_start',
+                                   BasicExpressionList([])))
+        )
 
     if skip_procedure_headers := skip_procedure_headers or \
        not output_dependencies:
@@ -2025,7 +2036,8 @@ def convert_file(input_program_file,
                  procname='',
                  filter_unused_linenum=False,
                  initialize_vars=False,
-                 output_dependencies=False):
+                 output_dependencies=False,
+                 add_standard_prefix=False):
     progin = input_program_file.read()
     progout = convert(
         progin,
@@ -2033,6 +2045,7 @@ def convert_file(input_program_file,
         filter_unused_linenum=filter_unused_linenum,
         initialize_vars=initialize_vars,
         output_dependencies=output_dependencies,
+        add_standard_prefix=add_standard_prefix
     )
     progout = progout.replace('\n', '\r')
     output_program_file.write(progout)

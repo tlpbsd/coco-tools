@@ -115,12 +115,17 @@ class TestB09(unittest.TestCase):
     def generic_test_parse(
             self, progin, progout,
             filter_unused_linenum=False,
-            initialize_vars=False):
+            initialize_vars=False,
+            add_standard_prefix=False,
+            output_dependencies=False,
+            skip_procedure_headers=True,):
         b09_prog = b09.convert(
             progin,
             filter_unused_linenum=filter_unused_linenum,
             initialize_vars=initialize_vars,
-            skip_procedure_headers=True
+            skip_procedure_headers=skip_procedure_headers,
+            output_dependencies=output_dependencies,
+            add_standard_prefix=add_standard_prefix,
         )
         assert b09_prog == progout + '\n'
 
@@ -693,3 +698,14 @@ class TestB09(unittest.TestCase):
             '20   FOR Y = 1.0 TO 10.0\n'
             '30   NEXT Y'
         )
+
+    def test_adds_standard_prefix(self):
+        program = b09.convert('10 REM', procname='do_cls',
+                              initialize_vars=True,
+                              filter_unused_linenum=True,
+                              skip_procedure_headers=False,
+                              add_standard_prefix=True,
+                              output_dependencies=True)
+        assert program.startswith('procedure _ecb_cursor_color\n')
+        assert 'procedure _ecb_start' in program
+        assert program.endswith('procedure do_cls\nRUN _ecb_start()\n(* *)\n')

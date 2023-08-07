@@ -231,3 +231,13 @@ procedure _ecb_cursor_color
 
 procedure _ecb_start
     run _ecb_cursor_color(0)
+
+
+procedure _ecb_inkey_prefix
+    run _ecb_cursor_color(1)
+    SHELL("tmode eko=1")
+
+
+procedure _ecb_inkey_suffix
+    run _ecb_cursor_color(0)
+    SHELL("tmode eko=0")
