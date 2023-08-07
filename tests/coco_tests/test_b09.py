@@ -382,7 +382,7 @@ class TestB09(unittest.TestCase):
         self.generic_test_parse(
             '10 DATA 1,2,3,"",,"FOO","BAR", BAZ  \n'
             '20 DATA   , ',
-            '10 DATA 1.0, 2.0, 3.0, "", "", "FOO", "BAR", "BAZ  "\n'
+            '10 DATA "1.0", "2.0", "3.0", "", "", "FOO", "BAR", "BAZ  "\n'
             '20 DATA "", ""'
         )
 
@@ -489,13 +489,13 @@ class TestB09(unittest.TestCase):
         self.generic_test_parse(
             '11 PRINT JOYSTK(1)',
             'dim joy0x, joy0y, joy1x, joy0y: integer\n'
-            '11 RUN ecb_joystk(1.0, tmp1) \\ PRINT tmp1'
+            '11 RUN ecb_joystk(1.0, tmp_1) \\ PRINT tmp_1'
         )
 
     def test_hex(self):
         self.generic_test_parse(
             '11 PRINT HEX$(1)',
-            '11 RUN ecb_hex(1.0, tmp1$) \\ PRINT tmp1$'
+            '11 RUN ecb_hex(1.0, tmp_1$) \\ PRINT tmp_1$'
         )
 
     def test_dim1(self):
@@ -659,3 +659,26 @@ class TestB09(unittest.TestCase):
         self.generic_test_parse(
             '480 IFA THEN100',
             '480 IF A <> 0.0 THEN 100')
+
+    def test_read_empty_data(self):
+        self.generic_test_parse(
+            '10 READ A,B$,C\n'
+            '20 DATA ,FOO,',
+            '10 READ tmp_1$, B$, tmp_2$ \\ '
+            'RUN ecb_read_filter(tmp_1$, A) \\ '
+            'RUN ecb_read_filter(tmp_2$, C)\n'
+            '20 DATA "", "FOO", ""'
+        )
+
+    def test_filter_line_zero(self):
+        self.generic_test_parse(
+            '0 CLS\n',
+            'RUN ecb_cls(1.0)'
+        )
+
+    def test_does_not_filter_line_zero(self):
+        self.generic_test_parse(
+            '0 CLS:GOTO 0\n',
+            '0 RUN ecb_cls(1.0)\n'
+            'GOTO 0'
+        )

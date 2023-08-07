@@ -329,34 +329,81 @@ grammar = Grammar(
 
 
 class BasicConstructVisitor():
-    def visit_program(self, line):
+    def visit_array_ref(self, array_ref):
+        """
+        Invoked when an array reference is encountered.
+        """
         pass
 
-    def visit_line(self, line):
-        pass
-
-    def visit_statement(self, statement):
+    def visit_data_statement(self, for_statement):
+        """
+        Invoked when a DATA statement is encountered.
+        """
         pass
 
     def visit_exp(self, exp):
-        pass
-
-    def visit_var(self, var):
-        pass
-
-    def visit_array_ref(self, var):
-        pass
-
-    def visit_go_statement(self, go_statement):
+        """
+        Invoked when an expression is encountered.
+        """
         pass
 
     def visit_for_statement(self, for_statement):
+        """
+        Invoked when a FOR statement is encountered.
+        """
         pass
 
-    def visit_next_statement(self, for_statement):
+    def visit_go_statement(self, go_statement):
+        """
+        Invoked when a [ON] GOTO/GOSUB statement is encountered.
+        """
         pass
 
     def visit_joystk(self, joystk_exp):
+        """
+        Invoked when a JOYSTK function is encountered.
+        """
+        pass
+
+    def visit_line(self, line):
+        """
+        Invoked when a new line is encountered.
+        """
+        pass
+
+    def visit_next_statement(self, for_statement):
+        """
+        Invoked when a NEXT statement is encountered.
+        """
+        pass
+
+    def visit_program(self, line):
+        """
+        Invoked when a program is encountered.
+        """
+        pass
+
+    def visit_read_statement(self, statement):
+        """AI is creating summary for visit_read
+
+        Args:
+            statement (BasicReadStatement): input statement to transform.
+
+        Returns:
+            BasicStatement: BasicStatement to replace statement.
+        """
+        return statement
+
+    def visit_statement(self, statement):
+        """
+        Invoked when a statement is encountered.
+        """
+        pass
+
+    def visit_var(self, var):
+        """
+        Invoked when a variable is encountered.
+        """
         pass
 
 
@@ -402,10 +449,10 @@ class AbstractBasicStatement(AbstractBasicConstruct):
 
     def get_new_temp(self, is_str_exp):
         if is_str_exp:
-            val = f'tmp{len(self._temps) + 1}$'
+            val = f'tmp_{len(self._str_temps) + 1}$'
             self._str_temps.add(val)
         else:
-            val = f'tmp{len(self._temps) + 1}'
+            val = f'tmp_{len(self._temps) + 1}'
             self._temps.add(val)
 
         return BasicVar(val, is_str_expr=is_str_exp)
@@ -668,6 +715,11 @@ class BasicLiteral(AbstractBasicExpression):
     def literal(self):
         return self._literal
 
+    @literal.setter
+    def literal(self, val):
+        self._literal = val
+        self._is_str_expr = isinstance(val, str)
+
     def basic09_text(self, indent_level):
         return (f'"{self._literal}"' if type(self._literal) is str
                 else f'{self._literal}')
@@ -809,7 +861,7 @@ class Basic09CodeStatement(AbstractBasicStatement):
 class BasicStatements(AbstractBasicStatement):
     def __init__(self, statements, multi_line=True):
         super().__init__()
-        self._statements = statements
+        self._statements = list(statements)
         self._multi_line = multi_line
 
     @property
@@ -827,8 +879,10 @@ class BasicStatements(AbstractBasicStatement):
                            for statement in self._statements)
 
     def visit(self, visitor):
-        for statement in self.statements:
+        for idx, statement in enumerate(self.statements):
             statement.visit(visitor)
+            if isinstance(statement, BasicReadStatement):
+                self.statements[idx] = visitor.visit_read_statement(statement)
 
 
 class BasicVar(AbstractBasicExpression):
@@ -959,12 +1013,17 @@ class BasicDataStatement(AbstractBasicStatement):
         super().__init__()
         self._exp_list = exp_list
 
+    @property
+    def exp_list(self):
+        return self._exp_list
+
     def basic09_text(self, indent_level):
         return f'{super().basic09_text(indent_level)}DATA ' \
             f'{self._exp_list.basic09_text(indent_level)}'
 
     def visit(self, visitor):
         visitor.visit_statement(self)
+        visitor.visit_data_statement(self)
 
 
 class BasicKeywordStatement(AbstractBasicStatement):
@@ -1134,6 +1193,7 @@ class BasicDimStatement(AbstractBasicStatement):
 
 class BasicReadStatement(BasicStatement):
     def __init__(self, rhs_list):
+        super().__init__(None)
         self._rhs_list = rhs_list
 
     @property
@@ -1143,8 +1203,8 @@ class BasicReadStatement(BasicStatement):
     def basic09_text(self, indent_level):
         return self.indent_spaces(indent_level) + \
                'READ ' + \
-               ', '.join((rhs.basic09_text(indent_level)
-                          for rhs in self._rhs_list))
+               ', '.join(rhs.basic09_text(indent_level)
+                         for rhs in self._rhs_list)
 
 
 class BasicInputStatement(BasicStatement):
@@ -1216,6 +1276,15 @@ class LineNumberFilterVisitor(BasicConstructVisitor):
         line.set_is_referenced(line.num in self._references)
 
 
+class LineZeroFilterVisitor(BasicConstructVisitor):
+    def __init__(self, references):
+        self._references = references
+
+    def visit_line(self, line):
+        if line.num == 0:
+            line.set_is_referenced(line.num in self._references)
+
+
 class VarInitializerVisitor(BasicConstructVisitor):
     def __init__(self):
         self._vars = set()
@@ -1264,11 +1333,54 @@ class BasicEmptyDataElementVisitor(BasicConstructVisitor):
     def has_empty_data_elements(self):
         return self._has_empty_data_elements
 
-    def visit_statement(self, statement):
-        if isinstance(statement, BasicReadStatement):
-            for rhs in statement.rhs_list:
-                self.has_empty_data_elements = \
-                  self._has_empty_data_elements or rhs.literal == ''
+    def visit_data_statement(self, statement):
+        for exp in statement.exp_list.exp_list:
+            self._has_empty_data_elements = \
+                self._has_empty_data_elements or exp.literal == ''
+
+
+class BasicReadStatementPatcherVisitor(BasicConstructVisitor):
+    def visit_data_statement(self, statement):
+        for exp in statement.exp_list.exp_list:
+            if not isinstance(exp.literal, str):
+                exp.literal = str(exp.literal)
+
+    def visit_read_statement(self, statement):
+        """
+        Transform the READ statement so that READ statements that read into
+        REAL vars properly handle empty strings. This means:
+        1. Changing the statement into a BasicStatements
+        2. Changing the READ statement to read into temp strings
+        3. Calling functions to convert the string temps into the REAL
+        """
+
+        # Map REAL vars to temp string vars
+        rhs_to_temp = {
+            rhs: statement.get_new_temp(True)
+            for rhs in statement.rhs_list
+            if not rhs.is_str_expr
+        }
+
+        # Transform the READ REAL vars to the temp string vars
+        for idx, rhs in enumerate(statement.rhs_list):
+            statement.rhs_list[idx] = rhs_to_temp.get(
+                rhs, rhs
+            )
+
+        # Create statements for reading into the REAL vars
+        filter_statements = [
+            BasicRunCall(
+              'RUN ecb_read_filter',
+              BasicExpressionList((
+                inval,
+                outval)))
+              for outval, inval in rhs_to_temp.items()
+        ]
+
+        return BasicStatements(
+            [statement] + filter_statements,
+            multi_line=False
+        )
 
 
 class BasicVisitor(NodeVisitor):
@@ -1839,6 +1951,12 @@ def convert(progin,
         procname = procname if PROCNAME_REGEX.match(procname) else 'program'
     basic_prog.set_procname(procname)
 
+    # Patch up READ statements to handle empty DATA elements
+    empty_data_elements_visitor = BasicEmptyDataElementVisitor()
+    basic_prog.visit(empty_data_elements_visitor)
+    if empty_data_elements_visitor.has_empty_data_elements:
+        basic_prog.visit(BasicReadStatementPatcherVisitor())
+
     # transform functions to proc calls
     basic_prog.visit(BasicFunctionalExpressionPatcherVisitor())
 
@@ -1854,14 +1972,14 @@ def convert(progin,
         basic_prog.extend_prefix_lines(var_initializer.assignment_lines)
 
     # remove unused line numbers
-    if filter_unused_linenum:
-        line_ref_visitor = LineReferenceVisitor()
-        basic_prog.visit(line_ref_visitor)
-        line_num_filter = LineNumberFilterVisitor(
-            line_ref_visitor.references
-        )
-        basic_prog.visit(line_num_filter)
+    line_ref_visitor = LineReferenceVisitor()
+    basic_prog.visit(line_ref_visitor)
+    line_num_filter = LineNumberFilterVisitor(line_ref_visitor.references) \
+        if filter_unused_linenum \
+        else LineZeroFilterVisitor(line_ref_visitor.references)
+    basic_prog.visit(line_num_filter)
 
+    # output the program
     program = basic_prog.basic09_text(0)
     if output_dependencies and procname:
         procedure_bank = ProcedureBank()
