@@ -33,6 +33,12 @@ TAB, TAN, THEN, TO, VAL
 
 ## Supported constructs that need some explanation
 * String literals must be closed.
+* BASIC09 does not allow programs with line number zero. To handle this, the
+  zero line number is stripped as long as there are no `GOTO` or `GOSUB`
+  statements to line zero.
+* When empty `DATA` elements are encountered, all `DATA` elements are
+  converted to strings and dynamically converted to REALs. This is to mimic
+  the different possible behaviors of Extended Color BASIC.
 * Variables can have no more than 2 characters (3 including the $) and cannot
   be keywords including `IN`, `ON` or `TO`.
 * By default variables are not DIMensioned and assumed to be STRING or REAL.
@@ -63,6 +69,9 @@ TAB, TAN, THEN, TO, VAL
   results in BASIC09 programs with errors.
 * Converting numeric values into strings formats the number with NO spaces
   and one decimal point, even if the value is an integer.
+* When `NEXT` statements do not have an iteration variable specified, the
+  previous `FOR` variable is assumed to be the iteration variable and added
+  explicitly.
 * `NEXT AA, BB` is translated to
 ```
   NEXT AA
@@ -83,7 +92,6 @@ NEXT BB
 AUDIO, CLEAR, CLOAD, CONT, CSAVE, EOF, EVAL, EXEC, LIST, LLIST, LOAD, MEM,
 MOTOR, NEW, RUN, SKIPF, USR
 * It is NOT possible to GOTO, GOSUB, ON GOTO or ON GOSUB to a variable.
-* NEXT statements MUST have the iteration variable specified.
 * NEXT statements must be nested and not interleaved. For example, this is legal:
 ```
 FOR II = 1 to 10
