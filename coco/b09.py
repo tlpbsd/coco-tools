@@ -361,6 +361,16 @@ class BasicConstructVisitor():
         """
         pass
 
+    def visit_input_statement(self, statement):
+        """
+        Args:
+            statement (BasicInputStatement): input statement to transform.
+
+        Returns:
+            BasicStatement: BasicStatement to replace statement.
+        """
+        return statement
+
     def visit_joystk(self, joystk_exp):
         """
         Invoked when a JOYSTK function is encountered.
@@ -386,8 +396,7 @@ class BasicConstructVisitor():
         pass
 
     def visit_read_statement(self, statement):
-        """AI is creating summary for visit_read
-
+        """
         Args:
             statement (BasicReadStatement): input statement to transform.
 
@@ -888,6 +897,8 @@ class BasicStatements(AbstractBasicStatement):
             statement.visit(visitor)
             if isinstance(statement, BasicReadStatement):
                 self.statements[idx] = visitor.visit_read_statement(statement)
+            elif isinstance(statement, BasicInputStatement):
+                self.statements[idx] = visitor.visit_input_statement(statement)
 
 
 class BasicVar(AbstractBasicExpression):
@@ -1388,6 +1399,30 @@ class BasicReadStatementPatcherVisitor(BasicConstructVisitor):
 
         return BasicStatements(
             [statement] + filter_statements,
+            multi_line=False
+        )
+
+
+class BasicInputStatementPatcherVisitor(BasicConstructVisitor):
+    def visit_input_statement(self, statement):
+        """
+        Transform the INPUT statement so that the cursor and full duplex are
+        enabled before the statement and disabled after the statement.
+        """
+
+        # Create statements for reading into the REAL vars
+        filter_statements = [
+            BasicRunCall(
+              'RUN _ecb_input_prefix',
+              BasicExpressionList([])),
+            statement,
+            BasicRunCall(
+              'RUN _ecb_input_suffix',
+              BasicExpressionList([])),
+        ]
+
+        return BasicStatements(
+            filter_statements,
             multi_line=False
         )
 
@@ -1957,6 +1992,8 @@ class BasicVisitor(NodeVisitor):
         _, _, str_literal, _, rhs, _, rhs_list = visited_children
         if isinstance(str_literal, BasicLiteral):
             str_literal.literal = f'{str_literal.literal}? '
+        else:
+            str_literal = BasicLiteral('? ', is_str_expr=True)
         return BasicInputStatement(str_literal, [rhs] + rhs_list)
 
     def visit_input_str_literal(self, node, visited_children):
@@ -1988,6 +2025,9 @@ def convert(progin,
     else:
         procname = procname if PROCNAME_REGEX.match(procname) else 'program'
     basic_prog.set_procname(procname)
+
+    # Patch INPUT statements
+    basic_prog.visit(BasicInputStatementPatcherVisitor())
 
     # Patch up READ statements to handle empty DATA elements
     empty_data_elements_visitor = BasicEmptyDataElementVisitor()
