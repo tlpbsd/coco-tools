@@ -755,12 +755,16 @@ class BasicLiteral(AbstractBasicExpression):
 class HexLiteral(AbstractBasicExpression):
     def __init__(self, literal):
         super().__init__(is_str_expr=False)
-        self._literal = literal
+        self._literal = int(f'0x{literal}', 16)
+
+    @property
+    def literal(self):
+        return self._literal
 
     def basic09_text(self, indent_level):
-        val = int(f'0x{self._literal}', 16)
-        return f'${self._literal}' if val < 0x8000 \
-            else f'{val}'
+        return f'${hex(self._literal)[2:].upper()}' \
+          if self._literal < 0x8000 \
+          else f'{self._literal}'
 
     def visit(self, visitor):
         visitor.visit_exp(self)
@@ -1178,14 +1182,29 @@ class BasicJoystkExpression(BasicFunctionalExpression):
 class BasicDimStatement(AbstractBasicStatement):
     def __init__(self, dim_vars):
         super().__init__()
-        self._dim_vars = dim_vars
+        self._dim_vars = [
+            var if isinstance(var, BasicVar) else
+            BasicArrayRef(
+              BasicVar(var.var.name()[4:], is_str_expr=var.is_str_expr),
+              BasicExpressionList(
+                [BasicLiteral(index.literal + 1)
+                 if isinstance(index, BasicLiteral)
+                 else HexLiteral(hex(index.literal + 1)[2:])
+                 for index in var.indices.exp_list]
+              ),
+              is_str_expr=var.is_str_expr
+            )
+            for var in dim_vars
+        ]
 
     def init_text_for_var(self, dim_var):
         for_statements = (
             BasicForStatement(
                 BasicVar(f'tmp_{ii + 1}'),
-                BasicLiteral(1),
-                index
+                BasicLiteral(0),
+                BasicLiteral(index.literal - 1)
+                if isinstance(index, BasicLiteral)
+                else HexLiteral(hex(index.literal - 1)[2:])
             )
             for ii, index in enumerate(dim_var.indices.exp_list)
         )
@@ -2064,6 +2083,9 @@ def convert(progin,
             BasicLine(None,
                       BasicRunCall('RUN _ecb_start',
                                    BasicExpressionList([])))
+        )
+        basic_prog.insert_line_at_beginning(
+            BasicLine(None, Basic09CodeStatement('base 0'))
         )
 
     if skip_procedure_headers := skip_procedure_headers or \

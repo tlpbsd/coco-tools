@@ -11,8 +11,8 @@ class TestB09(unittest.TestCase):
                               filter_unused_linenum=True,
                               skip_procedure_headers=False,
                               output_dependencies=True)
-        assert program.endswith('procedure do_cls\nB = 0.0\nRUN _ecb_start\n'
-                                'RUN ecb_cls(B)\n')
+        assert program.endswith('procedure do_cls\nB = 0.0\nbase 0\n'
+                                'RUN _ecb_start\nRUN ecb_cls(B)\n')
         assert program.startswith('procedure _ecb_cursor_color\n')
         assert program.find('procedure _ecb_text_address\n') >= 0
 
@@ -22,7 +22,7 @@ class TestB09(unittest.TestCase):
                               filter_unused_linenum=True,
                               skip_procedure_headers=True,
                               output_dependencies=True)
-        assert program == 'B = 0.0\nRUN _ecb_start\nRUN ecb_cls(B)\n'
+        assert program == 'B = 0.0\nbase 0\nRUN _ecb_start\nRUN ecb_cls(B)\n'
 
     def test_convert_header_no_name_with_dependencies(self):
         program = b09.convert('10 CLS B',
@@ -30,8 +30,8 @@ class TestB09(unittest.TestCase):
                               filter_unused_linenum=True,
                               skip_procedure_headers=False,
                               output_dependencies=True)
-        assert program.endswith('procedure program\nB = 0.0\nRUN _ecb_start\n'
-                                'RUN ecb_cls(B)\n')
+        assert program.endswith('procedure program\nB = 0.0\nbase 0\n'
+                                'RUN _ecb_start\nRUN ecb_cls(B)\n')
         assert program.startswith('procedure _ecb_cursor_color\n')
 
     def test_basic_assignment(self):
@@ -511,14 +511,14 @@ class TestB09(unittest.TestCase):
     def test_dim1(self):
         self.generic_test_parse(
             '11 DIMA(12),B(3),CC(20)',
-            '11 DIM arr_A(12), arr_B(3), arr_CC(20)\n'
-            'FOR tmp_1 = 1 TO 12 \\ '
+            '11 DIM arr_A(13), arr_B(4), arr_CC(21)\n'
+            'FOR tmp_1 = 0 TO 12 \\ '
             'arr_A(tmp_1) = 0 \\ '
             'NEXT tmp_1\n'
-            'FOR tmp_1 = 1 TO 3 \\ '
+            'FOR tmp_1 = 0 TO 3 \\ '
             'arr_B(tmp_1) = 0 \\ '
             'NEXT tmp_1\n'
-            'FOR tmp_1 = 1 TO 20 \\ '
+            'FOR tmp_1 = 0 TO 20 \\ '
             'arr_CC(tmp_1) = 0 \\ '
             'NEXT tmp_1'
         )
@@ -526,9 +526,9 @@ class TestB09(unittest.TestCase):
     def test_dim2(self):
         self.generic_test_parse(
             '11 DIMA(12,&H123)',
-            '11 DIM arr_A(12, $123)\n'
-            'FOR tmp_1 = 1 TO 12 \\ '
-            'FOR tmp_2 = 1 TO $123 \\ '
+            '11 DIM arr_A(13, $124)\n'
+            'FOR tmp_1 = 0 TO 12 \\ '
+            'FOR tmp_2 = 0 TO $123 \\ '
             'arr_A(tmp_1, tmp_2) = 0 \\ '
             'NEXT tmp_2 \\ '
             'NEXT tmp_1'
@@ -537,10 +537,10 @@ class TestB09(unittest.TestCase):
     def test_dim3(self):
         self.generic_test_parse(
             '11 DIMA(12,&H123,55)',
-            '11 DIM arr_A(12, $123, 55)\n'
-            'FOR tmp_1 = 1 TO 12 \\ '
-            'FOR tmp_2 = 1 TO $123 \\ '
-            'FOR tmp_3 = 1 TO 55 \\ '
+            '11 DIM arr_A(13, $124, 56)\n'
+            'FOR tmp_1 = 0 TO 12 \\ '
+            'FOR tmp_2 = 0 TO $123 \\ '
+            'FOR tmp_3 = 0 TO 55 \\ '
             'arr_A(tmp_1, tmp_2, tmp_3) = 0 \\ '
             'NEXT tmp_3 \\ '
             'NEXT tmp_2 \\ '
@@ -550,8 +550,8 @@ class TestB09(unittest.TestCase):
     def test_str_dim1(self):
         self.generic_test_parse(
             '11 DIMA$(12)',
-            '11 DIM arr_A$(12)\n'
-            'FOR tmp_1 = 1 TO 12 \\ '
+            '11 DIM arr_A$(13)\n'
+            'FOR tmp_1 = 0 TO 12 \\ '
             'arr_A$(tmp_1) = "" \\ '
             'NEXT tmp_1'
         )
@@ -559,9 +559,9 @@ class TestB09(unittest.TestCase):
     def test_str_dim2(self):
         self.generic_test_parse(
             '11 DIMA$(12,&H123)',
-            '11 DIM arr_A$(12, $123)\n'
-            'FOR tmp_1 = 1 TO 12 \\ '
-            'FOR tmp_2 = 1 TO $123 \\ '
+            '11 DIM arr_A$(13, $124)\n'
+            'FOR tmp_1 = 0 TO 12 \\ '
+            'FOR tmp_2 = 0 TO $123 \\ '
             'arr_A$(tmp_1, tmp_2) = "" \\ '
             'NEXT tmp_2 \\ '
             'NEXT tmp_1'
@@ -570,10 +570,10 @@ class TestB09(unittest.TestCase):
     def test_str_dim3(self):
         self.generic_test_parse(
             '11 DIMA$(12,&H123,55)',
-            '11 DIM arr_A$(12, $123, 55)\n'
-            'FOR tmp_1 = 1 TO 12 \\ '
-            'FOR tmp_2 = 1 TO $123 \\ '
-            'FOR tmp_3 = 1 TO 55 \\ '
+            '11 DIM arr_A$(13, $124, 56)\n'
+            'FOR tmp_1 = 0 TO 12 \\ '
+            'FOR tmp_2 = 0 TO $123 \\ '
+            'FOR tmp_3 = 0 TO 55 \\ '
             'arr_A$(tmp_1, tmp_2, tmp_3) = "" \\ '
             'NEXT tmp_3 \\ '
             'NEXT tmp_2 \\ '
@@ -716,4 +716,5 @@ class TestB09(unittest.TestCase):
                               output_dependencies=True)
         assert program.startswith('procedure _ecb_cursor_color\n')
         assert 'procedure _ecb_start' in program
-        assert program.endswith('procedure do_cls\nRUN _ecb_start\n(* *)\n')
+        assert program.endswith('procedure do_cls\nbase 0\nRUN _ecb_start\n'
+                                '(* *)\n')
