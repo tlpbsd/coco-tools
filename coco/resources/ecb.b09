@@ -187,6 +187,17 @@ procedure _ecb_text_address
     endif
 
 
+procedure ecb_str
+    param valin: real
+    param valout: string
+    valout = str$(valin)
+    if mid$(valout, len(valout), 1) = "." then
+        valout = " " + left$(valout, len(valout) - 1) + " "
+    else
+        valout = " " + valout + " "
+    endif
+
+
 procedure _ecb_hex_digit
     param v: real
     param s: string
@@ -233,11 +244,11 @@ procedure _ecb_start
     run _ecb_cursor_color(0)
 
 
-procedure _ecb_inkey_prefix
+procedure _ecb_input_prefix
     run _ecb_cursor_color(1)
     SHELL("tmode eko=1")
 
 
-procedure _ecb_inkey_suffix
+procedure _ecb_input_suffix
     run _ecb_cursor_color(0)
     SHELL("tmode eko=0")

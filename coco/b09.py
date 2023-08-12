@@ -20,7 +20,6 @@ QUOTED_SINGLE_KEYWORD_STATEMENTS = [
 
 FUNCTIONS = {
     'ABS': 'ABS',
-    'ASC': 'ASC',
     'ATN': 'ATN',
     'COS': 'COS',
     'EXP': 'EXP',
@@ -50,6 +49,7 @@ STR3_FUNCTIONS = {
 QUOTED_STR3_FUNCTION_NAMES = [f'"{name}"' for name in STR3_FUNCTIONS]
 
 STR_NUM_FUNCTIONS = {
+    'ASC': 'ASC',
     'VAL': 'VAL',
     'LEN': 'LEN',
 }
@@ -94,6 +94,7 @@ QUOTED_FUNCTIONS_TO_STATEMENTS2_NAMES = [
 
 NUM_STR_FUNCTIONS_TO_STATEMENTS = {
     'HEX$': 'RUN ecb_hex',
+    'STR$': 'RUN ecb_str',
 }
 
 QUOTED_NUM_STR_FUNCTIONS_TO_STATEMENTS_NAMES = [
@@ -389,6 +390,16 @@ class BasicConstructVisitor():
         """
         pass
 
+    def visit_print_statement(self, statement):
+        """
+        Args:
+            statement (BasicPrintStatement): input statement to transform.
+
+        Returns:
+            BasicStatement: BasicStatement to replace statement.
+        """
+        return statement
+
     def visit_program(self, line):
         """
         Invoked when a program is encountered.
@@ -589,7 +600,9 @@ class BasicExpressionList(AbstractBasicConstruct):
     def basic09_text(self, indent_level):
         exp_list_text = ', '.join(
             exp.basic09_text(indent_level) for exp in self._exp_list)
-        return f'({exp_list_text})' if self._parens else f'{exp_list_text}'
+        if self._parens:
+            return f'({exp_list_text})' if exp_list_text else ''
+        return exp_list_text
 
     def visit(self, visitor):
         for exp in self.exp_list:
@@ -895,7 +908,9 @@ class BasicStatements(AbstractBasicStatement):
     def visit(self, visitor):
         for idx, statement in enumerate(self.statements):
             statement.visit(visitor)
-            if isinstance(statement, BasicReadStatement):
+            if isinstance(statement, BasicPrintStatement):
+                self.statements[idx] = visitor.visit_print_statement(statement)
+            elif isinstance(statement, BasicReadStatement):
                 self.statements[idx] = visitor.visit_read_statement(statement)
             elif isinstance(statement, BasicInputStatement):
                 self.statements[idx] = visitor.visit_input_statement(statement)
@@ -921,6 +936,10 @@ class BasicPrintStatement(AbstractBasicStatement):
         super().__init__()
         self._print_args = print_args
 
+    @property
+    def print_args(self):
+        return self._print_args
+
     def basic09_text(self, indent_level):
         return super().basic09_text(indent_level) + \
             f'PRINT {self._print_args.basic09_text(indent_level)}'
@@ -945,6 +964,10 @@ class BasicPrintArgs(AbstractBasicConstruct):
     @property
     def args(self):
         return self._args
+
+    @args.setter
+    def set_args(self, args):
+        self._args = args
 
     def basic09_text(self, indent_level):
         processed_args = []
@@ -1136,6 +1159,9 @@ class BasicFunctionalExpression(AbstractBasicExpression):
             self._statement.visit(visitor)
             self._var.visit(visitor)
         else:
+            for arg in self._args.exp_list:
+                arg.visit(visitor)
+
             visitor.visit_exp(self)
 
 
@@ -1201,11 +1227,11 @@ class BasicDimStatement(AbstractBasicStatement):
         dim_var_text = ', '.join((
             dim_var.basic09_text(indent_level) for dim_var in self._dim_vars
         ))
-        init_text = ' \\ '.join((
+        init_text = '\n'.join((
             self.init_text_for_var(dim_var) for dim_var in self._dim_vars
             if isinstance(dim_var, BasicArrayRef)
         ))
-        init_text = ' \\ ' + init_text if init_text else ''
+        init_text = '\n' + init_text if init_text else ''
 
         return f'{super().basic09_text(indent_level)}' \
             f'DIM {dim_var_text}' + init_text
@@ -1425,6 +1451,27 @@ class BasicInputStatementPatcherVisitor(BasicConstructVisitor):
             filter_statements,
             multi_line=False
         )
+
+
+class BasicPrintStatementPatcherVisitor(BasicConstructVisitor):
+    def visit_print_statement(self, statement):
+        """
+        Transform the PRINT statement so that non string expressions are
+        converted to strings via STR.
+        """
+
+        # Create statements for reading into the REAL vars
+        print_args = [
+            arg if not isinstance(arg, AbstractBasicExpression)
+            or arg.is_str_expr
+            else BasicFunctionalExpression(
+                  'run ecb_str',
+                  BasicExpressionList([arg]), is_str_expr=True
+                 )
+            for arg in statement.print_args.args
+        ]
+
+        return BasicPrintStatement(BasicPrintArgs(print_args))
 
 
 class BasicNextPatcherVisitor(BasicConstructVisitor):
@@ -2007,7 +2054,7 @@ def convert(progin,
             initialize_vars=False,
             skip_procedure_headers=False,
             output_dependencies=False,
-            add_standard_prefix=False):
+            add_standard_prefix=True):
     tree = grammar.parse(progin)
     bv = BasicVisitor()
     basic_prog = bv.visit(tree)
@@ -2035,13 +2082,16 @@ def convert(progin,
     if empty_data_elements_visitor.has_empty_data_elements:
         basic_prog.visit(BasicReadStatementPatcherVisitor())
 
-    # transform functions to proc calls
-    basic_prog.visit(BasicFunctionalExpressionPatcherVisitor())
-
     # Update joystk stuff
     joystk_initializer = JoystickVisitor()
     basic_prog.visit(joystk_initializer)
     basic_prog.extend_prefix_lines(joystk_initializer.joystk_var_statements)
+
+    # Patch PRINT statements
+    basic_prog.visit(BasicPrintStatementPatcherVisitor())
+
+    # transform functions to proc calls
+    basic_prog.visit(BasicFunctionalExpressionPatcherVisitor())
 
     # initialize variables
     if initialize_vars:
@@ -2077,7 +2127,7 @@ def convert_file(input_program_file,
                  filter_unused_linenum=False,
                  initialize_vars=False,
                  output_dependencies=False,
-                 add_standard_prefix=False):
+                 add_standard_prefix=True):
     progin = input_program_file.read()
     progout = convert(
         progin,
