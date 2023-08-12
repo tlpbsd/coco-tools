@@ -722,3 +722,16 @@ class TestB09(unittest.TestCase):
         assert 'procedure _ecb_start' in program
         assert program.endswith('procedure do_cls\nbase 0\nRUN _ecb_start\n'
                                 '(* *)\n')
+
+    def test_multiple_print_ats(self):
+        self.generic_test_parse(
+            '130 PRINT@64,"COLOR (1-8)";: INPUT CO\n'
+            '140 IF (CO<1 OR CO>8) THEN PRINT@64," ": GOTO 130\n',
+            '130 RUN ecb_at(64.0) \\ PRINT "COLOR (1-8)";\n'
+            'RUN _ecb_input_prefix \\ INPUT "? ", CO \\ '
+            'RUN _ecb_input_suffix\n'
+            '140 IF (CO < 1.0 OR CO > 8.0) THEN\n'
+            '  RUN ecb_at(64.0) \\ PRINT " "\n'
+            '  GOTO 130\n'
+            'ENDIF'
+        )

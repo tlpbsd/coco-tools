@@ -193,11 +193,12 @@ grammar = Grammar(
                     / clear_statement
                     / read_statement
                     / input_statement
-    statement2      =({ ' / '.join(QUOTED_STATEMENTS2_NAMES)}) space* "(" space* exp space* "," space* exp space* ")" space*
+    statement2      = ({ ' / '.join(QUOTED_STATEMENTS2_NAMES)}) space* "(" space* exp space* "," space* exp space* ")" space*
     statement3      = ({ ' / '.join(QUOTED_STATEMENTS3_NAMES)}) space* "(" space* exp space* "," space* exp space* "," space* exp space* ")" space*
-    statements      = (statement? (comment/((":"/space)+
-                                            (comment / statements)))* space*)
-    statements_else = (statement? (space* ":" statements)* space*)
+    statements           = statement? space* statements_elements space* comment?
+    statements_elements  = statements_element*
+    statements_element   = ":" space* statement? space*
+    statements_else      = statements
     exp             = "NOT"? space* num_exp space*
     if_exp          = bool_exp
                     / num_exp
@@ -902,12 +903,20 @@ class BasicStatements(AbstractBasicStatement):
     def set_statements(self, statements):
         self._statements = statements
 
-    def basic09_text(self, indent_level):
-        joiner = ('\n' + self.indent_spaces(indent_level)) \
-            if self._multi_line else r' \ '
+    def basic09_text(self, indent_level, pre_indent=True):
+        joiner = '\n' if self._multi_line else r' \ '
         net_indent_level = indent_level if self._multi_line else 0
-        return joiner.join(statement.basic09_text(net_indent_level)
-                           for statement in self._statements)
+
+        prefix = self.indent_spaces(indent_level) \
+            if pre_indent and self._statements and \
+            isinstance(self._statements[0], BasicStatements) \
+            else ''
+
+        return prefix + \
+            joiner.join(statement.basic09_text(indent_level, pre_indent=False)
+                        if isinstance(statement, BasicStatements)
+                        else statement.basic09_text(net_indent_level)
+                        for statement in self._statements)
 
     def visit(self, visitor):
         for idx, statement in enumerate(self.statements):
@@ -1805,8 +1814,23 @@ class BasicVisitor(NodeVisitor):
         return visited_children[0]
 
     def visit_statements(self, node, visited_children):
-        return BasicStatements([child for child in visited_children
-                                if isinstance(child, AbstractBasicConstruct)])
+        statement, _, statement_elements, _, basic_comment = visited_children
+        statement_elements = \
+            [statement] + statement_elements \
+            if statement else statement_elements
+        statement_elements = statement_elements + [basic_comment] \
+            if basic_comment else statement_elements
+        return BasicStatements(statement_elements)
+
+    def visit_statements_elements(self, node, visited_children):
+        return [statement for statement in visited_children if statement]
+
+    def visit_statements_element(self, node, visited_children):
+        _, _, statement, _ = visited_children
+        return statement or None
+
+    def visit_statements_else(self, node, visited_children):
+        return visited_children[0]
 
     def visit_str_literal(self, node, visited_children):
         return BasicLiteral(str(node.full_text[node.start+1:node.end-1]),
