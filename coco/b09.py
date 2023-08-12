@@ -1123,7 +1123,7 @@ class BasicNextStatement(AbstractBasicStatement):
         vlist = [
             f'NEXT {var.basic09_text(indent_level)}'
             for var in self.var_list.exp_list
-        ]
+        ] if self.var_list.exp_list else ['NEXT']
         return super().basic09_text(indent_level) + r' \ '.join(vlist)
 
     def visit(self, visitor):
@@ -1495,14 +1495,14 @@ class BasicPrintStatementPatcherVisitor(BasicConstructVisitor):
 
 class BasicNextPatcherVisitor(BasicConstructVisitor):
     def __init__(self):
-        self._last_for_var = None
+        self.for_stack = []
 
     def visit_for_statement(self, for_statement):
-        self._last_for_var = for_statement.var
+        self.for_stack.append(for_statement.var)
 
     def visit_next_statement(self, next_statement):
-        if self._last_for_var and len(next_statement.var_list.exp_list) == 0:
-            next_statement.var_list.exp_list.append(self._last_for_var)
+        if self.for_stack and len(next_statement.var_list.exp_list) == 0:
+            next_statement.var_list.exp_list.append(self.for_stack.pop())
 
 
 class BasicVisitor(NodeVisitor):

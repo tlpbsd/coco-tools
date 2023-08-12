@@ -701,10 +701,14 @@ class TestB09(unittest.TestCase):
         self.generic_test_parse(
             '10 FORX=1TO10\n'
             '20 FORY=1TO10\n'
-            '30 NEXT\n',
+            '30 NEXT\n'
+            '40 NEXT\n'
+            '50 NEXT\n',
             '10 FOR X = 1.0 TO 10.0\n'
             '20   FOR Y = 1.0 TO 10.0\n'
-            '30   NEXT Y'
+            '30   NEXT Y\n'
+            '40 NEXT X\n'
+            '50 NEXT'
         )
 
     def test_adds_standard_prefix(self):
