@@ -114,9 +114,12 @@ NEXT JJ
 ## Known broken conversions
 * Passing a hex literal value to something that results in a procedure call
   generate incorrect code.
-* `DIM` of multiple values in a single statement does not work.
-* `DIM` of scalar values does not work.
-* `READ` is not implemented.
-* Conversion of REAL values via `STR$` or `PRINT` lack leading and trailing
-  whitespace
 * Statements like this do not generate working code: `A = 3 < 4`
+## Common issues with converted programs
+By default, BASIC09 strings have a maximum length of 32 characters. This often
+results in strings getting truncated in non-obvious ways. Resolving these
+problems typically involves finding the variable with the issue and DIMing
+it to be large enough. For example:
+```
+DIM XX$: STRING[256]
+```

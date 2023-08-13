@@ -161,12 +161,19 @@ procedure ecb_set
 
 procedure ecb_sound
     param f, d, v:real
-    dim fint:integer
+    dim fint, dint, vint:integer
     if f < 0 or f > 255 or d < 0 or d > 255 or v < 0 or v > 63 then
         error 52
     endif
-    fint = fix(1.0 / (-2.24219E-05 * f + 0.005961832))
-    run gfx2("tone", fint, fix(d), fix(v))
+
+    fint = int(2.49696345 * f + 3456.878733)
+    dint = int(d * 4)
+    vint = fix(v)
+    while (dint > 255) do
+        run gfx2("tone", fint, 255, vint)
+        dint = dint - 255
+    endwhile
+    run gfx2("tone", fint, dint, vint)
 
 
 procedure _ecb_text_address
